@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mr Owl's Dungeon Adventure - Learn Polish!</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="game-container">
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+      <div class="title-section">
+        <h1>Mr Owl's Dungeon Adventure</h1>
+        <p class="subtitle">Learn Polish while exploring the dungeon!</p>
+        <div class="owl-mascot">
+          <img src="assets/start.png" alt="Mr Owl the Knight" class="start-image">
+        </div>
+      </div>
+
+      <div class="start-form">
+        <label for="player-name">Your Name:</label>
+        <input type="text" id="player-name" placeholder="Enter your name..." maxlength="20">
+
+        <div class="start-buttons">
+          <button id="new-game-btn" class="btn btn-primary">New Adventure</button>
+          <button id="load-game-btn" class="btn btn-secondary">Continue Adventure</button>
+        </div>
+      </div>
+
+      <div class="saved-games">
+        <h3>Saved Adventures</h3>
+        <div id="saved-games-list">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+      <div class="instructions">
+        <h3>How to Play</h3>
+        <ul>
+          <li>Explore the dungeon as Mr Owl the Knight</li>
+          <li>Answer Polish questions to defeat monsters</li>
+          <li>Correct answers let you progress and collect loot</li>
+          <li>Wrong answers push you back - try again!</li>
+          <li>Defeat the dragon by answering 3 questions in a row!</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+      <header class="game-header">
+        <h1>Mr Owl's Dungeon</h1>
+      </header>
+
+      <main class="game-main">
+        <!-- Top section: Image and Map side by side -->
+        <div class="top-display">
+          <div class="room-image-container">
+            <img id="room-image" src="assets/knight_owl.png" alt="Mr Owl the Knight">
+          </div>
+          <div id="map-panel" class="panel map-panel">
+            <h3>
+              <span class="label-en">Dungeon Map</span>
+              <span class="label-pl">Mapa Lochów</span>
+            </h3>
+            <div id="dungeon-map" class="dungeon-map-container">
+              <!-- Map SVG rendered by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Room description -->
+        <div id="room-description" class="room-description panel">
+          <!-- Room description populated by JavaScript -->
+        </div>
+
+        <!-- Bottom section: Navigation and Stats/Inventory -->
+        <div class="game-panels">
+          <div id="navigation-panel" class="panel navigation-panel">
+            <!-- Navigation options populated by JavaScript -->
+          </div>
+
+          <div class="side-panels">
+            <div id="stats-panel" class="panel stats-panel">
+              <!-- Stats populated by JavaScript -->
+            </div>
+
+            <div id="inventory-panel" class="panel inventory-panel">
+              <h3>Recent Loot</h3>
+              <!-- Inventory populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quiz-modal" class="modal hidden">
+      <div class="modal-content quiz-content">
+        <div class="monster-display">
+          <img id="monster-image" src="assets/placeholder.svg" alt="Monster">
+          <h2 id="monster-name">Monster</h2>
+          <p id="monster-description" class="monster-description">Monster description</p>
+        </div>
+
+        <div id="dragon-progress" class="dragon-progress hidden">
+          <!-- Dragon streak indicator -->
+        </div>
+
+        <div class="question-section">
+          <p id="question-text" class="question-text">Question goes here</p>
+          <button id="speak-word-btn" class="btn-speak hidden" title="Listen to pronunciation">
+            <span class="speak-icon">🔊</span>
+            <span class="speak-text">Listen</span>
+          </button>
+          <p id="sentence-text" class="sentence-text hidden">Sentence goes here</p>
+          <p id="hint-text" class="hint-text">Hint goes here</p>
+        </div>
+
+        <div id="answers-container" class="answers-container">
+          <!-- Answer buttons populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="modal hidden">
+      <div class="modal-content result-content">
+        <h2 id="result-title" class="result-title">Result</h2>
+        <p id="result-message" class="result-message">Message</p>
+        <p id="result-explanation" class="result-explanation">Explanation</p>
+
+        <div id="loot-container" class="loot-container hidden">
+          <!-- Loot display populated by JavaScript -->
+        </div>
+
+        <button id="continue-btn" class="btn btn-primary">Continue</button>
+      </div>
+    </div>
+
+    <!-- Treasure Modal -->
+    <div id="treasure-modal" class="modal hidden">
+      <div class="modal-content treasure-content">
+        <div class="treasure-display">
+          <img id="treasure-image" src="assets/treasure.png" alt="Treasure">
+          <h2 id="treasure-title">
+            <span class="title-en">Treasure Found!</span>
+            <span class="title-pl">Znaleziono Skarb!</span>
+          </h2>
+          <p id="treasure-description" class="treasure-description">
+            <span class="desc-en">You discovered a hidden treasure chest!</span>
+            <span class="desc-pl">Odkryłeś ukrytą skrzynię ze skarbami!</span>
+          </p>
+        </div>
+
+        <div id="treasure-loot-container" class="loot-container">
+          <!-- Treasure items populated by JavaScript -->
+        </div>
+
+        <button id="treasure-continue-btn" class="btn btn-primary">
+          <span class="btn-en">Collect Treasure</span>
+          <span class="btn-pl">Zbierz Skarb</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory-screen" class="screen hidden">
+      <div class="victory-content">
+        <div class="victory-banner">
+          <h1>VICTORY!</h1>
+          <div class="victory-owl">
+            <img src="assets/victory.png" alt="Victorious Mr Owl" class="victory-image">
+          </div>
+        </div>
+
+        <div id="victory-stats" class="victory-stats">
+          <!-- Stats populated by JavaScript -->
+        </div>
+
+        <button id="play-again-btn" class="btn btn-primary btn-large">Play Again</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Load data files first -->
+  <script src="js/data/vocabulary.js"></script>
+  <script src="js/data/grammar.js"></script>
+  <script src="js/data/monsters.js"></script>
+
+  <!-- Load maze generator library -->
+  <script src="js/lib/maze.js"></script>
+
+  <!-- Load modules -->
+  <script src="js/modules/questions.js"></script>
+  <script src="js/modules/player.js"></script>
+  <script src="js/modules/save.js"></script>
+  <script src="js/modules/descriptions.js"></script>
+  <script src="js/modules/dungeon.js"></script>
+  <script src="js/modules/combat.js"></script>
+  <script src="js/modules/map.js"></script>
+  <script src="js/modules/ui.js"></script>
+
+  <!-- Load main game controller -->
+  <script src="js/main.js"></script>
+</body>
+</html>

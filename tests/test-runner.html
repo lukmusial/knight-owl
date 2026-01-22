@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mr Owl's Dungeon - Test Suite</title>
+  <style>
+    body {
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: #1a1a2e;
+      color: #e8e8e8;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #ffd700;
+      border-bottom: 2px solid #ffd700;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #8b4513;
+      margin-top: 30px;
+    }
+    .test-suite {
+      margin: 20px 0;
+      padding: 15px;
+      background: #2d2d44;
+      border-radius: 8px;
+    }
+    .test-pass {
+      color: #4caf50;
+    }
+    .test-fail {
+      color: #f44336;
+    }
+    .test-result {
+      padding: 5px 10px;
+      margin: 5px 0;
+    }
+    .summary {
+      margin-top: 30px;
+      padding: 20px;
+      background: #2d2d44;
+      border-radius: 8px;
+      font-size: 1.2em;
+    }
+    .summary.all-pass {
+      border: 2px solid #4caf50;
+    }
+    .summary.has-failures {
+      border: 2px solid #f44336;
+    }
+    pre {
+      background: #1a1a2e;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mr Owl's Dungeon - Test Suite</h1>
+  <div id="test-output"></div>
+  <div id="summary" class="summary"></div>
+
+  <!-- Load data files -->
+  <script src="../js/data/vocabulary.js"></script>
+  <script src="../js/data/grammar.js"></script>
+  <script src="../js/data/monsters.js"></script>
+
+  <!-- Load modules -->
+  <script src="../js/modules/questions.js"></script>
+  <script src="../js/modules/player.js"></script>
+  <script src="../js/modules/save.js"></script>
+  <script src="../js/modules/descriptions.js"></script>
+  <script src="../js/modules/dungeon.js"></script>
+  <script src="../js/modules/combat.js"></script>
+  <script src="../js/modules/map.js"></script>
+
+  <!-- Simple Test Framework -->
+  <script>
+    // Test Framework
+    const TestRunner = {
+      results: [],
+      currentSuite: '',
+
+      suite(name, tests) {
+        this.currentSuite = name;
+        const suiteDiv = document.createElement('div');
+        suiteDiv.className = 'test-suite';
+        suiteDiv.innerHTML = `<h2>${name}</h2>`;
+        document.getElementById('test-output').appendChild(suiteDiv);
+        this.currentSuiteDiv = suiteDiv;
+
+        tests();
+      },
+
+      test(description, fn) {
+        try {
+          fn();
+          this.pass(description);
+        } catch (e) {
+          this.fail(description, e.message);
+        }
+      },
+
+      pass(description) {
+        this.results.push({ suite: this.currentSuite, description, passed: true });
+        const div = document.createElement('div');
+        div.className = 'test-result test-pass';
+        div.innerHTML = `✓ ${description}`;
+        this.currentSuiteDiv.appendChild(div);
+      },
+
+      fail(description, error) {
+        this.results.push({ suite: this.currentSuite, description, passed: false, error });
+        const div = document.createElement('div');
+        div.className = 'test-result test-fail';
+        div.innerHTML = `✗ ${description}<pre>${error}</pre>`;
+        this.currentSuiteDiv.appendChild(div);
+      },
+
+      assert(condition, message) {
+        if (!condition) {
+          throw new Error(message || 'Assertion failed');
+        }
+      },
+
+      assertEqual(actual, expected, message) {
+        if (actual !== expected) {
+          throw new Error(message || `Expected ${expected}, got ${actual}`);
+        }
+      },
+
+      assertTruthy(value, message) {
+        if (!value) {
+          throw new Error(message || `Expected truthy value, got ${value}`);
+        }
+      },
+
+      assertArray(value, message) {
+        if (!Array.isArray(value)) {
+          throw new Error(message || `Expected array, got ${typeof value}`);
+        }
+      },
+
+      showSummary() {
+        const passed = this.results.filter(r => r.passed).length;
+        const failed = this.results.filter(r => !r.passed).length;
+        const total = this.results.length;
+
+        const summaryDiv = document.getElementById('summary');
+        summaryDiv.className = `summary ${failed === 0 ? 'all-pass' : 'has-failures'}`;
+        summaryDiv.innerHTML = `
+          <strong>Test Summary:</strong><br>
+          Total: ${total} |
+          <span class="test-pass">Passed: ${passed}</span> |
+          <span class="test-fail">Failed: ${failed}</span>
+        `;
+      }
+    };
+
+    // Shorthand
+    const { suite, test, assert, assertEqual, assertTruthy, assertArray } = TestRunner;
+  </script>
+
+  <!-- Load test files -->
+  <script src="questions.test.js"></script>
+  <script src="player.test.js"></script>
+  <script src="save.test.js"></script>
+  <script src="dungeon.test.js"></script>
+  <script src="combat.test.js"></script>
+  <script src="map.test.js"></script>
+  <script src="integration.test.js"></script>
+
+  <!-- Run summary -->
+  <script>
+    TestRunner.showSummary();
+  </script>
+</body>
+</html>
