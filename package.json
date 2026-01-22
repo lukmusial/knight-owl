@@ -1,0 +1,20 @@
+{
+  "name": "mrowl-dungeon",
+  "version": "1.0.0",
+  "description": "Mr Owl's Dungeon Adventure - Learn Polish while exploring!",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild js/lib/maze-bundle.js --bundle --outfile=js/lib/maze.js --format=iife --global-name=MazeGenerator",
+    "test": "node tests/run-tests.js",
+    "start": "open index.html"
+  },
+  "keywords": ["game", "education", "polish", "language-learning"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "generate-maze": "^1.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.2"
+  }
+}
