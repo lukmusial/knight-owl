@@ -8,13 +8,18 @@ Mr Owl's Dungeon Adventure - A browser-based Polish language learning game where
 
 ## Development Commands
 
-**Run the game**: Open `index.html` in a browser
+**Run the game**: `npm start` or open `index.html` in a browser
 
 **Run tests**:
-- Command line: `node tests/run-tests.js`
+- Command line: `npm test` or `node tests/run-tests.js`
 - Browser: Open `tests/test-runner.html`
 
-No build system - vanilla JavaScript with direct browser execution.
+**Build maze library** (only needed if modifying dungeon generation):
+```bash
+npm run build
+```
+
+No build system for game code - vanilla JavaScript with direct browser execution.
 
 ## Architecture
 
@@ -58,7 +63,8 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 ## Key Configurations
 
 **Dungeon Generation** (dungeon.js):
-- MIN_MONSTER_ROOMS: 20, MAX_ROOMS: 35
+- MAZE_WIDTH: 7, MAZE_HEIGHT: 6 (creates 42-cell grid)
+- MIN_MONSTER_ROOMS: 20
 - Difficulty scaling: depths 1-7 (easy), 8-14 (medium), 15+ (hard)
 
 **Dragon Boss**: 3 consecutive correct answers required; wrong answer resets streak and pushes player back
