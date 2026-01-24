@@ -194,6 +194,19 @@
   <!-- Load maze generator library -->
   <script src="js/lib/maze.js"></script>
 
+  <!-- Load platform adapters -->
+  <script src="js/adapters/StorageAdapter.js"></script>
+  <script src="js/adapters/AudioAdapter.js"></script>
+  <script src="js/adapters/InputAdapter.js"></script>
+
+  <!-- Load browser platform implementations -->
+  <script src="js/platforms/browser/BrowserStorage.js"></script>
+  <script src="js/platforms/browser/BrowserAudio.js"></script>
+  <script src="js/platforms/browser/BrowserInput.js"></script>
+
+  <!-- Load platform detection (auto-initializes adapters) -->
+  <script src="js/platform-init.js"></script>
+
   <!-- Load modules -->
   <script src="js/modules/questions.js"></script>
   <script src="js/modules/player.js"></script>

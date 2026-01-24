@@ -29,11 +29,33 @@ const UI = (function() {
   }
 
   /**
-   * Speak a Polish word using Web Speech API
+   * Check if AudioAdapter is available
+   * @returns {boolean} Whether adapter is configured
+   */
+  function hasAudioAdapter() {
+    return typeof AudioAdapter !== 'undefined' && AudioAdapter.hasImplementation();
+  }
+
+  /**
+   * Speak a Polish word using AudioAdapter (with Web Speech API fallback)
    * @param {string} word - Polish word to speak
    */
   function speakPolishWord(word) {
-    if (!word || !window.speechSynthesis) return;
+    if (!word) return;
+
+    // Use AudioAdapter if available
+    if (hasAudioAdapter()) {
+      AudioAdapter.speak(word, {
+        language: 'pl-PL',
+        rate: 0.9,
+        pitch: 1.2,
+        volume: 1.0
+      });
+      return;
+    }
+
+    // Fallback to direct Web Speech API
+    if (!window.speechSynthesis) return;
 
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();

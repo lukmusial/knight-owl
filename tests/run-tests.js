@@ -116,13 +116,17 @@ const context = {
   Error,
   setTimeout,
   clearTimeout,
+  Promise,
+  RegExp,
   // localStorage mock
   localStorage: {
     data: {},
     getItem(key) { return this.data[key] || null; },
     setItem(key, value) { this.data[key] = String(value); },
     removeItem(key) { delete this.data[key]; },
-    clear() { this.data = {}; }
+    clear() { this.data = {}; },
+    get length() { return Object.keys(this.data).length; },
+    key(index) { return Object.keys(this.data)[index] || null; }
   },
   // Module exports mock
   module: { exports: {} }
@@ -155,6 +159,19 @@ loadScript('js/data/monsters.js');
 // Maze generator library
 loadScript('js/lib/maze.js');
 
+// Platform adapters
+loadScript('js/adapters/StorageAdapter.js');
+loadScript('js/adapters/AudioAdapter.js');
+loadScript('js/adapters/InputAdapter.js');
+
+// Browser platform implementations
+loadScript('js/platforms/browser/BrowserStorage.js');
+loadScript('js/platforms/browser/BrowserAudio.js');
+loadScript('js/platforms/browser/BrowserInput.js');
+
+// Platform detection (don't auto-init in test context)
+loadScript('js/platform-init.js');
+
 // Core modules
 loadScript('js/modules/questions.js');
 loadScript('js/modules/player.js');
@@ -169,7 +186,10 @@ console.log(`\n${'='.repeat(50)}`);
 console.log(`${colors.cyan}Running Tests${colors.reset}`);
 console.log('='.repeat(50));
 
-// Load test files
+// Load BDD extensions first
+loadScript('tests/bdd-extensions.js');
+
+// Load original test files
 loadScript('tests/questions.test.js');
 loadScript('tests/player.test.js');
 loadScript('tests/save.test.js');
@@ -178,6 +198,10 @@ loadScript('tests/dungeon.test.js');
 loadScript('tests/combat.test.js');
 loadScript('tests/map.test.js');
 loadScript('tests/integration.test.js');
+
+// Load adapter and E2E tests
+loadScript('tests/adapters.test.js');
+loadScript('tests/e2e/portable-engine.e2e.js');
 
 // Show summary
 TestRunner.showSummary();
