@@ -1438,3 +1438,353 @@ body {
 .more-items .label-pl {
   font-size: 0.85em;
 }
+
+/* ============================================ */
+/* MOBILE RESPONSIVE STYLES */
+/* ============================================ */
+
+/* Touch-friendly minimum sizes for all interactive elements */
+.btn,
+.nav-btn,
+.answer-btn,
+.delete-save-btn,
+.btn-speak {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Tablet breakpoint (768px) */
+@media (max-width: 768px) {
+  #game-container {
+    padding: 10px;
+  }
+
+  .title-section h1 {
+    font-size: 2rem;
+  }
+
+  .start-form {
+    padding: 20px;
+    max-width: 100%;
+    margin: 20px 10px;
+  }
+
+  .saved-games,
+  .instructions {
+    max-width: 100%;
+    margin: 20px 10px;
+  }
+
+  .game-header {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 15px;
+  }
+
+  .game-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .top-display {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .room-image-container {
+    min-height: 200px;
+  }
+
+  .room-image-container img {
+    max-height: 200px;
+  }
+
+  .game-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    padding: 20px;
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .monster-display img {
+    max-width: 100%;
+    max-height: 250px;
+  }
+
+  .answers-container {
+    grid-template-columns: 1fr;
+  }
+
+  .answer-btn {
+    padding: 16px 20px;
+  }
+
+  .victory-banner h1 {
+    font-size: 2.2rem;
+  }
+
+  .victory-image {
+    max-width: 100%;
+  }
+
+  .final-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+}
+
+/* Mobile breakpoint (480px) */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  #game-container {
+    padding: 8px;
+  }
+
+  .title-section h1 {
+    font-size: 1.6rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .start-image {
+    max-width: 100%;
+  }
+
+  .start-form {
+    padding: 15px;
+  }
+
+  .start-form input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  .start-buttons {
+    flex-direction: column;
+  }
+
+  .start-buttons .btn {
+    width: 100%;
+  }
+
+  .game-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .panel {
+    padding: 15px;
+  }
+
+  .nav-btn {
+    padding: 16px 15px;
+  }
+
+  .room-title .title-en {
+    font-size: 1.2rem;
+  }
+
+  .room-title .title-pl {
+    font-size: 0.95rem;
+  }
+
+  .modal-content {
+    padding: 15px;
+    border-radius: 12px;
+  }
+
+  .question-text {
+    font-size: 1.1rem;
+  }
+
+  .sentence-text {
+    font-size: 1.2rem;
+    padding: 10px;
+  }
+
+  .answer-btn {
+    font-size: 1rem;
+    padding: 18px 15px;
+  }
+
+  .result-title .title-en {
+    font-size: 1.6rem;
+  }
+
+  .result-title .title-pl {
+    font-size: 1.1rem;
+  }
+
+  .victory-banner h1 {
+    font-size: 1.8rem;
+  }
+
+  .victory-stats {
+    padding: 20px;
+  }
+
+  .final-stats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .final-stat {
+    padding: 12px;
+  }
+
+  .final-stat-value {
+    font-size: 1.3rem;
+  }
+
+  /* Map panel adjustments for mobile */
+  .map-panel {
+    min-height: 200px;
+  }
+
+  .dungeon-map-svg {
+    max-height: 180px;
+  }
+
+  .map-legend-html {
+    font-size: 9px;
+    padding: 4px 6px;
+  }
+
+  .legend-icon {
+    width: 12px;
+    height: 12px;
+    font-size: 7px;
+  }
+}
+
+/* Safe area insets for notched devices (iPhone X+, etc) */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  #game-container {
+    padding-top: calc(env(safe-area-inset-top) + 10px);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
+  }
+
+  .modal {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .toast {
+    bottom: calc(env(safe-area-inset-bottom) + 20px);
+  }
+}
+
+/* Touch interaction states - devices without hover */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects that don't work well on touch */
+  .btn:hover,
+  .nav-btn:hover,
+  .answer-btn:hover {
+    transform: none;
+  }
+
+  /* Add active state for touch feedback */
+  .btn:active,
+  .nav-btn:active,
+  .answer-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  /* Larger touch targets on touch devices */
+  .btn,
+  .nav-btn,
+  .answer-btn {
+    min-height: 52px;
+  }
+
+  /* Remove pointer cursor (not relevant on touch) */
+  .btn,
+  .nav-btn,
+  .answer-btn,
+  .saved-game-item {
+    cursor: default;
+  }
+
+  /* Increase spacing between touch targets */
+  .nav-options {
+    gap: 12px;
+  }
+
+  .answers-container {
+    gap: 12px;
+  }
+
+  .start-buttons {
+    gap: 12px;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .modal-content {
+    max-height: 95vh;
+    padding: 15px;
+  }
+
+  .monster-display img {
+    max-height: 150px;
+  }
+
+  .question-section {
+    margin-bottom: 15px;
+  }
+
+  .victory-owl {
+    margin: 15px 0;
+  }
+
+  .victory-image {
+    max-width: 300px;
+  }
+}
+
+/* High DPI / Retina displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Sharper borders on high DPI */
+  .panel,
+  .modal-content,
+  .btn {
+    border-width: 0.5px;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .btn-progress::before {
+    animation: none;
+    width: 100%;
+  }
+}
+
+/* Dark mode support (already dark, but ensure consistency) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
