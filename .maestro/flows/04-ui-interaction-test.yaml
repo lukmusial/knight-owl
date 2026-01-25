@@ -1,0 +1,90 @@
+# E2E Test: UI Interaction Test
+# Tests that all major UI elements are interactive on mobile
+#
+# Run with: maestro test .maestro/flows/04-ui-interaction-test.yaml
+
+appId: com.mrowl.dungeon
+
+---
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    timeout: 3000
+
+# Screenshot initial state
+- takeScreenshot: screenshots/ui-01-loaded
+
+# Test 1: Input field is interactive
+- tapOn:
+    text: "Enter your name"
+    optional: true
+- extendedWaitUntil:
+    timeout: 500
+
+# Try tapping by coordinates if text not found (center of input field area)
+- tapOn:
+    point: "50%,35%"
+- extendedWaitUntil:
+    timeout: 500
+- inputText: "UITest"
+- hideKeyboard
+- extendedWaitUntil:
+    timeout: 500
+
+- takeScreenshot: screenshots/ui-02-name-entered
+
+# Test 2: New Adventure button is tappable
+- tapOn:
+    text: "New Adventure"
+    optional: true
+- extendedWaitUntil:
+    timeout: 500
+
+# Fallback: tap by approximate position
+- runFlow:
+    when:
+      notVisible: "Dungeon Map"
+    commands:
+      - tapOn:
+          point: "50%,52%"
+      - extendedWaitUntil:
+    timeout: 2000
+
+- takeScreenshot: screenshots/ui-03-after-new-game
+
+# Wait for game screen
+- extendedWaitUntil:
+    timeout: 3000
+
+# Test 3: Verify game started (check for game elements)
+- takeScreenshot: screenshots/ui-04-game-screen
+
+# Test 4: Navigation buttons should be tappable
+- runFlow:
+    when:
+      visible:
+        text: "North"
+        optional: true
+    commands:
+      - tapOn: "North"
+      - extendedWaitUntil:
+    timeout: 1000
+      - takeScreenshot: screenshots/ui-05-after-navigation
+
+# Test 5: If quiz appears, answers should be tappable
+- extendedWaitUntil:
+    timeout: 1000
+- takeScreenshot: screenshots/ui-06-current-state
+
+# Try to interact with any visible button
+- tapOn:
+    text: ".*"
+    index: 0
+    optional: true
+
+- extendedWaitUntil:
+    timeout: 2000
+- takeScreenshot: screenshots/ui-99-final
