@@ -105,11 +105,10 @@ const Platform = (function() {
       console.log('Platform: InputAdapter initialized with BrowserInput');
     }
 
-    // Initialize haptics for iOS
-    if (platform === PLATFORMS.CAPACITOR_IOS) {
-      if (typeof CapacitorHaptics !== 'undefined') {
-        console.log('Platform: CapacitorHaptics available for iOS');
-      }
+    // Initialize haptics (available on both iOS and Android)
+    if (typeof CapacitorHaptics !== 'undefined') {
+      await CapacitorHaptics.init();
+      console.log('Platform: CapacitorHaptics initialized');
     }
   }
 
