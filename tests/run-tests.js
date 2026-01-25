@@ -172,6 +172,7 @@ loadScript('js/platforms/browser/BrowserInput.js');
 // Capacitor platform implementations
 loadScript('js/platforms/capacitor/CapacitorStorage.js');
 loadScript('js/platforms/capacitor/CapacitorAudio.js');
+loadScript('js/platforms/capacitor/CapacitorHaptics.js');
 
 // Platform detection (don't auto-init in test context)
 loadScript('js/platform-init.js');
@@ -209,6 +210,7 @@ loadScript('tests/capacitor.test.js');
 loadScript('tests/e2e/portable-engine.e2e.js');
 loadScript('tests/e2e/mobile-browser.e2e.js');
 loadScript('tests/e2e/android.e2e.js');
+loadScript('tests/e2e/ios.e2e.js');
 
 // Show summary
 TestRunner.showSummary();
