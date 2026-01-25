@@ -67,6 +67,8 @@ body {
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
+  touch-action: manipulation; /* Removes 300ms tap delay on mobile */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-primary {
@@ -1451,6 +1453,8 @@ body {
 .btn-speak {
   min-height: 48px;
   min-width: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Tablet breakpoint (768px) */
