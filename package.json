@@ -13,7 +13,11 @@
     "android:run": "npm run web:build && npx cap run android",
     "ios:sync": "npm run web:build && npx cap sync ios",
     "ios:open": "npx cap open ios",
-    "ios:run": "npm run web:build && npx cap run ios"
+    "ios:run": "npm run web:build && npx cap run ios",
+    "test:e2e": "maestro test .maestro/flows/",
+    "test:e2e:android": "maestro test .maestro/flows/",
+    "test:e2e:ios": "maestro test .maestro/flows/ --platform ios",
+    "test:e2e:record": "maestro record .maestro/flows/03-complete-game-automated.yaml"
   },
   "keywords": [
     "game",

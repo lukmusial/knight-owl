@@ -4,20 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mr Owl's Dungeon Adventure - A browser-based Polish language learning game where players explore a dungeon, answering Polish vocabulary and grammar questions to defeat monsters. Target audience: children learning Polish.
+Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game where players explore a dungeon, answering Polish vocabulary and grammar questions to defeat monsters. Target audience: children learning Polish. Runs on browser, Android, and iOS via Capacitor.
 
 ## Development Commands
 
 **Run the game**: `npm start` or open `index.html` in a browser
 
 **Run tests**:
-- Command line: `npm test` or `node tests/run-tests.js`
-- Browser: Open `tests/test-runner.html`
+- Unit tests: `npm test` or `node tests/run-tests.js`
+- Browser test runner: Open `tests/test-runner.html`
+- E2E tests: `npm run test:e2e` (requires Maestro and running emulator)
 
-**Build maze library** (only needed if modifying dungeon generation):
+**Mobile builds**:
 ```bash
-npm run build
+# Android (requires JAVA_HOME set to Java 17+)
+export JAVA_HOME=/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+npm run android:run
+
+# iOS (macOS only)
+npm run ios:run
 ```
+
+**Build maze library** (only needed if modifying dungeon generation): `npm run build`
 
 No build system for game code - vanilla JavaScript with direct browser execution.
 
@@ -33,7 +41,7 @@ const ModuleName = (function() {
 })();
 ```
 
-### Module Responsibilities
+### Core Modules
 
 | Module | File | Purpose |
 |--------|------|---------|
@@ -46,6 +54,27 @@ const ModuleName = (function() {
 | Save | `js/modules/save.js` | localStorage persistence |
 | DungeonMap | `js/modules/map.js` | SVG dungeon visualization |
 | Descriptions | `js/modules/descriptions.js` | Bilingual room/monster text |
+
+### Platform Abstraction Layer
+
+The game uses adapters to support multiple platforms:
+
+**Adapters** (`js/adapters/`):
+- `StorageAdapter.js` - Abstract storage interface
+- `AudioAdapter.js` - Abstract TTS interface
+- `InputAdapter.js` - Abstract input handling
+
+**Browser Implementations** (`js/platforms/browser/`):
+- `BrowserStorage.js` - localStorage wrapper
+- `BrowserAudio.js` - Web Speech API for Polish TTS
+- `BrowserInput.js` - Keyboard + touch/swipe gestures
+
+**Capacitor Implementations** (`js/platforms/capacitor/`):
+- `CapacitorStorage.js` - Native Preferences plugin
+- `CapacitorAudio.js` - Native TextToSpeech plugin
+- `CapacitorHaptics.js` - Haptic feedback for iOS/Android
+
+Platform detection happens in `js/platform-init.js`.
 
 ### Data Files
 - `js/data/vocabulary.js` - Polish vocabulary questions (difficulty 1-3)
@@ -91,15 +120,13 @@ All user-facing text uses English/Polish pairs:
 
 ## Testing
 
-Custom HTML test runner with `TestRunner.suite()` and `TestRunner.test()`. Test files mirror module structure in `tests/` directory.
+170+ unit tests using custom HTML test runner with `TestRunner.suite()` and `TestRunner.test()`. Test files mirror module structure in `tests/` directory.
 
 ### Testing Requirements
 
-**IMPORTANT**: Follow these testing practices for all changes:
+1. **Write tests for new functionality**: Every new feature or bug fix must include corresponding tests in the appropriate `tests/*.test.js` file.
 
-1. **Write tests for new functionality**: Every new feature or bug fix must include corresponding tests in the appropriate `tests/*.test.js` file. Create a new test file if adding a new module.
-
-2. **Run full test suite after changes**: After making any code changes, open `tests/test-runner.html` in a browser to verify all tests pass. Do not consider work complete until tests are green.
+2. **Run full test suite after changes**: `npm test` must pass before considering work complete.
 
 3. **Test file naming**: `{module}.test.js` (e.g., `map.test.js`, `combat.test.js`)
 
@@ -112,7 +139,6 @@ TestRunner.suite('Module Name', () => {
 
   TestRunner.test('should do something', () => {
     setup();
-    // Arrange, Act, Assert
     TestRunner.assertEqual(actual, expected, 'message');
   });
 });
@@ -123,3 +149,11 @@ TestRunner.suite('Module Name', () => {
 - `TestRunner.assertEqual(actual, expected, message)` - strict equality
 - `TestRunner.assertTruthy(value, message)` - truthy value
 - `TestRunner.assertArray(value, message)` - array type check
+
+## WebView Compatibility
+
+Avoid ES2020+ syntax (optional chaining `?.`, nullish coalescing `??`) in JavaScript to support older Android WebViews (API 28). Use helper functions for safe property access instead.
+
+## E2E Testing
+
+Maestro tests in `.maestro/flows/` verify mobile app behavior. Known limitation: Android API 28 emulators have WebView touch event issues. Use API 30+ or iOS Simulator for reliable E2E testing.
