@@ -204,6 +204,53 @@ TestRunner.suite('Combat Module', () => {
     TestRunner.assert(!Combat.hasActiveEncounter(), 'Should not have encounter after cancel');
   });
 
+  TestRunner.test('correct answer result should include correctAnswer, sentence, and category', () => {
+    setup();
+
+    const monster = { id: 'goblin', name: 'Goblin', loot: [] };
+    const encounter = Combat.startEncounter(monster, 1);
+
+    const correctIndex = encounter.question.correctIndex;
+    const result = Combat.submitAnswer(correctIndex);
+
+    TestRunner.assert(result.success, 'Result should be success');
+    TestRunner.assertTruthy(result.correctAnswer, 'Should have correctAnswer');
+    TestRunner.assertEqual(result.correctAnswer, encounter.question.options[encounter.question.correctIndex], 'correctAnswer should match question');
+    TestRunner.assertTruthy(result.category, 'Should have category');
+    // sentence may be null for vocabulary questions
+    TestRunner.assert('sentence' in result, 'Should have sentence field');
+  });
+
+  TestRunner.test('wrong answer result should include sentence and category', () => {
+    setup();
+    Player.moveTo('room_1');
+
+    const monster = { id: 'goblin', name: 'Goblin', loot: [] };
+    const encounter = Combat.startEncounter(monster, 1);
+
+    const wrongIndex = (encounter.question.correctIndex + 1) % 4;
+    const result = Combat.submitAnswer(wrongIndex);
+
+    TestRunner.assert(!result.success, 'Result should not be success');
+    TestRunner.assertTruthy(result.correctAnswer, 'Should have correctAnswer');
+    TestRunner.assertTruthy(result.category, 'Should have category');
+    TestRunner.assert('sentence' in result, 'Should have sentence field');
+  });
+
+  TestRunner.test('dragon correct answer result should include correctAnswer and category', () => {
+    setup();
+
+    const dragon = { id: 'dragon', name: 'Dragon', loot: [] };
+    const encounter = Combat.startEncounter(dragon, 3);
+
+    const result = Combat.submitAnswer(encounter.question.correctIndex);
+
+    TestRunner.assert(result.success, 'Result should be success');
+    TestRunner.assertTruthy(result.correctAnswer, 'Should have correctAnswer');
+    TestRunner.assertTruthy(result.category, 'Should have category');
+    TestRunner.assert('sentence' in result, 'Should have sentence field');
+  });
+
   TestRunner.test('all monsters should have valid IDs for image paths', () => {
     // MONSTERS array should have IDs that can be used as image filenames
     TestRunner.assert(MONSTERS.length > 0, 'Should have monsters defined');
