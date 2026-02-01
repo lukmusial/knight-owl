@@ -1,0 +1,16 @@
+# Maestro E2E Test Configuration
+# Run with: maestro test .maestro/flows/
+
+# App configuration
+appId: com.mrowl.dungeon
+
+# Default settings
+flows:
+  - flows/*.yaml
+
+# Test execution settings
+executionOrder: sequential
+
+# Timeouts (milliseconds)
+initFlow:
+  appId: com.mrowl.dungeon

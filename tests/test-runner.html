@@ -68,6 +68,24 @@
   <script src="../js/data/grammar.js"></script>
   <script src="../js/data/monsters.js"></script>
 
+  <!-- Load platform adapters -->
+  <script src="../js/adapters/StorageAdapter.js"></script>
+  <script src="../js/adapters/AudioAdapter.js"></script>
+  <script src="../js/adapters/InputAdapter.js"></script>
+
+  <!-- Load browser platform implementations -->
+  <script src="../js/platforms/browser/BrowserStorage.js"></script>
+  <script src="../js/platforms/browser/BrowserAudio.js"></script>
+  <script src="../js/platforms/browser/BrowserInput.js"></script>
+
+  <!-- Load Capacitor platform implementations -->
+  <script src="../js/platforms/capacitor/CapacitorStorage.js"></script>
+  <script src="../js/platforms/capacitor/CapacitorAudio.js"></script>
+  <script src="../js/platforms/capacitor/CapacitorHaptics.js"></script>
+
+  <!-- Load platform detection (don't auto-init for tests) -->
+  <script src="../js/platform-init.js"></script>
+
   <!-- Load modules -->
   <script src="../js/modules/questions.js"></script>
   <script src="../js/modules/player.js"></script>
@@ -164,14 +182,26 @@
     const { suite, test, assert, assertEqual, assertTruthy, assertArray } = TestRunner;
   </script>
 
-  <!-- Load test files -->
+  <!-- Load BDD extensions -->
+  <script src="bdd-extensions.js"></script>
+
+  <!-- Load original test files -->
   <script src="questions.test.js"></script>
   <script src="player.test.js"></script>
   <script src="save.test.js"></script>
+  <script src="descriptions.test.js"></script>
   <script src="dungeon.test.js"></script>
   <script src="combat.test.js"></script>
   <script src="map.test.js"></script>
   <script src="integration.test.js"></script>
+
+  <!-- Load adapter and E2E tests -->
+  <script src="adapters.test.js"></script>
+  <script src="capacitor.test.js"></script>
+  <script src="e2e/portable-engine.e2e.js"></script>
+  <script src="e2e/mobile-browser.e2e.js"></script>
+  <script src="e2e/android.e2e.js"></script>
+  <script src="e2e/ios.e2e.js"></script>
 
   <!-- Run summary -->
   <script>

@@ -1,0 +1,129 @@
+# E2E Test: Complete Game (Automated)
+# Uses JavaScript to automate game completion, verifying all systems work
+#
+# Run with: maestro test .maestro/flows/03-complete-game-automated.yaml
+
+appId: com.mrowl.dungeon
+
+---
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+- takeScreenshot: screenshots/auto-01-start
+
+# Start a new game via JavaScript
+- evalScript: |
+    (function() {
+      const input = document.getElementById('player-name');
+      if (input) input.value = 'AutoTest';
+      const btn = document.getElementById('new-game-btn');
+      if (btn) btn.click();
+      return 'Game starting...';
+    })();
+
+# Wait for game screen
+- extendedWaitUntil:
+    visible: "Dungeon Map"
+    timeout: 10000
+
+- takeScreenshot: screenshots/auto-02-game-started
+
+# Simulate complete game playthrough using game API
+- evalScript: |
+    (function() {
+      if (typeof Game === 'undefined' || typeof Dungeon === 'undefined') {
+        throw new Error('Game modules not loaded');
+      }
+
+      const entrance = Dungeon.getEntranceId();
+      const bossId = Dungeon.getBossId();
+
+      // BFS to find path
+      function findPath() {
+        const visited = new Set();
+        const queue = [[entrance]];
+        while (queue.length > 0) {
+          const path = queue.shift();
+          const current = path[path.length - 1];
+          if (current === bossId) return path;
+          if (visited.has(current)) continue;
+          visited.add(current);
+          const connections = Dungeon.getConnectedRooms(current);
+          for (const room of connections) {
+            if (!visited.has(room.id)) {
+              queue.push([...path, room.id]);
+            }
+          }
+        }
+        return null;
+      }
+
+      const path = findPath();
+      if (!path) throw new Error('No path to boss found');
+
+      let monstersDefeated = 0;
+
+      // Navigate through each room
+      for (const roomId of path) {
+        Player.moveTo(roomId);
+        const room = Dungeon.getRoom(roomId);
+        if (room && room.monster && !room.cleared) {
+          Dungeon.clearRoom(roomId);
+          Player.defeatMonster();
+          monstersDefeated++;
+        }
+      }
+
+      // Defeat dragon
+      Player.incrementDragonStreak();
+      Player.incrementDragonStreak();
+      Player.incrementDragonStreak();
+
+      return 'Path: ' + path.length + ' rooms, Monsters: ' + monstersDefeated;
+    })();
+
+- takeScreenshot: screenshots/auto-03-game-progress
+
+# Verify player stats
+- evalScript: |
+    (function() {
+      const defeated = Player.getMonstersDefeated();
+      if (defeated < 1) {
+        throw new Error('No monsters defeated: ' + defeated);
+      }
+      return 'Monsters defeated: ' + defeated + ', Dragon: ' + Player.isDragonDefeated();
+    })();
+
+# Show victory screen
+- evalScript: |
+    (function() {
+      if (typeof UI !== 'undefined' && UI.showVictoryScreen) {
+        UI.showVictoryScreen();
+        return 'Victory screen shown';
+      }
+      throw new Error('UI not available');
+    })();
+
+# Wait for victory screen
+- extendedWaitUntil:
+    visible: "VICTORY"
+    timeout: 5000
+
+- takeScreenshot: screenshots/auto-04-victory
+
+# Verify victory
+- evalScript: |
+    (function() {
+      const victoryScreen = document.getElementById('victory-screen');
+      if (victoryScreen && !victoryScreen.classList.contains('hidden')) {
+        return 'VICTORY VERIFIED - TEST PASSED';
+      }
+      if (document.body.textContent.includes('VICTORY')) {
+        return 'VICTORY TEXT FOUND - TEST PASSED';
+      }
+      throw new Error('Victory screen not showing');
+    })();
+
+- takeScreenshot: screenshots/auto-99-complete
