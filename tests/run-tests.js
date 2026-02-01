@@ -152,39 +152,40 @@ function loadScript(filePath) {
 console.log(`${colors.cyan}Loading modules...${colors.reset}`);
 
 // Data files
-loadScript('js/data/vocabulary.js');
-loadScript('js/data/grammar.js');
-loadScript('js/data/monsters.js');
+loadScript('www/js/data/vocabulary.js');
+loadScript('www/js/data/vocabulary-reverse.js');
+loadScript('www/js/data/grammar.js');
+loadScript('www/js/data/monsters.js');
 
 // Maze generator library
-loadScript('js/lib/maze.js');
+loadScript('www/js/lib/maze.js');
 
 // Platform adapters
-loadScript('js/adapters/StorageAdapter.js');
-loadScript('js/adapters/AudioAdapter.js');
-loadScript('js/adapters/InputAdapter.js');
+loadScript('www/js/adapters/StorageAdapter.js');
+loadScript('www/js/adapters/AudioAdapter.js');
+loadScript('www/js/adapters/InputAdapter.js');
 
 // Browser platform implementations
-loadScript('js/platforms/browser/BrowserStorage.js');
-loadScript('js/platforms/browser/BrowserAudio.js');
-loadScript('js/platforms/browser/BrowserInput.js');
+loadScript('www/js/platforms/browser/BrowserStorage.js');
+loadScript('www/js/platforms/browser/BrowserAudio.js');
+loadScript('www/js/platforms/browser/BrowserInput.js');
 
 // Capacitor platform implementations
-loadScript('js/platforms/capacitor/CapacitorStorage.js');
-loadScript('js/platforms/capacitor/CapacitorAudio.js');
-loadScript('js/platforms/capacitor/CapacitorHaptics.js');
+loadScript('www/js/platforms/capacitor/CapacitorStorage.js');
+loadScript('www/js/platforms/capacitor/CapacitorAudio.js');
+loadScript('www/js/platforms/capacitor/CapacitorHaptics.js');
 
 // Platform detection (don't auto-init in test context)
-loadScript('js/platform-init.js');
+loadScript('www/js/platform-init.js');
 
 // Core modules
-loadScript('js/modules/questions.js');
-loadScript('js/modules/player.js');
-loadScript('js/modules/save.js');
-loadScript('js/modules/descriptions.js');
-loadScript('js/modules/dungeon.js');
-loadScript('js/modules/combat.js');
-loadScript('js/modules/map.js');
+loadScript('www/js/modules/questions.js');
+loadScript('www/js/modules/player.js');
+loadScript('www/js/modules/save.js');
+loadScript('www/js/modules/descriptions.js');
+loadScript('www/js/modules/dungeon.js');
+loadScript('www/js/modules/combat.js');
+loadScript('www/js/modules/map.js');
 
 console.log(`${colors.green}Modules loaded successfully${colors.reset}`);
 console.log(`\n${'='.repeat(50)}`);

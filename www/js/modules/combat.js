@@ -85,13 +85,17 @@ const Combat = (function() {
           streak: streak,
           loot: loot,
           message: Descriptions.generateVictoryMessage(monster),
-          explanation: currentQuestion.explanation
+          explanation: currentQuestion.explanation,
+          correctAnswer: currentQuestion.options[currentQuestion.correctIndex],
+          sentence: currentQuestion.sentence || null,
+          category: currentQuestion.category
         };
 
         clearEncounter();
         return result;
       } else {
         // Need more correct answers
+        var prevQuestion = currentQuestion;
         // Get next dragon question
         currentQuestion = Questions.getDragonQuestion();
 
@@ -100,7 +104,10 @@ const Combat = (function() {
           dragonDefeated: false,
           streak: streak,
           message: Descriptions.generateDragonText(streak),
-          explanation: currentQuestion ? '' : 'Well done!',
+          explanation: prevQuestion ? '' : 'Well done!',
+          correctAnswer: prevQuestion.options[prevQuestion.correctIndex],
+          sentence: prevQuestion.sentence || null,
+          category: prevQuestion.category,
           nextQuestion: currentQuestion
         };
       }
@@ -119,7 +126,10 @@ const Combat = (function() {
         defeated: true,
         loot: loot,
         message: Descriptions.generateVictoryMessage(monster),
-        explanation: currentQuestion.explanation
+        explanation: currentQuestion.explanation,
+        correctAnswer: currentQuestion.options[currentQuestion.correctIndex],
+        sentence: currentQuestion.sentence || null,
+        category: currentQuestion.category
       };
 
       clearEncounter();
@@ -145,6 +155,8 @@ const Combat = (function() {
         streak: 0,
         pushedBack: true,
         correctAnswer: currentQuestion.options[currentQuestion.correctIndex],
+        sentence: currentQuestion.sentence || null,
+        category: currentQuestion.category,
         message: 'The dragon shakes its head. "Wrong answer, brave knight! You must retreat and try again!"',
         explanation: currentQuestion.explanation
       };
@@ -160,6 +172,8 @@ const Combat = (function() {
         defeated: false,
         pushedBack: true,
         correctAnswer: currentQuestion.options[currentQuestion.correctIndex],
+        sentence: currentQuestion.sentence || null,
+        category: currentQuestion.category,
         message: Descriptions.generateDefeatMessage(currentEncounter.monster),
         explanation: currentQuestion.explanation
       };

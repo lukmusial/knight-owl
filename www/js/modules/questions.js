@@ -21,6 +21,11 @@ const Questions = (function() {
       questions = questions.concat(VOCABULARY_QUESTIONS);
     }
 
+    // Load reverse vocabulary questions if available
+    if (typeof VOCABULARY_REVERSE_QUESTIONS !== 'undefined') {
+      questions = questions.concat(VOCABULARY_REVERSE_QUESTIONS);
+    }
+
     // Load grammar questions if available
     if (typeof GRAMMAR_QUESTIONS !== 'undefined') {
       questions = questions.concat(GRAMMAR_QUESTIONS);
@@ -164,6 +169,7 @@ const Questions = (function() {
       medium: questions.filter(q => q.difficulty === 2).length,
       hard: questions.filter(q => q.difficulty === 3).length,
       vocabulary: questions.filter(q => q.category === 'vocabulary').length,
+      vocabulary_reverse: questions.filter(q => q.category === 'vocabulary_reverse').length,
       grammar: questions.filter(q => q.category === 'grammar').length,
       used: usedQuestionIds.size
     };

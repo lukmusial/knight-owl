@@ -770,6 +770,79 @@ body {
   display: none;
 }
 
+.answer-row {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.answer-row .answer-btn {
+  flex: 1;
+}
+
+.btn-speak-answer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-height: 48px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: 8px;
+  color: var(--color-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-speak-answer:hover {
+  background: var(--color-primary);
+  color: var(--color-bg);
+}
+
+.btn-speak-answer:active {
+  transform: scale(0.95);
+}
+
+.sentence-listen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--color-surface);
+  border-radius: 8px;
+}
+
+.sentence-listen .full-sentence {
+  flex: 1;
+  font-style: italic;
+}
+
+.btn-speak-sentence {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-height: 48px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: 8px;
+  color: var(--color-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-speak-sentence:hover {
+  background: var(--color-primary);
+  color: var(--color-bg);
+}
+
+.btn-speak-sentence:active {
+  transform: scale(0.95);
+}
+
 .sentence-text {
   font-size: 1.4rem;
   color: var(--color-primary);
@@ -1450,7 +1523,9 @@ body {
 .nav-btn,
 .answer-btn,
 .delete-save-btn,
-.btn-speak {
+.btn-speak,
+.btn-speak-answer,
+.btn-speak-sentence {
   min-height: 48px;
   min-width: 48px;
   touch-action: manipulation;

@@ -440,10 +440,19 @@ const MONSTERS = [
  * @param {number} difficulty - 1, 2, or 3
  * @returns {Object} A monster object
  */
-function getRandomMonster(difficulty) {
-  const available = MONSTERS.filter(m => m.difficulty === difficulty);
-  if (available.length === 0) {
-    return MONSTERS.find(m => m.difficulty === 1); // Fallback to easy
+function getRandomMonster(difficulty, usedIds) {
+  var all = MONSTERS.filter(function(m) { return m.difficulty === difficulty; });
+  if (all.length === 0) {
+    return MONSTERS.find(function(m) { return m.difficulty === 1; }); // Fallback to easy
+  }
+  var available = all;
+  if (usedIds) {
+    available = all.filter(function(m) { return !usedIds.has(m.id); });
+    if (available.length === 0) {
+      // All monsters of this difficulty used — reset by clearing those ids
+      all.forEach(function(m) { usedIds.delete(m.id); });
+      available = all;
+    }
   }
   return available[Math.floor(Math.random() * available.length)];
 }
