@@ -215,17 +215,19 @@ const Dungeon = (function() {
     const shuffled = availableRooms.sort(() => Math.random() - 0.5);
     const monsterCount = Math.min(settings.MIN_MONSTER_ROOMS, shuffled.length);
 
+    var usedMonsterIds = new Set();
     for (let i = 0; i < monsterCount; i++) {
       const roomId = shuffled[i];
       const room = roomGrid[roomId];
       const difficulty = getDepthDifficulty(room.depth);
 
       room.type = 'monster';
-      room.monster = typeof getRandomMonster !== 'undefined' ? getRandomMonster(difficulty) : {
+      room.monster = typeof getRandomMonster !== 'undefined' ? getRandomMonster(difficulty, usedMonsterIds) : {
         id: 'generic',
         name: 'Monster',
         difficulty: difficulty
       };
+      usedMonsterIds.add(room.monster.id);
       room.cleared = false;
     }
 
