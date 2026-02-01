@@ -704,6 +704,8 @@ const UI = (function() {
       if (speakSentenceBtn) {
         speakSentenceBtn.addEventListener('click', function() {
           var sentence = speakSentenceBtn.closest('.sentence-listen').querySelector('.full-sentence').textContent;
+          // Strip English hints in parentheses and arrows for TTS
+          sentence = sentence.replace(/\s*\([^)]*\)/g, '').replace(/→/g, '').replace(/\s+/g, ' ').trim();
           speakPolishWord(sentence);
         });
       }
