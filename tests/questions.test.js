@@ -159,6 +159,41 @@ TestRunner.suite('Questions Module', () => {
     }
   });
 
+  TestRunner.test('should have vocabulary_reverse questions', () => {
+    Questions.init();
+    const stats = Questions.getQuestionStats();
+    TestRunner.assert(stats.vocabulary_reverse > 0, 'Should have vocabulary_reverse questions');
+  });
+
+  TestRunner.test('vocabulary_reverse count should match vocabulary count', () => {
+    Questions.init();
+    const stats = Questions.getQuestionStats();
+    TestRunner.assertEqual(stats.vocabulary_reverse, stats.vocabulary, 'vocabulary_reverse count should equal vocabulary count');
+  });
+
+  TestRunner.test('vocabulary_reverse questions should exist at all difficulty levels', () => {
+    Questions.init();
+    Questions.resetUsed();
+    const revQuestions = typeof VOCABULARY_REVERSE_QUESTIONS !== 'undefined' ? VOCABULARY_REVERSE_QUESTIONS : [];
+    const easy = revQuestions.filter(q => q.difficulty === 1);
+    const medium = revQuestions.filter(q => q.difficulty === 2);
+    const hard = revQuestions.filter(q => q.difficulty === 3);
+    TestRunner.assert(easy.length > 0, 'Should have easy vocabulary_reverse questions');
+    TestRunner.assert(medium.length > 0, 'Should have medium vocabulary_reverse questions');
+    TestRunner.assert(hard.length > 0, 'Should have hard vocabulary_reverse questions');
+  });
+
+  TestRunner.test('vocabulary_reverse prompts should ask how to say in Polish', () => {
+    Questions.init();
+    Questions.resetUsed();
+    const question = Questions.getQuestion(1, 'vocabulary_reverse');
+    TestRunner.assertTruthy(question, 'Should return a vocabulary_reverse question');
+    TestRunner.assert(
+      question.prompt.startsWith('How do you say'),
+      'vocabulary_reverse prompt should start with "How do you say"'
+    );
+  });
+
   TestRunner.test('getQuestion should randomize option order', () => {
     // Reset and get the same question multiple times by re-initializing
     // to check if options are shuffled differently

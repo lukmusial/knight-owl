@@ -161,6 +161,46 @@ TestRunner.suite('Dungeon Module', () => {
     }
   });
 
+  TestRunner.test('should use all monster types before repeating', () => {
+    Dungeon.generate();
+    var state = Dungeon.getState();
+    var rooms = state.rooms;
+
+    // Collect monster ids grouped by difficulty
+    var byDifficulty = {};
+    Object.keys(rooms).forEach(function(id) {
+      var room = rooms[id];
+      if (room.type === 'monster' && room.monster) {
+        var d = room.monster.difficulty;
+        if (!byDifficulty[d]) byDifficulty[d] = [];
+        byDifficulty[d].push(room.monster.id);
+      }
+    });
+
+    // For each difficulty, check that all available monster types are used
+    // before any repeats occur
+    [1, 2, 3].forEach(function(diff) {
+      var placed = byDifficulty[diff];
+      if (!placed || placed.length === 0) return;
+
+      var allOfDiff = MONSTERS.filter(function(m) { return m.difficulty === diff; });
+      var uniquePlaced = [];
+      placed.forEach(function(id) {
+        if (uniquePlaced.indexOf(id) === -1) uniquePlaced.push(id);
+      });
+
+      // If we placed at least as many as exist, all types should appear
+      if (placed.length >= allOfDiff.length) {
+        allOfDiff.forEach(function(m) {
+          TestRunner.assert(
+            uniquePlaced.indexOf(m.id) !== -1,
+            'Difficulty ' + diff + ' should use monster ' + m.id + ' before repeating'
+          );
+        });
+      }
+    });
+  });
+
   TestRunner.test('rooms should have descriptions and image prompts', () => {
     Dungeon.generate();
     const entranceId = Dungeon.getEntranceId();

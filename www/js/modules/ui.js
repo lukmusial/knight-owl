@@ -530,13 +530,23 @@ const UI = (function() {
 
     if (elements.answersContainer) {
       elements.answersContainer.innerHTML = question.options.map((opt, i) => `
-        <button class="answer-btn" data-index="${i}">${opt}</button>
+        <div class="answer-row">
+          <button class="answer-btn" data-index="${i}">${opt}</button>
+          ${question.category !== 'vocabulary' ? '<button class="btn-speak-answer" data-word="' + opt + '" title="Listen">&#x1f50a;</button>' : ''}
+        </div>
       `).join('');
 
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const index = parseInt(btn.dataset.index);
           if (onAnswer) onAnswer(index);
+        });
+      });
+
+      elements.answersContainer.querySelectorAll('.btn-speak-answer').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          speakPolishWord(btn.dataset.word);
         });
       });
     }
@@ -597,13 +607,23 @@ const UI = (function() {
 
     if (elements.answersContainer) {
       elements.answersContainer.innerHTML = question.options.map((opt, i) => `
-        <button class="answer-btn" data-index="${i}">${opt}</button>
+        <div class="answer-row">
+          <button class="answer-btn" data-index="${i}">${opt}</button>
+          ${question.category !== 'vocabulary' ? '<button class="btn-speak-answer" data-word="' + opt + '" title="Listen">&#x1f50a;</button>' : ''}
+        </div>
       `).join('');
 
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const index = parseInt(btn.dataset.index);
           if (onAnswer) onAnswer(index);
+        });
+      });
+
+      elements.answersContainer.querySelectorAll('.btn-speak-answer').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          speakPolishWord(btn.dataset.word);
         });
       });
     }
@@ -666,7 +686,29 @@ const UI = (function() {
         `;
       }
 
+      // Add sentence listen button for grammar questions on success
+      if (result.success && result.sentence && result.correctAnswer) {
+        var fullSentence = result.sentence.replace('___', result.correctAnswer);
+        explanationHTML += `
+          <div class="sentence-listen">
+            <span class="full-sentence">${fullSentence}</span>
+            <button class="btn-speak-sentence" title="Listen">&#x1f50a;</button>
+          </div>
+        `;
+      }
+
       elements.resultExplanation.innerHTML = explanationHTML;
+
+      // Attach sentence speak handler
+      var speakSentenceBtn = elements.resultExplanation.querySelector('.btn-speak-sentence');
+      if (speakSentenceBtn) {
+        speakSentenceBtn.addEventListener('click', function() {
+          var sentence = speakSentenceBtn.closest('.sentence-listen').querySelector('.full-sentence').textContent;
+          // Strip English hints in parentheses and arrows for TTS
+          sentence = sentence.replace(/\s*\([^)]*\)/g, '').replace(/→/g, '').replace(/\s+/g, ' ').trim();
+          speakPolishWord(sentence);
+        });
+      }
     }
 
     // Hide loot initially - will show when continue button is enabled
