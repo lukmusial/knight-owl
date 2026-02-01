@@ -1,0 +1,60 @@
+# E2E Test: Start New Game
+# Verifies the start screen works and a new game can be started
+#
+# Run with: maestro test .maestro/flows/02-start-new-game.yaml
+
+appId: com.mrowl.dungeon
+
+---
+
+- launchApp:
+    clearState: true
+
+# Wait for WebView to load
+- waitForAnimationToEnd
+
+# Take initial screenshot
+- takeScreenshot: screenshots/start-screen
+
+# Use JavaScript to interact with WebView - set player name
+- evalScript: |
+    (function() {
+      const input = document.getElementById('player-name');
+      if (input) {
+        input.value = 'MaestroTest';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        return 'Name set';
+      }
+      return 'Input not found';
+    })();
+
+# Click New Adventure button via JavaScript
+- evalScript: |
+    (function() {
+      const btn = document.getElementById('new-game-btn');
+      if (btn) {
+        btn.click();
+        return 'Button clicked';
+      }
+      return 'Button not found';
+    })();
+
+# Wait for game screen
+- extendedWaitUntil:
+    visible: "Dungeon Map"
+    timeout: 10000
+
+- takeScreenshot: screenshots/game-started
+
+# Verify game screen is showing
+- evalScript: |
+    (function() {
+      const gameScreen = document.getElementById('game-screen');
+      const isVisible = gameScreen && !gameScreen.classList.contains('hidden');
+      if (!isVisible) {
+        throw new Error('Game screen not visible');
+      }
+      return 'Game screen visible - TEST PASSED';
+    })();
+
+- takeScreenshot: screenshots/game-screen-verified

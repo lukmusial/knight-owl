@@ -8,6 +8,9 @@ const Game = (function() {
   let initialized = false;
   let gameInProgress = false;
 
+  // Current navigation options (for swipe/keyboard direction mapping)
+  let currentNavOptions = [];
+
   /**
    * Initialize the game
    */
@@ -27,6 +30,9 @@ const Game = (function() {
       onDeleteSave: handleDeleteSave,
       onSelectSave: handleSelectSave
     });
+
+    // Set up InputAdapter for swipe/keyboard navigation
+    setupInputAdapter();
 
     // Show start screen with saved games
     refreshStartScreen();
@@ -279,7 +285,42 @@ const Game = (function() {
     const connections = Dungeon.getConnectedRooms(currentRoom);
     const options = Descriptions.generateNavigationOptions(connections, currentRoom);
 
+    // Store current options for swipe/keyboard direction mapping
+    currentNavOptions = options;
+
     UI.renderNavigation(options, handleNavigation);
+  }
+
+  /**
+   * Handle direction-based navigation (from swipe or arrow keys via InputAdapter)
+   * @param {string} direction - Direction to navigate (North, South, East, West)
+   */
+  function handleDirectionNavigation(direction) {
+    // Don't navigate if game is not in progress or we're in combat
+    if (!gameInProgress) return;
+
+    // Find navigation option matching this direction
+    const option = currentNavOptions.find(opt =>
+      opt.direction && opt.direction.en === direction
+    );
+
+    if (option) {
+      handleNavigation(option.roomId);
+    }
+  }
+
+  /**
+   * Set up InputAdapter event listeners for swipe/keyboard navigation
+   */
+  function setupInputAdapter() {
+    if (typeof InputAdapter === 'undefined') return;
+
+    // Listen for navigate events (from swipes and arrow keys)
+    InputAdapter.on('navigate', (data) => {
+      if (data.direction) {
+        handleDirectionNavigation(data.direction);
+      }
+    });
   }
 
   /**

@@ -1,17 +1,31 @@
 /**
  * Save Module
- * Handles game persistence using localStorage
+ * Handles game persistence using StorageAdapter (with localStorage fallback)
  */
 
 const Save = (function() {
   const STORAGE_PREFIX = 'mrowl_dungeon_';
-  const SAVE_LIST_KEY = 'mrowl_dungeon_saves';
+  const SAVE_LIST_KEY = 'saves';
 
   /**
-   * Check if localStorage is available
+   * Check if StorageAdapter is available
+   * @returns {boolean} Whether adapter is configured
+   */
+  function hasAdapter() {
+    return typeof StorageAdapter !== 'undefined' && StorageAdapter.hasImplementation();
+  }
+
+  /**
+   * Check if localStorage is available (fallback)
    * @returns {boolean} Whether localStorage works
    */
   function isStorageAvailable() {
+    // First check adapter
+    if (hasAdapter()) {
+      return true;
+    }
+
+    // Fallback to direct localStorage check
     try {
       const test = '__storage_test__';
       localStorage.setItem(test, test);
@@ -25,11 +39,89 @@ const Save = (function() {
   /**
    * Generate storage key for a player
    * @param {string} playerName - Player's name
-   * @returns {string} Storage key
+   * @returns {string} Storage key (without prefix for adapter, with prefix for direct)
    */
   function getKey(playerName) {
     // Normalize the name for key consistency
-    return STORAGE_PREFIX + playerName.toLowerCase().replace(/\s+/g, '_');
+    return playerName.toLowerCase().replace(/\s+/g, '_');
+  }
+
+  /**
+   * Generate full storage key with prefix (for direct localStorage)
+   * @param {string} playerName - Player's name
+   * @returns {string} Full storage key
+   */
+  function getFullKey(playerName) {
+    return STORAGE_PREFIX + getKey(playerName);
+  }
+
+  /**
+   * Save data using adapter or direct localStorage
+   * @param {string} key - Storage key
+   * @param {*} value - Value to save
+   * @returns {boolean} Success status
+   */
+  function saveData(key, value) {
+    if (hasAdapter()) {
+      // Use adapter (sync wrapper for now - adapter is async but we maintain sync API)
+      StorageAdapter.save(key, value);
+      return true;
+    }
+
+    // Direct localStorage fallback
+    try {
+      localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      console.error('Save: Failed to save data:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Load data using adapter or direct localStorage
+   * @param {string} key - Storage key
+   * @returns {*} Loaded value or null
+   */
+  function loadData(key) {
+    if (hasAdapter()) {
+      // Adapter load is async, but we need sync API for backward compat
+      // Use synchronous localStorage through the adapter's BrowserStorage
+      const impl = StorageAdapter.getImplementation();
+      if (impl && typeof impl.load === 'function') {
+        // BrowserStorage.load returns a promise that resolves immediately
+        // Since we can't await in sync code, use direct localStorage for now
+      }
+    }
+
+    // Direct localStorage
+    try {
+      const data = localStorage.getItem(STORAGE_PREFIX + key);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      console.error('Save: Failed to load data:', e);
+      return null;
+    }
+  }
+
+  /**
+   * Remove data using adapter or direct localStorage
+   * @param {string} key - Storage key
+   * @returns {boolean} Success status
+   */
+  function removeData(key) {
+    if (hasAdapter()) {
+      StorageAdapter.remove(key);
+    }
+
+    // Also do direct localStorage to ensure cleanup
+    try {
+      localStorage.removeItem(STORAGE_PREFIX + key);
+      return true;
+    } catch (e) {
+      console.error('Save: Failed to remove data:', e);
+      return false;
+    }
   }
 
   /**
@@ -42,7 +134,7 @@ const Save = (function() {
    */
   function saveGame(playerState, dungeonState, usedQuestionIds, mapState) {
     if (!isStorageAvailable()) {
-      console.error('localStorage is not available');
+      console.error('Storage is not available');
       return false;
     }
 
@@ -53,7 +145,7 @@ const Save = (function() {
     }
 
     const saveData = {
-      version: 2, // Updated for map support
+      version: 2,
       savedAt: Date.now(),
       player: playerState,
       dungeon: dungeonState,
@@ -63,7 +155,14 @@ const Save = (function() {
 
     try {
       const key = getKey(playerName);
-      localStorage.setItem(key, JSON.stringify(saveData));
+
+      if (hasAdapter()) {
+        // Async save through adapter
+        StorageAdapter.save(key, saveData);
+      } else {
+        // Direct localStorage
+        localStorage.setItem(getFullKey(playerName), JSON.stringify(saveData));
+      }
 
       // Update save list
       updateSaveList(playerName);
@@ -82,13 +181,20 @@ const Save = (function() {
    */
   function loadGame(playerName) {
     if (!isStorageAvailable()) {
-      console.error('localStorage is not available');
+      console.error('Storage is not available');
       return null;
     }
 
     try {
-      const key = getKey(playerName);
-      const data = localStorage.getItem(key);
+      let data;
+
+      if (hasAdapter()) {
+        // For now, use direct localStorage since adapter is async
+        // TODO: Convert to async API in future
+        data = localStorage.getItem(getFullKey(playerName));
+      } else {
+        data = localStorage.getItem(getFullKey(playerName));
+      }
 
       if (!data) {
         return null;
@@ -117,8 +223,7 @@ const Save = (function() {
   function hasSave(playerName) {
     if (!isStorageAvailable()) return false;
 
-    const key = getKey(playerName);
-    return localStorage.getItem(key) !== null;
+    return localStorage.getItem(getFullKey(playerName)) !== null;
   }
 
   /**
@@ -131,7 +236,13 @@ const Save = (function() {
 
     try {
       const key = getKey(playerName);
-      localStorage.removeItem(key);
+
+      if (hasAdapter()) {
+        StorageAdapter.remove(key);
+      }
+
+      // Also remove from direct localStorage
+      localStorage.removeItem(getFullKey(playerName));
 
       // Update save list
       removeSaveFromList(playerName);
@@ -151,7 +262,7 @@ const Save = (function() {
     if (!isStorageAvailable()) return [];
 
     try {
-      const listData = localStorage.getItem(SAVE_LIST_KEY);
+      const listData = localStorage.getItem(STORAGE_PREFIX + SAVE_LIST_KEY);
       if (!listData) return [];
 
       const saveNames = JSON.parse(listData);
@@ -182,14 +293,19 @@ const Save = (function() {
    */
   function updateSaveList(playerName) {
     try {
-      const listData = localStorage.getItem(SAVE_LIST_KEY);
+      const listData = localStorage.getItem(STORAGE_PREFIX + SAVE_LIST_KEY);
       let saves = listData ? JSON.parse(listData) : [];
 
       // Add name if not already in list
       const normalizedName = playerName.toLowerCase();
       if (!saves.includes(normalizedName)) {
         saves.push(normalizedName);
-        localStorage.setItem(SAVE_LIST_KEY, JSON.stringify(saves));
+        localStorage.setItem(STORAGE_PREFIX + SAVE_LIST_KEY, JSON.stringify(saves));
+
+        // Also save through adapter if available
+        if (hasAdapter()) {
+          StorageAdapter.save(SAVE_LIST_KEY, saves);
+        }
       }
     } catch (e) {
       console.error('Failed to update save list:', e);
@@ -202,14 +318,19 @@ const Save = (function() {
    */
   function removeSaveFromList(playerName) {
     try {
-      const listData = localStorage.getItem(SAVE_LIST_KEY);
+      const listData = localStorage.getItem(STORAGE_PREFIX + SAVE_LIST_KEY);
       if (!listData) return;
 
       let saves = JSON.parse(listData);
       const normalizedName = playerName.toLowerCase();
       saves = saves.filter(n => n !== normalizedName);
 
-      localStorage.setItem(SAVE_LIST_KEY, JSON.stringify(saves));
+      localStorage.setItem(STORAGE_PREFIX + SAVE_LIST_KEY, JSON.stringify(saves));
+
+      // Also update through adapter if available
+      if (hasAdapter()) {
+        StorageAdapter.save(SAVE_LIST_KEY, saves);
+      }
     } catch (e) {
       console.error('Failed to remove from save list:', e);
     }
@@ -236,7 +357,11 @@ const Save = (function() {
     try {
       const saves = listSaves();
       saves.forEach(save => deleteSave(save.name));
-      localStorage.removeItem(SAVE_LIST_KEY);
+      localStorage.removeItem(STORAGE_PREFIX + SAVE_LIST_KEY);
+
+      if (hasAdapter()) {
+        StorageAdapter.remove(SAVE_LIST_KEY);
+      }
     } catch (e) {
       console.error('Failed to clear saves:', e);
     }
@@ -272,9 +397,13 @@ const Save = (function() {
       Object.keys(allData).forEach(name => {
         const data = allData[name];
         if (data.player && data.dungeon) {
-          const key = getKey(name);
-          localStorage.setItem(key, JSON.stringify(data));
+          localStorage.setItem(getFullKey(name), JSON.stringify(data));
           updateSaveList(name);
+
+          // Also save through adapter if available
+          if (hasAdapter()) {
+            StorageAdapter.save(getKey(name), data);
+          }
         }
       });
 
@@ -295,7 +424,8 @@ const Save = (function() {
     clearAllSaves,
     exportAllData,
     importData,
-    isStorageAvailable
+    isStorageAvailable,
+    hasAdapter
   };
 })();
 

@@ -1,0 +1,20 @@
+{
+  "appId": "com.mrowl.dungeon",
+  "appName": "Mr Owl's Dungeon",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "Preferences": {},
+    "TextToSpeech": {}
+  },
+  "android": {
+    "backgroundColor": "#1a1a2e"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile",
+    "backgroundColor": "#1a1a2e"
+  }
+}

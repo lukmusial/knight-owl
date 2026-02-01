@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mr Owl\'s Dungeon</string>
+    <string name="title_activity_main">Mr Owl\'s Dungeon</string>
+    <string name="package_name">com.mrowl.dungeon</string>
+    <string name="custom_url_scheme">com.mrowl.dungeon</string>
+</resources>

@@ -18,6 +18,22 @@ const UI = (function() {
   }
 
   /**
+   * Safely get a label value for a specific language
+   * Avoids optional chaining for older WebView compatibility
+   * @param {Object} labels - Labels object from getLabels()
+   * @param {string} key - Label key (e.g., 'whereToGo')
+   * @param {string} lang - Language code ('en' or 'pl')
+   * @param {string} fallback - Fallback value if not found
+   * @returns {string} Label value or fallback
+   */
+  function getLabel(labels, key, lang, fallback) {
+    if (labels && labels[key] && labels[key][lang]) {
+      return labels[key][lang];
+    }
+    return fallback;
+  }
+
+  /**
    * Extract Polish word from vocabulary question prompt
    * @param {string} prompt - Question prompt like 'What does the Polish word "kot" mean?'
    * @returns {string|null} Polish word or null if not found
@@ -29,11 +45,33 @@ const UI = (function() {
   }
 
   /**
-   * Speak a Polish word using Web Speech API
+   * Check if AudioAdapter is available
+   * @returns {boolean} Whether adapter is configured
+   */
+  function hasAudioAdapter() {
+    return typeof AudioAdapter !== 'undefined' && AudioAdapter.hasImplementation();
+  }
+
+  /**
+   * Speak a Polish word using AudioAdapter (with Web Speech API fallback)
    * @param {string} word - Polish word to speak
    */
   function speakPolishWord(word) {
-    if (!word || !window.speechSynthesis) return;
+    if (!word) return;
+
+    // Use AudioAdapter if available
+    if (hasAudioAdapter()) {
+      AudioAdapter.speak(word, {
+        language: 'pl-PL',
+        rate: 0.9,
+        pitch: 1.2,
+        volume: 1.0
+      });
+      return;
+    }
+
+    // Fallback to direct Web Speech API
+    if (!window.speechSynthesis) return;
 
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();
@@ -288,8 +326,8 @@ const UI = (function() {
 
     elements.navigationPanel.innerHTML = `
       <h3 class="nav-header">
-        <span class="label-en">${labels.whereToGo?.en || 'Where to go?'}</span>
-        <span class="label-pl">${labels.whereToGo?.pl || 'Dokąd iść?'}</span>
+        <span class="label-en">${getLabel(labels, 'whereToGo', 'en', 'Where to go?')}</span>
+        <span class="label-pl">${getLabel(labels, 'whereToGo', 'pl', 'Dokąd iść?')}</span>
       </h3>
       <div class="nav-options">
         ${options.map((opt, i) => `
@@ -322,22 +360,22 @@ const UI = (function() {
     elements.statsPanel.innerHTML = `
       <div class="stat">
         <span class="stat-label">
-          <span class="label-en">${labels.monstersDefeated?.en || 'Monsters Defeated:'}</span>
-          <span class="label-pl">${labels.monstersDefeated?.pl || 'Pokonane Potwory:'}</span>
+          <span class="label-en">${getLabel(labels, 'monstersDefeated', 'en', 'Monsters Defeated:')}</span>
+          <span class="label-pl">${getLabel(labels, 'monstersDefeated', 'pl', 'Pokonane Potwory:')}</span>
         </span>
         <span class="stat-value">${stats.monstersDefeated}</span>
       </div>
       <div class="stat">
         <span class="stat-label">
-          <span class="label-en">${labels.questions?.en || 'Questions:'}</span>
-          <span class="label-pl">${labels.questions?.pl || 'Pytania:'}</span>
+          <span class="label-en">${getLabel(labels, 'questions', 'en', 'Questions:')}</span>
+          <span class="label-pl">${getLabel(labels, 'questions', 'pl', 'Pytania:')}</span>
         </span>
         <span class="stat-value">${stats.questionsCorrect}/${stats.questionsTotal} (${stats.accuracy}%)</span>
       </div>
       <div class="stat">
         <span class="stat-label">
-          <span class="label-en">${labels.treasure?.en || 'Treasure:'}</span>
-          <span class="label-pl">${labels.treasure?.pl || 'Skarb:'}</span>
+          <span class="label-en">${getLabel(labels, 'treasure', 'en', 'Treasure:')}</span>
+          <span class="label-pl">${getLabel(labels, 'treasure', 'pl', 'Skarb:')}</span>
         </span>
         <span class="stat-value">${stats.totalLoot} gold / złota</span>
       </div>
@@ -356,12 +394,12 @@ const UI = (function() {
     if (inventory.length === 0) {
       elements.inventoryPanel.innerHTML = `
         <h3 class="inventory-header">
-          <span class="label-en">${labels.recentLoot?.en || 'Recent Loot'}</span>
-          <span class="label-pl">${labels.recentLoot?.pl || 'Ostatnie Łupy'}</span>
+          <span class="label-en">${getLabel(labels, 'recentLoot', 'en', 'Recent Loot')}</span>
+          <span class="label-pl">${getLabel(labels, 'recentLoot', 'pl', 'Ostatnie Łupy')}</span>
         </h3>
         <p class="empty-inventory">
-          <span class="label-en">${labels.noItems?.en || 'No items yet'}</span>
-          <span class="label-pl">${labels.noItems?.pl || 'Brak przedmiotów'}</span>
+          <span class="label-en">${getLabel(labels, 'noItems', 'en', 'No items yet')}</span>
+          <span class="label-pl">${getLabel(labels, 'noItems', 'pl', 'Brak przedmiotów')}</span>
         </p>
       `;
       return;
@@ -370,8 +408,8 @@ const UI = (function() {
     const recentItems = inventory.slice(-5).reverse();
     elements.inventoryPanel.innerHTML = `
       <h3 class="inventory-header">
-        <span class="label-en">${labels.recentLoot?.en || 'Recent Loot'}</span>
-        <span class="label-pl">${labels.recentLoot?.pl || 'Ostatnie Łupy'}</span>
+        <span class="label-en">${getLabel(labels, 'recentLoot', 'en', 'Recent Loot')}</span>
+        <span class="label-pl">${getLabel(labels, 'recentLoot', 'pl', 'Ostatnie Łupy')}</span>
       </h3>
       <ul class="inventory-list">
         ${recentItems.map(item => `
@@ -477,8 +515,8 @@ const UI = (function() {
         elements.dragonProgress.innerHTML = `
           <div class="dragon-streak">
             <span class="streak-label">
-              <span class="label-en">${labels.dragonChallenge?.en || 'Dragon Challenge:'}</span>
-              <span class="label-pl">${labels.dragonChallenge?.pl || 'Wyzwanie Smoka:'}</span>
+              <span class="label-en">${getLabel(labels, 'dragonChallenge', 'en', 'Dragon Challenge:')}</span>
+              <span class="label-pl">${getLabel(labels, 'dragonChallenge', 'pl', 'Wyzwanie Smoka:')}</span>
             </span>
             ${[0, 1, 2].map(i => `
               <span class="streak-dot ${i < dragonStreak ? 'filled' : ''}"></span>
@@ -547,8 +585,8 @@ const UI = (function() {
       elements.dragonProgress.innerHTML = `
         <div class="dragon-streak">
           <span class="streak-label">
-            <span class="label-en">${labels.dragonChallenge?.en || 'Dragon Challenge:'}</span>
-            <span class="label-pl">${labels.dragonChallenge?.pl || 'Wyzwanie Smoka:'}</span>
+            <span class="label-en">${getLabel(labels, 'dragonChallenge', 'en', 'Dragon Challenge:')}</span>
+            <span class="label-pl">${getLabel(labels, 'dragonChallenge', 'pl', 'Wyzwanie Smoka:')}</span>
           </span>
           ${[0, 1, 2].map(i => `
             <span class="streak-dot ${i < streak ? 'filled' : ''}"></span>
@@ -584,28 +622,28 @@ const UI = (function() {
     if (elements.resultTitle) {
       if (result.dragonDefeated) {
         elements.resultTitle.innerHTML = `
-          <span class="title-en">${labels.victory?.en || 'VICTORY!'}</span>
-          <span class="title-pl">${labels.victory?.pl || 'ZWYCIĘSTWO!'}</span>
+          <span class="title-en">${getLabel(labels, 'victory', 'en', 'VICTORY!')}</span>
+          <span class="title-pl">${getLabel(labels, 'victory', 'pl', 'ZWYCIĘSTWO!')}</span>
         `;
         elements.resultTitle.className = 'result-title victory';
       } else if (result.success) {
         elements.resultTitle.innerHTML = `
-          <span class="title-en">${labels.correct?.en || 'Correct!'}</span>
-          <span class="title-pl">${labels.correct?.pl || 'Poprawnie!'}</span>
+          <span class="title-en">${getLabel(labels, 'correct', 'en', 'Correct!')}</span>
+          <span class="title-pl">${getLabel(labels, 'correct', 'pl', 'Poprawnie!')}</span>
         `;
         elements.resultTitle.className = 'result-title success';
       } else {
         elements.resultTitle.innerHTML = `
-          <span class="title-en">${labels.notQuiteRight?.en || 'Not quite...'}</span>
-          <span class="title-pl">${labels.notQuiteRight?.pl || 'Nie całkiem...'}</span>
+          <span class="title-en">${getLabel(labels, 'notQuiteRight', 'en', 'Not quite...')}</span>
+          <span class="title-pl">${getLabel(labels, 'notQuiteRight', 'pl', 'Nie całkiem...')}</span>
         `;
         elements.resultTitle.className = 'result-title failure';
       }
     }
 
     if (elements.resultMessage) {
-      const msgEN = result.message?.en || result.message || '';
-      const msgPL = result.message?.pl || result.message || '';
+      const msgEN = (result.message && result.message.en) || result.message || '';
+      const msgPL = (result.message && result.message.pl) || result.message || '';
 
       elements.resultMessage.innerHTML = `
         <span class="msg-en">${msgEN}</span>
@@ -617,8 +655,8 @@ const UI = (function() {
       let explanationHTML = result.explanation || '';
 
       if (!result.success && result.correctAnswer) {
-        const correctLabelEN = labels.correctAnswer?.en || 'The correct answer was:';
-        const correctLabelPL = labels.correctAnswer?.pl || 'Poprawna odpowiedź to:';
+        const correctLabelEN = getLabel(labels, 'correctAnswer', 'en', 'The correct answer was:');
+        const correctLabelPL = getLabel(labels, 'correctAnswer', 'pl', 'Poprawna odpowiedź to:');
         explanationHTML = `
           <span class="explanation-text">${result.explanation || ''}</span>
           <span class="correct-answer">
@@ -638,8 +676,8 @@ const UI = (function() {
 
     if (elements.continueBtn) {
       elements.continueBtn.innerHTML = `
-        <span class="btn-en">${labels.continue?.en || 'Continue'}</span>
-        <span class="btn-pl">${labels.continue?.pl || 'Kontynuuj'}</span>
+        <span class="btn-en">${getLabel(labels, 'continue', 'en', 'Continue')}</span>
+        <span class="btn-pl">${getLabel(labels, 'continue', 'pl', 'Kontynuuj')}</span>
       `;
 
       // Reset button state and restart animation
@@ -666,8 +704,8 @@ const UI = (function() {
         if (elements.lootContainer && result.loot && result.loot.length > 0) {
           elements.lootContainer.innerHTML = `
             <h4>
-              <span class="label-en">${labels.lootObtained?.en || 'Loot obtained:'}</span>
-              <span class="label-pl">${labels.lootObtained?.pl || 'Zdobyte łupy:'}</span>
+              <span class="label-en">${getLabel(labels, 'lootObtained', 'en', 'Loot obtained:')}</span>
+              <span class="label-pl">${getLabel(labels, 'lootObtained', 'pl', 'Zdobyte łupy:')}</span>
             </h4>
             <ul class="loot-list">
               ${result.loot.map(item => `
@@ -710,8 +748,8 @@ const UI = (function() {
     if (elements.treasureLootContainer) {
       elements.treasureLootContainer.innerHTML = `
         <h4>
-          <span class="label-en">${labels.treasure?.en || 'Treasure:'}</span>
-          <span class="label-pl">${labels.treasure?.pl || 'Skarb:'}</span>
+          <span class="label-en">${getLabel(labels, 'treasure', 'en', 'Treasure:')}</span>
+          <span class="label-pl">${getLabel(labels, 'treasure', 'pl', 'Skarb:')}</span>
         </h4>
         <ul class="loot-list">
           ${loot.map(item => `
@@ -815,8 +853,8 @@ const UI = (function() {
 
     if (elements.playAgainBtn) {
       elements.playAgainBtn.innerHTML = `
-        <span class="btn-en">${labels.playAgain?.en || 'Play Again'}</span>
-        <span class="btn-pl">${labels.playAgain?.pl || 'Zagraj Ponownie'}</span>
+        <span class="btn-en">${getLabel(labels, 'playAgain', 'en', 'Play Again')}</span>
+        <span class="btn-pl">${getLabel(labels, 'playAgain', 'pl', 'Zagraj Ponownie')}</span>
       `;
       elements.playAgainBtn.onclick = onPlayAgain;
     }
@@ -846,11 +884,21 @@ const UI = (function() {
    */
   function bindHandlers(handlers) {
     if (elements.newGameBtn && handlers.onNewGame) {
+      // Use both click and touchend for better mobile WebView compatibility
       elements.newGameBtn.addEventListener('click', handlers.onNewGame);
+      elements.newGameBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        handlers.onNewGame();
+      });
     }
 
     if (elements.loadGameBtn && handlers.onLoadGame) {
+      // Use both click and touchend for better mobile WebView compatibility
       elements.loadGameBtn.addEventListener('click', handlers.onLoadGame);
+      elements.loadGameBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        handlers.onLoadGame();
+      });
     }
 
     if (elements.savedGamesList && handlers.onDeleteSave) {
