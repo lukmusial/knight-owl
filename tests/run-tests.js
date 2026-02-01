@@ -153,6 +153,7 @@ console.log(`${colors.cyan}Loading modules...${colors.reset}`);
 
 // Data files
 loadScript('www/js/data/vocabulary.js');
+loadScript('www/js/data/vocabulary-reverse.js');
 loadScript('www/js/data/grammar.js');
 loadScript('www/js/data/monsters.js');
 

@@ -532,7 +532,7 @@ const UI = (function() {
       elements.answersContainer.innerHTML = question.options.map((opt, i) => `
         <div class="answer-row">
           <button class="answer-btn" data-index="${i}">${opt}</button>
-          ${question.category === 'grammar' ? '<button class="btn-speak-answer" data-word="' + opt + '" title="Listen">&#x1f50a;</button>' : ''}
+          ${question.category !== 'vocabulary' ? '<button class="btn-speak-answer" data-word="' + opt + '" title="Listen">&#x1f50a;</button>' : ''}
         </div>
       `).join('');
 
@@ -609,7 +609,7 @@ const UI = (function() {
       elements.answersContainer.innerHTML = question.options.map((opt, i) => `
         <div class="answer-row">
           <button class="answer-btn" data-index="${i}">${opt}</button>
-          ${question.category === 'grammar' ? '<button class="btn-speak-answer" data-word="' + opt + '" title="Listen">&#x1f50a;</button>' : ''}
+          ${question.category !== 'vocabulary' ? '<button class="btn-speak-answer" data-word="' + opt + '" title="Listen">&#x1f50a;</button>' : ''}
         </div>
       `).join('');
 
