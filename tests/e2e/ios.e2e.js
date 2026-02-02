@@ -183,6 +183,80 @@ TestRunner.describe('E2E: iOS Platform', () => {
     TestRunner.assertGreaterThan(path.length, 1, 'Should visit multiple rooms');
   });
 
+  TestRunner.scenario('Answer buttons have double-tap guard in UI source', () => {
+    // Structural test: verify the UI module contains the answerSubmitted guard
+    // This prevents ghost/duplicate taps on iOS from submitting multiple answers
+    var fs = typeof require !== 'undefined' ? require('fs') : null;
+    if (!fs) {
+      TestRunner.assert(true, 'Skipped in browser context');
+      return;
+    }
+
+    var uiSource = fs.readFileSync(
+      require('path').resolve(__dirname, '../../www/js/modules/ui.js'), 'utf8'
+    );
+
+    // Verify the guard variable exists
+    TestRunner.assert(
+      uiSource.indexOf('answerSubmitted') !== -1,
+      'UI source should contain answerSubmitted guard variable'
+    );
+
+    // Verify the guard is checked before calling onAnswer
+    TestRunner.assert(
+      uiSource.indexOf('if (answerSubmitted) return') !== -1,
+      'UI source should check answerSubmitted before calling onAnswer'
+    );
+
+    // Verify disableAnswerButtons is called
+    TestRunner.assert(
+      uiSource.indexOf('disableAnswerButtons()') !== -1,
+      'UI source should call disableAnswerButtons on answer click'
+    );
+
+    // Verify the guard is reset when new answers are rendered (for dragon next question)
+    var resetCount = 0;
+    var idx = 0;
+    while ((idx = uiSource.indexOf('answerSubmitted = false', idx)) !== -1) {
+      resetCount++;
+      idx++;
+    }
+    TestRunner.assert(
+      resetCount >= 2,
+      'answerSubmitted should be reset in both showQuizModal and updateQuizQuestion (found ' + resetCount + ' resets)'
+    );
+  });
+
+  TestRunner.scenario('Double-tap on answer does not record two answers at combat level', () => {
+    // This tests the defense-in-depth: even without UI guard,
+    // Combat module rejects second submission after encounter clears
+    Questions.init();
+    Questions.resetUsed();
+    Player.create('DoubleTapTest');
+    Dungeon.generate();
+    Combat.clearEncounter();
+
+    var monster = { id: 'test', name: 'Test', loot: [] };
+    var encounter = Combat.startEncounter(monster, 1);
+    var correctIdx = encounter.question.correctIndex;
+
+    // First tap - correct answer
+    var r1 = Combat.submitAnswer(correctIdx);
+    TestRunner.assert(r1.success, 'First tap should succeed');
+
+    var statsAfterFirst = Player.getQuestionStats();
+
+    // Second tap - simulates iOS ghost click
+    var r2 = Combat.submitAnswer(correctIdx);
+    TestRunner.assertTruthy(r2.error, 'Second tap should return error');
+
+    var statsAfterSecond = Player.getQuestionStats();
+    TestRunner.assertEqual(statsAfterFirst.total, statsAfterSecond.total,
+      'Question count should not increase on ghost tap');
+    TestRunner.assertEqual(statsAfterFirst.correct, statsAfterSecond.correct,
+      'Correct count should not increase on ghost tap');
+  });
+
   TestRunner.scenario('Game completes with touch navigation', () => {
     if (typeof InputAdapter === 'undefined') {
       TestRunner.assert(true, 'InputAdapter not loaded in test context');
