@@ -198,11 +198,33 @@ const UI = (function() {
 
       // Victory screen elements
       victoryStats: document.getElementById('victory-stats'),
-      playAgainBtn: document.getElementById('play-again-btn')
+      playAgainBtn: document.getElementById('play-again-btn'),
+
+      // Direction bar
+      directionBar: document.getElementById('direction-bar'),
+
+      // Map panel
+      mapPanel: document.getElementById('map-panel')
     };
 
     // Add keyboard navigation listener
     document.addEventListener('keydown', handleKeyboardNavigation);
+
+    // Map toggle for collapsible map (mobile only)
+    if (elements.mapPanel) {
+      // Start collapsed on mobile
+      if (window.innerWidth <= 768) {
+        elements.mapPanel.classList.add('collapsed');
+      }
+      var mapToggle = elements.mapPanel.querySelector('.map-toggle');
+      if (mapToggle) {
+        mapToggle.addEventListener('click', function() {
+          if (window.innerWidth <= 768) {
+            elements.mapPanel.classList.toggle('collapsed');
+          }
+        });
+      }
+    }
   }
 
   /**
@@ -361,6 +383,55 @@ const UI = (function() {
         if (onNavigate) onNavigate(roomId);
       });
     });
+
+    // Update direction bar on mobile
+    renderDirectionBar(options, onNavigate);
+  }
+
+  /**
+   * Render the fixed direction bar at the bottom of the screen (mobile)
+   * @param {Array} options - Navigation options with direction and roomId
+   * @param {Function} onNavigate - Callback when direction selected
+   */
+  function renderDirectionBar(options, onNavigate) {
+    if (!elements.directionBar) return;
+
+    // Show the direction bar
+    elements.directionBar.classList.remove('hidden');
+
+    var buttons = elements.directionBar.querySelectorAll('.dir-btn');
+    buttons.forEach(function(btn) {
+      btn.disabled = true;
+      btn.className = btn.className.replace(/\s*(explored|boss-btn|unexplored)/g, '');
+      btn.onclick = null;
+      btn.dataset.room = '';
+    });
+
+    options.forEach(function(opt) {
+      if (!opt.direction) return;
+      var dir = opt.direction.en;
+      var btn = elements.directionBar.querySelector('[data-direction="' + dir + '"]');
+      if (!btn) return;
+
+      btn.disabled = false;
+      btn.dataset.room = opt.roomId;
+      if (opt.explored) btn.className += ' explored';
+      if (opt.type === 'boss') btn.className += ' boss-btn';
+      if (!opt.explored) btn.className += ' unexplored';
+
+      btn.onclick = function() {
+        if (onNavigate) onNavigate(opt.roomId);
+      };
+    });
+  }
+
+  /**
+   * Hide the direction bar
+   */
+  function hideDirectionBar() {
+    if (elements.directionBar) {
+      elements.directionBar.classList.add('hidden');
+    }
   }
 
   /**
@@ -569,6 +640,7 @@ const UI = (function() {
       });
     }
 
+    hideDirectionBar();
     elements.quizModal.classList.remove('hidden');
   }
 
@@ -785,6 +857,7 @@ const UI = (function() {
       }, 8000);
     }
 
+    hideDirectionBar();
     elements.resultModal.classList.remove('hidden');
   }
 
@@ -1007,7 +1080,9 @@ const UI = (function() {
     hideTreasureModal,
     showVictoryScreen,
     showToast,
-    bindHandlers
+    bindHandlers,
+    renderDirectionBar,
+    hideDirectionBar
   };
 })();
 
