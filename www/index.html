@@ -61,7 +61,7 @@
             <img id="room-image" src="assets/knight_owl.png" alt="Mr Owl the Knight">
           </div>
           <div id="map-panel" class="panel map-panel">
-            <h3>
+            <h3 class="map-toggle">
               <span class="label-en">Dungeon Map</span>
               <span class="label-pl">Mapa Lochów</span>
             </h3>
@@ -94,6 +94,13 @@
           </div>
         </div>
       </main>
+
+      <div id="direction-bar" class="direction-bar">
+        <button class="dir-btn dir-west" data-direction="West" disabled>&#x2190;</button>
+        <button class="dir-btn dir-north" data-direction="North" disabled>&#x2191;</button>
+        <button class="dir-btn dir-south" data-direction="South" disabled>&#x2193;</button>
+        <button class="dir-btn dir-east" data-direction="East" disabled>&#x2192;</button>
+      </div>
     </div>
 
     <!-- Quiz Modal -->
