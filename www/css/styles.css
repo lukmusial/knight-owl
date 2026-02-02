@@ -327,6 +327,7 @@ body {
   color: var(--color-primary);
 }
 
+
 .game-main {
   display: grid;
   gap: 20px;
@@ -1569,13 +1570,7 @@ body {
   }
 
   .game-header {
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px 15px;
-  }
-
-  .game-header h1 {
-    font-size: 1.3rem;
+    display: none;
   }
 
   .top-display {
