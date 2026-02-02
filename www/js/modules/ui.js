@@ -97,6 +97,21 @@ const UI = (function() {
     window.speechSynthesis.speak(utterance);
   }
 
+  // Track whether answer buttons have been disabled (to prevent double-tap)
+  let answerSubmitted = false;
+
+  /**
+   * Disable all answer buttons in the answers container
+   */
+  function disableAnswerButtons() {
+    answerSubmitted = true;
+    if (elements.answersContainer) {
+      elements.answersContainer.querySelectorAll('.answer-btn').forEach(function(btn) {
+        btn.disabled = true;
+      });
+    }
+  }
+
   /**
    * Handle keyboard navigation with arrow keys
    * @param {KeyboardEvent} event - Keyboard event
@@ -536,8 +551,11 @@ const UI = (function() {
         </div>
       `).join('');
 
+      answerSubmitted = false;
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+          if (answerSubmitted) return;
+          disableAnswerButtons();
           const index = parseInt(btn.dataset.index);
           if (onAnswer) onAnswer(index);
         });
@@ -613,8 +631,11 @@ const UI = (function() {
         </div>
       `).join('');
 
+      answerSubmitted = false;
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+          if (answerSubmitted) return;
+          disableAnswerButtons();
           const index = parseInt(btn.dataset.index);
           if (onAnswer) onAnswer(index);
         });
