@@ -208,6 +208,7 @@ loadScript('tests/integration.test.js');
 // Load adapter and E2E tests
 loadScript('tests/adapters.test.js');
 loadScript('tests/capacitor.test.js');
+loadScript('tests/mobile-layout.test.js');
 loadScript('tests/e2e/portable-engine.e2e.js');
 loadScript('tests/e2e/mobile-browser.e2e.js');
 loadScript('tests/e2e/android.e2e.js');
