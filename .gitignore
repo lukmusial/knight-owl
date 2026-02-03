@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# IDE and Editor
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# iOS - User data and local configs
+xcuserdata/
+*.xcuserdatad/
+ios/debug.xcconfig
+ios/App/App.xcodeproj/project.pbxproj
+*.mobileprovision
+*.p12
+*.cer
+
+# Android - Local configs
+android/local.properties
+*.keystore
+*.jks
+
+# Build artifacts
+ios/DerivedData/
+android/app/build/
+*.app
+*.ipa
+*.apk
+*.aab
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+secrets/
+credentials/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Screenshots and recordings (local testing)
+screenshots/
