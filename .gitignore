@@ -3,6 +3,7 @@ node_modules/
 
 # IDE and Editor
 .idea/
+.claude/
 *.iml
 .vscode/
 *.swp
