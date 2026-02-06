@@ -50,4 +50,4 @@ credentials/
 npm-debug.log*
 
 # Screenshots and recordings (local testing)
-screenshots/
+/screenshots/
