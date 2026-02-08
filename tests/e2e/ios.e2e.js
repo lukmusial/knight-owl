@@ -89,6 +89,39 @@ TestRunner.describe('E2E: iOS Platform', () => {
     TestRunner.assertEqual(CapacitorAudio.getLanguage(), 'pl-PL', 'Language should be Polish');
   });
 
+  TestRunner.scenario('TTS speak returns gracefully without native plugin', () => {
+    if (typeof CapacitorAudio === 'undefined') {
+      TestRunner.assert(true, 'CapacitorAudio not loaded in test context');
+      return;
+    }
+
+    // In test environment without native Capacitor, speak should not throw
+    var threw = false;
+    try {
+      CapacitorAudio.speak('test');
+    } catch (e) {
+      threw = true;
+    }
+    TestRunner.assert(!threw, 'speak should not throw without native plugin');
+  });
+
+  TestRunner.scenario('TTS speak handles empty text gracefully', () => {
+    if (typeof CapacitorAudio === 'undefined') {
+      TestRunner.assert(true, 'CapacitorAudio not loaded in test context');
+      return;
+    }
+
+    // Empty/null text should not throw
+    var threw = false;
+    try {
+      CapacitorAudio.speak('');
+      CapacitorAudio.speak(null);
+    } catch (e) {
+      threw = true;
+    }
+    TestRunner.assert(!threw, 'speak with empty/null text should not throw');
+  });
+
   TestRunner.scenario('Platform detection identifies iOS correctly', () => {
     if (typeof Platform === 'undefined') {
       TestRunner.assert(true, 'Platform not loaded in test context');

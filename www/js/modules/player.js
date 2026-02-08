@@ -16,11 +16,15 @@ const Player = (function() {
     dragonStreak: 0,
     totalLootValue: 0,
     gameStartTime: null,
-    lastSaveTime: null
+    lastSaveTime: null,
+    playTimeAccumulated: 0
   };
 
   // Current player state
   let state = { ...defaultState, inventory: [] };
+
+  // Timestamp of when the current play session started (not persisted)
+  let sessionStartTime = null;
 
   /**
    * Create a new player
@@ -32,8 +36,10 @@ const Player = (function() {
       ...defaultState,
       inventory: [], // Fresh array to avoid mutating defaultState
       name: name.trim(),
-      gameStartTime: Date.now()
+      gameStartTime: Date.now(),
+      playTimeAccumulated: 0
     };
+    sessionStartTime = Date.now();
     return getState();
   }
 
@@ -196,12 +202,15 @@ const Player = (function() {
   }
 
   /**
-   * Get play time in seconds
+   * Get play time in seconds (accumulated across sessions)
    * @returns {number} Play time
    */
   function getPlayTime() {
-    if (!state.gameStartTime) return 0;
-    return Math.floor((Date.now() - state.gameStartTime) / 1000);
+    var accumulated = state.playTimeAccumulated || 0;
+    if (sessionStartTime) {
+      accumulated += Date.now() - sessionStartTime;
+    }
+    return Math.floor(accumulated / 1000);
   }
 
   /**
@@ -225,6 +234,16 @@ const Player = (function() {
       ...savedState,
       inventory: savedState.inventory ? [...savedState.inventory] : []
     };
+    // Migrate old saves: if no accumulated time, estimate from gameStartTime and lastSaveTime
+    if (state.playTimeAccumulated === undefined || state.playTimeAccumulated === null) {
+      if (state.lastSaveTime && state.gameStartTime) {
+        state.playTimeAccumulated = state.lastSaveTime - state.gameStartTime;
+      } else {
+        state.playTimeAccumulated = 0;
+      }
+    }
+    // Start a new session timer
+    sessionStartTime = Date.now();
   }
 
   /**
@@ -232,10 +251,16 @@ const Player = (function() {
    * @returns {Object} Serializable state
    */
   function exportState() {
+    // Snapshot current session time into accumulated total before saving
+    var accumulated = state.playTimeAccumulated || 0;
+    if (sessionStartTime) {
+      accumulated += Date.now() - sessionStartTime;
+    }
     return {
       ...state,
       inventory: [...state.inventory], // Copy array to avoid reference issues
-      lastSaveTime: Date.now()
+      lastSaveTime: Date.now(),
+      playTimeAccumulated: accumulated
     };
   }
 
@@ -262,6 +287,7 @@ const Player = (function() {
    */
   function reset() {
     state = { ...defaultState, inventory: [] };
+    sessionStartTime = null;
   }
 
   // Public API
