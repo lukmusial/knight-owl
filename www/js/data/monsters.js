@@ -12,7 +12,7 @@ const MONSTERS = [
     namePL: 'Goblin',
     difficulty: 1,
     description: 'A small, green creature with pointy ears and a mischievous grin.',
-    descriptionPL: 'Małe, zielone stworzenie z pointymi uszami i psotnym uśmiechem.',
+    descriptionPL: 'Małe, zielone stworzenie ze spiczastymi uszami i psotnym uśmiechem.',
     imagePrompt: 'A cute cartoon goblin with green skin, pointy ears, wearing tattered brown clothes, holding a small wooden club, standing in a stone dungeon corridor, fantasy art style, friendly looking, suitable for children',
     loot: [
       { name: 'Goblin Coin', namePL: 'Moneta Goblina', value: 5 },
@@ -235,7 +235,7 @@ const MONSTERS = [
       { name: 'Magic Gem', namePL: 'Magiczny Klejnot', value: 16 }
     ],
     defeatMessage: 'The demilich\'s magic fades and it gently floats to the ground!',
-    defeatMessagePL: 'Magia demilicha gaśnie i delikatnie opada na ziemię!'
+    defeatMessagePL: 'Magia demilicha gaśnie a on delikatnie opada na ziemię!'
   },
   {
     id: 'dwarf',
@@ -380,7 +380,7 @@ const MONSTERS = [
       { name: 'Miner\'s Lost Treasure', namePL: 'Zaginiony Skarb Górnika', value: 38 }
     ],
     defeatMessage: 'The spirit tips its helmet and fades away peacefully!',
-    defeatMessagePL: 'Duch uchyla hełm i spokojnie znika!'
+    defeatMessagePL: 'Duch uchyla kask i spokojnie znika!'
   },
   {
     id: 'vampire_lord',
