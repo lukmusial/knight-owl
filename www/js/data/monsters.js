@@ -97,6 +97,36 @@ const MONSTERS = [
     defeatMessagePL: 'Mimik wypluwa prawdziwy skarb i odskakuje!'
   },
   {
+    id: 'wolf',
+    name: 'Dungeon Wolf',
+    namePL: 'Wilk z Lochów',
+    difficulty: 1,
+    description: 'A gray wolf with glowing yellow eyes, prowling through the dungeon corridors.',
+    descriptionPL: 'Szary wilk o świecących żółtych oczach, węszący po korytarzach lochów.',
+    imagePrompt: 'A cartoon gray wolf with glowing yellow eyes, fluffy fur, standing alert in a stone dungeon corridor, slightly baring teeth but not too scary, fantasy art style, suitable for children',
+    loot: [
+      { name: 'Wolf Fang', namePL: 'Kieł Wilka', value: 4 },
+      { name: 'Gray Fur', namePL: 'Szare Futro', value: 3 }
+    ],
+    defeatMessage: 'The wolf howls softly and trots away into the darkness!',
+    defeatMessagePL: 'Wilk cicho wyje i odbiega w ciemność!'
+  },
+  {
+    id: 'giant_snake',
+    name: 'Giant Snake',
+    namePL: 'Wielki Wąż',
+    difficulty: 1,
+    description: 'A large green snake with shimmering scales, coiled and hissing.',
+    descriptionPL: 'Duży zielony wąż o połyskujących łuskach, zwinięty i syczący.',
+    imagePrompt: 'A large cartoon green snake with shiny emerald scales, big round eyes, coiled up in a dungeon room, tongue flicking out, fantasy art style, silly and cute rather than scary, suitable for children',
+    loot: [
+      { name: 'Snake Scale', namePL: 'Łuska Węża', value: 3 },
+      { name: 'Shed Skin', namePL: 'Zrzucona Skóra', value: 2 }
+    ],
+    defeatMessage: 'The giant snake slithers away into a crack in the wall!',
+    defeatMessagePL: 'Wielki wąż wpełza w szczelinę w ścianie!'
+  },
+  {
     id: 'vampire_bunny',
     name: 'Vampire Bunny',
     namePL: 'Królik Wampir',
@@ -113,6 +143,22 @@ const MONSTERS = [
   },
 
   // Difficulty 2 - Medium monsters (depths 8-14)
+  {
+    id: 'hobgoblin',
+    name: 'Hobgoblin',
+    namePL: 'Hobgoblin',
+    difficulty: 2,
+    description: 'A large, muscular hobgoblin in crude iron armor, wielding a spiked mace.',
+    descriptionPL: 'Duży, muskularny hobgoblin w prymitywnej żelaznej zbroi, dzierżący kolczastą maczugę.',
+    imagePrompt: 'A cartoon hobgoblin with orange-brown skin, larger and more muscular than a goblin, wearing crude iron armor plates, holding a spiked wooden mace, stern expression, standing in a dungeon guard post, fantasy art style, tough-looking but suitable for children',
+    loot: [
+      { name: 'Iron Armor Scrap', namePL: 'Złom Żelaznej Zbroi', value: 9 },
+      { name: 'Spiked Mace Head', namePL: 'Głowica Kolczastej Maczugi', value: 11 },
+      { name: 'Hobgoblin Badge', namePL: 'Odznaka Hobgoblina', value: 7 }
+    ],
+    defeatMessage: 'The hobgoblin salutes grudgingly and marches away!',
+    defeatMessagePL: 'Hobgoblin niechętnie salutuje i odmaszerowuje!'
+  },
   {
     id: 'skeleton',
     name: 'Skeleton Warrior',

@@ -820,6 +820,835 @@ const VOCABULARY_REVERSE_QUESTIONS = [
     options: ['zwycięstwo', 'potwór', 'ratować', 'złoto'],
     correctIndex: 2,
     explanation: 'Ratować = to save/rescue. Mr Owl ratuje królestwo! (Mr Owl saves the kingdom!)'
+  },
+
+  // ========== NEW DIFFICULTY 1 QUESTIONS ==========
+
+  // DIFFICULTY 1 - Easy (Even More Animals)
+  {
+    id: 'vocab_rev_088',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "frog" in Polish?',
+    options: ['żaba', 'żółw', 'królik', 'motyl'],
+    correctIndex: 0,
+    explanation: 'Żaba = frog. Żaby skaczą wysoko! (Frogs jump high!)'
+  },
+  {
+    id: 'vocab_rev_089',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "butterfly" in Polish?',
+    options: ['lis', 'motyl', 'kura', 'wilk'],
+    correctIndex: 1,
+    explanation: 'Motyl = butterfly. Motyle mają kolorowe skrzydła! (Butterflies have colorful wings!)'
+  },
+  {
+    id: 'vocab_rev_090',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "rabbit" in Polish?',
+    options: ['kaczka', 'żaba', 'królik', 'wilk'],
+    correctIndex: 2,
+    explanation: 'Królik = rabbit. Króliki lubią marchewki! (Rabbits like carrots!)'
+  },
+  {
+    id: 'vocab_rev_091',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "wolf" in Polish?',
+    options: ['lis', 'kura', 'żółw', 'wilk'],
+    correctIndex: 3,
+    explanation: 'Wilk = wolf. Wilki żyją w lesie! (Wolves live in the forest!)'
+  },
+  {
+    id: 'vocab_rev_092',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "fox" in Polish?',
+    options: ['lis', 'motyl', 'żaba', 'kaczka'],
+    correctIndex: 0,
+    explanation: 'Lis = fox. Lis jest sprytny! (A fox is clever!)'
+  },
+  {
+    id: 'vocab_rev_093',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "duck" in Polish?',
+    options: ['żółw', 'kaczka', 'królik', 'wilk'],
+    correctIndex: 1,
+    explanation: 'Kaczka = duck. Kaczki pływają w jeziorze! (Ducks swim in the lake!)'
+  },
+  {
+    id: 'vocab_rev_094',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "hen" in Polish?',
+    options: ['lis', 'motyl', 'kura', 'żaba'],
+    correctIndex: 2,
+    explanation: 'Kura = hen. Kury znoszą jajka! (Hens lay eggs!)'
+  },
+  {
+    id: 'vocab_rev_095',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "turtle" in Polish?',
+    options: ['kaczka', 'wilk', 'królik', 'żółw'],
+    correctIndex: 3,
+    explanation: 'Żółw = turtle. Żółw chodzi bardzo wolno! (A turtle walks very slowly!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Even More Colors)
+  {
+    id: 'vocab_rev_096',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "purple" in Polish?',
+    options: ['fioletowy', 'brązowy', 'szary', 'żółty'],
+    correctIndex: 0,
+    explanation: 'Fioletowy = purple. Fioletowy to piękny kolor! (Purple is a beautiful color!)'
+  },
+  {
+    id: 'vocab_rev_097',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "brown" in Polish?',
+    options: ['szary', 'fioletowy', 'brązowy', 'biały'],
+    correctIndex: 2,
+    explanation: 'Brązowy = brown. Niedźwiedzie są brązowe! (Bears are brown!)'
+  },
+  {
+    id: 'vocab_rev_098',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "gray" in Polish?',
+    options: ['brązowy', 'szary', 'czarny', 'fioletowy'],
+    correctIndex: 1,
+    explanation: 'Szary = gray. Myszy są szare! (Mice are gray!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Even More Numbers)
+  {
+    id: 'vocab_rev_099',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "six" in Polish?',
+    options: ['siedem', 'sześć', 'osiem', 'dziewięć'],
+    correctIndex: 1,
+    explanation: 'Sześć = six. Owady mają sześć nóg! (Insects have six legs!)'
+  },
+  {
+    id: 'vocab_rev_100',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "seven" in Polish?',
+    options: ['osiem', 'dziewięć', 'siedem', 'sześć'],
+    correctIndex: 2,
+    explanation: 'Siedem = seven. Tydzień ma siedem dni! (A week has seven days!)'
+  },
+  {
+    id: 'vocab_rev_101',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "eight" in Polish?',
+    options: ['sześć', 'siedem', 'dziewięć', 'osiem'],
+    correctIndex: 3,
+    explanation: 'Osiem = eight. Pająk ma osiem nóg! (A spider has eight legs!)'
+  },
+  {
+    id: 'vocab_rev_102',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "nine" in Polish?',
+    options: ['dziewięć', 'osiem', 'sześć', 'siedem'],
+    correctIndex: 0,
+    explanation: 'Dziewięć = nine. Kot ma dziewięć żyć! (A cat has nine lives!)'
+  },
+
+  // DIFFICULTY 1 - Easy (More Family)
+  {
+    id: 'vocab_rev_103',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "uncle" in Polish?',
+    options: ['kuzyn', 'ciocia', 'wujek', 'dziadek'],
+    correctIndex: 2,
+    explanation: 'Wujek = uncle. Wujek jest bratem mamy! (Uncle is mom\'s brother!)'
+  },
+  {
+    id: 'vocab_rev_104',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "aunt" in Polish?',
+    options: ['ciocia', 'babcia', 'mama', 'siostra'],
+    correctIndex: 0,
+    explanation: 'Ciocia = aunt. Ciocia zawsze przynosi prezenty! (Auntie always brings gifts!)'
+  },
+  {
+    id: 'vocab_rev_105',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "cousin" in Polish?',
+    options: ['brat', 'kuzyn', 'wujek', 'tata'],
+    correctIndex: 1,
+    explanation: 'Kuzyn = cousin. Mój kuzyn lubi grać w piłkę! (My cousin likes to play ball!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Clothing)
+  {
+    id: 'vocab_rev_106',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "shoes" in Polish?',
+    options: ['skarpetki', 'czapka', 'buty', 'spodnie'],
+    correctIndex: 2,
+    explanation: 'Buty = shoes. Zakładam buty przed wyjściem! (I put on shoes before going out!)'
+  },
+  {
+    id: 'vocab_rev_107',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "hat/cap" in Polish?',
+    options: ['czapka', 'szalik', 'koszula', 'sukienka'],
+    correctIndex: 0,
+    explanation: 'Czapka = hat/cap. Zimą noszę czapkę! (I wear a hat in winter!)'
+  },
+  {
+    id: 'vocab_rev_108',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "shirt" in Polish?',
+    options: ['spodnie', 'koszula', 'sukienka', 'czapka'],
+    correctIndex: 1,
+    explanation: 'Koszula = shirt. Tata nosi białą koszulę! (Dad wears a white shirt!)'
+  },
+  {
+    id: 'vocab_rev_109',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "pants" in Polish?',
+    options: ['buty', 'koszula', 'skarpetki', 'spodnie'],
+    correctIndex: 3,
+    explanation: 'Spodnie = pants. Moje spodnie są niebieskie! (My pants are blue!)'
+  },
+  {
+    id: 'vocab_rev_110',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "socks" in Polish?',
+    options: ['skarpetki', 'buty', 'spodnie', 'czapka'],
+    correctIndex: 0,
+    explanation: 'Skarpetki = socks. Mam kolorowe skarpetki! (I have colorful socks!)'
+  },
+  {
+    id: 'vocab_rev_111',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "dress" in Polish?',
+    options: ['koszula', 'sukienka', 'spodnie', 'czapka'],
+    correctIndex: 1,
+    explanation: 'Sukienka = dress. Mama ma piękną sukienkę! (Mom has a beautiful dress!)'
+  },
+
+  // DIFFICULTY 1 - Easy (More Nature)
+  {
+    id: 'vocab_rev_112',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "mountain" in Polish?',
+    options: ['morze', 'chmura', 'góra', 'gwiazda'],
+    correctIndex: 2,
+    explanation: 'Góra = mountain. Góry są bardzo wysokie! (Mountains are very high!)'
+  },
+  {
+    id: 'vocab_rev_113',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "sea" in Polish?',
+    options: ['góra', 'chmura', 'gwiazda', 'morze'],
+    correctIndex: 3,
+    explanation: 'Morze = sea. Morze jest niebieskie! (The sea is blue!)'
+  },
+  {
+    id: 'vocab_rev_114',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "star" in Polish?',
+    options: ['gwiazda', 'chmura', 'morze', 'góra'],
+    correctIndex: 0,
+    explanation: 'Gwiazda = star. Gwiazdy świecą w nocy! (Stars shine at night!)'
+  },
+  {
+    id: 'vocab_rev_115',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "cloud" in Polish?',
+    options: ['góra', 'chmura', 'gwiazda', 'morze'],
+    correctIndex: 1,
+    explanation: 'Chmura = cloud. Chmury są białe i puszyste! (Clouds are white and fluffy!)'
+  },
+
+  // DIFFICULTY 1 - Easy (More Objects)
+  {
+    id: 'vocab_rev_116',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "door" in Polish?',
+    options: ['okno', 'krzesło', 'drzwi', 'zegar'],
+    correctIndex: 2,
+    explanation: 'Drzwi = door. Otwórz drzwi! (Open the door!)'
+  },
+  {
+    id: 'vocab_rev_117',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "window" in Polish?',
+    options: ['ołówek', 'zabawka', 'zegar', 'okno'],
+    correctIndex: 3,
+    explanation: 'Okno = window. Patrzę przez okno! (I look through the window!)'
+  },
+  {
+    id: 'vocab_rev_118',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "chair" in Polish?',
+    options: ['krzesło', 'drzwi', 'okno', 'ołówek'],
+    correctIndex: 0,
+    explanation: 'Krzesło = chair. Siadam na krześle! (I sit on a chair!)'
+  },
+  {
+    id: 'vocab_rev_119',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "pencil" in Polish?',
+    options: ['zegar', 'ołówek', 'drzwi', 'zabawka'],
+    correctIndex: 1,
+    explanation: 'Ołówek = pencil. Piszę ołówkiem! (I write with a pencil!)'
+  },
+  {
+    id: 'vocab_rev_120',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "toy" in Polish?',
+    options: ['krzesło', 'okno', 'zabawka', 'ołówek'],
+    correctIndex: 2,
+    explanation: 'Zabawka = toy. Dzieci lubią zabawki! (Children like toys!)'
+  },
+  {
+    id: 'vocab_rev_121',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "clock" in Polish?',
+    options: ['drzwi', 'ołówek', 'krzesło', 'zegar'],
+    correctIndex: 3,
+    explanation: 'Zegar = clock. Zegar pokazuje godzinę! (A clock shows the time!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Basic Food)
+  {
+    id: 'vocab_rev_122',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "ice cream" in Polish?',
+    options: ['lody', 'ciastko', 'banan', 'pomidor'],
+    correctIndex: 0,
+    explanation: 'Lody = ice cream. Lody są zimne i smaczne! (Ice cream is cold and tasty!)'
+  },
+  {
+    id: 'vocab_rev_123',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "cookie" in Polish?',
+    options: ['marchewka', 'ciastko', 'lody', 'banan'],
+    correctIndex: 1,
+    explanation: 'Ciastko = cookie. Babcia piecze pyszne ciastka! (Grandma bakes delicious cookies!)'
+  },
+  {
+    id: 'vocab_rev_124',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "banana" in Polish?',
+    options: ['pomidor', 'marchewka', 'banan', 'ciastko'],
+    correctIndex: 2,
+    explanation: 'Banan = banana. Małpy lubią banany! (Monkeys like bananas!)'
+  },
+  {
+    id: 'vocab_rev_125',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "carrot" in Polish?',
+    options: ['banan', 'lody', 'pomidor', 'marchewka'],
+    correctIndex: 3,
+    explanation: 'Marchewka = carrot. Króliki jedzą marchewki! (Rabbits eat carrots!)'
+  },
+  {
+    id: 'vocab_rev_126',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "tomato" in Polish?',
+    options: ['pomidor', 'marchewka', 'ciastko', 'banan'],
+    correctIndex: 0,
+    explanation: 'Pomidor = tomato. Pomidory są czerwone! (Tomatoes are red!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Basic Words)
+  {
+    id: 'vocab_rev_127',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "yes" in Polish?',
+    options: ['nie', 'tak', 'proszę', 'cześć'],
+    correctIndex: 1,
+    explanation: 'Tak = yes. Tak, lubię lody! (Yes, I like ice cream!)'
+  },
+  {
+    id: 'vocab_rev_128',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "no" in Polish?',
+    options: ['tak', 'cześć', 'nie', 'proszę'],
+    correctIndex: 2,
+    explanation: 'Nie = no. Nie, dziękuję! (No, thank you!)'
+  },
+  {
+    id: 'vocab_rev_129',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "thank you" in Polish?',
+    options: ['cześć', 'proszę', 'tak', 'dziękuję'],
+    correctIndex: 3,
+    explanation: 'Dziękuję = thank you. Dziękuję bardzo! (Thank you very much!)'
+  },
+  {
+    id: 'vocab_rev_130',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "please" in Polish?',
+    options: ['proszę', 'dziękuję', 'cześć', 'tak'],
+    correctIndex: 0,
+    explanation: 'Proszę = please. Proszę, podaj mi książkę! (Please, pass me the book!)'
+  },
+  {
+    id: 'vocab_rev_131',
+    difficulty: 1,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "hello/hi" in Polish?',
+    options: ['dziękuję', 'cześć', 'tak', 'nie'],
+    correctIndex: 1,
+    explanation: 'Cześć = hello/hi. Cześć, jak się masz? (Hi, how are you?)'
+  },
+
+  // ========== NEW DIFFICULTY 2 QUESTIONS ==========
+
+  // DIFFICULTY 2 - Medium (More Food)
+  {
+    id: 'vocab_rev_132',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "tea" in Polish?',
+    options: ['sok', 'masło', 'herbata', 'ryż'],
+    correctIndex: 2,
+    explanation: 'Herbata = tea. Babcia pije herbatę z cytryną! (Grandma drinks tea with lemon!)'
+  },
+  {
+    id: 'vocab_rev_133',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "juice" in Polish?',
+    options: ['herbata', 'masło', 'ryż', 'sok'],
+    correctIndex: 3,
+    explanation: 'Sok = juice. Sok pomarańczowy jest smaczny! (Orange juice is tasty!)'
+  },
+  {
+    id: 'vocab_rev_134',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "rice" in Polish?',
+    options: ['ryż', 'herbata', 'masło', 'sok'],
+    correctIndex: 0,
+    explanation: 'Ryż = rice. Jem ryż z kurczakiem! (I eat rice with chicken!)'
+  },
+  {
+    id: 'vocab_rev_135',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "butter" in Polish?',
+    options: ['sok', 'masło', 'ryż', 'herbata'],
+    correctIndex: 1,
+    explanation: 'Masło = butter. Smaruję chleb masłem! (I spread butter on bread!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Clothing)
+  {
+    id: 'vocab_rev_136',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "jacket" in Polish?',
+    options: ['szalik', 'kapelusz', 'kurtka', 'rękawiczki'],
+    correctIndex: 2,
+    explanation: 'Kurtka = jacket. Zakładam kurtkę, bo jest zimno! (I put on a jacket because it\'s cold!)'
+  },
+  {
+    id: 'vocab_rev_137',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "gloves" in Polish?',
+    options: ['kurtka', 'szalik', 'kapelusz', 'rękawiczki'],
+    correctIndex: 3,
+    explanation: 'Rękawiczki = gloves. Zimą noszę ciepłe rękawiczki! (In winter I wear warm gloves!)'
+  },
+  {
+    id: 'vocab_rev_138',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "scarf" in Polish?',
+    options: ['szalik', 'kurtka', 'rękawiczki', 'kapelusz'],
+    correctIndex: 0,
+    explanation: 'Szalik = scarf. Szalik grzeje szyję! (A scarf warms the neck!)'
+  },
+  {
+    id: 'vocab_rev_139',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "hat" in Polish?',
+    options: ['rękawiczki', 'kapelusz', 'szalik', 'kurtka'],
+    correctIndex: 1,
+    explanation: 'Kapelusz = hat. Czarodziej nosi kapelusz! (A wizard wears a hat!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Home)
+  {
+    id: 'vocab_rev_140',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "mirror" in Polish?',
+    options: ['dywan', 'schody', 'lustro', 'lampa'],
+    correctIndex: 2,
+    explanation: 'Lustro = mirror. Widzę siebie w lustrze! (I see myself in the mirror!)'
+  },
+  {
+    id: 'vocab_rev_141',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "carpet/rug" in Polish?',
+    options: ['lampa', 'lustro', 'schody', 'dywan'],
+    correctIndex: 3,
+    explanation: 'Dywan = carpet/rug. Dywan jest miękki! (The carpet is soft!)'
+  },
+  {
+    id: 'vocab_rev_142',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "lamp" in Polish?',
+    options: ['lampa', 'dywan', 'lustro', 'schody'],
+    correctIndex: 0,
+    explanation: 'Lampa = lamp. Lampa oświetla pokój! (A lamp lights up the room!)'
+  },
+  {
+    id: 'vocab_rev_143',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "stairs" in Polish?',
+    options: ['lustro', 'schody', 'dywan', 'lampa'],
+    correctIndex: 1,
+    explanation: 'Schody = stairs. Wchodzę po schodach! (I go up the stairs!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Professions)
+  {
+    id: 'vocab_rev_144',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "doctor" in Polish?',
+    options: ['strażak', 'policjant', 'lekarz', 'nauczyciel'],
+    correctIndex: 2,
+    explanation: 'Lekarz = doctor. Lekarz pomaga chorym! (A doctor helps the sick!)'
+  },
+  {
+    id: 'vocab_rev_145',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "teacher" in Polish?',
+    options: ['lekarz', 'policjant', 'strażak', 'nauczyciel'],
+    correctIndex: 3,
+    explanation: 'Nauczyciel = teacher. Nauczyciel uczy w szkole! (A teacher teaches at school!)'
+  },
+  {
+    id: 'vocab_rev_146',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "firefighter" in Polish?',
+    options: ['strażak', 'policjant', 'lekarz', 'nauczyciel'],
+    correctIndex: 0,
+    explanation: 'Strażak = firefighter. Strażak gasi pożary! (A firefighter puts out fires!)'
+  },
+  {
+    id: 'vocab_rev_147',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "policeman" in Polish?',
+    options: ['nauczyciel', 'policjant', 'strażak', 'lekarz'],
+    correctIndex: 1,
+    explanation: 'Policjant = policeman. Policjant pilnuje porządku! (A policeman keeps order!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Weather)
+  {
+    id: 'vocab_rev_148',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "wind" in Polish?',
+    options: ['burza', 'tęcza', 'wiatr', 'deszcz'],
+    correctIndex: 2,
+    explanation: 'Wiatr = wind. Wiatr wieje mocno! (The wind blows strongly!)'
+  },
+  {
+    id: 'vocab_rev_149',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "storm" in Polish?',
+    options: ['wiatr', 'tęcza', 'deszcz', 'burza'],
+    correctIndex: 3,
+    explanation: 'Burza = storm. Podczas burzy pada deszcz! (During a storm it rains!)'
+  },
+  {
+    id: 'vocab_rev_150',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "rainbow" in Polish?',
+    options: ['tęcza', 'burza', 'wiatr', 'śnieg'],
+    correctIndex: 0,
+    explanation: 'Tęcza = rainbow. Tęcza ma siedem kolorów! (A rainbow has seven colors!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Transportation)
+  {
+    id: 'vocab_rev_151',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "bus" in Polish?',
+    options: ['pociąg', 'autobus', 'rower', 'samolot'],
+    correctIndex: 1,
+    explanation: 'Autobus = bus. Jadę autobusem do szkoły! (I ride the bus to school!)'
+  },
+  {
+    id: 'vocab_rev_152',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "train" in Polish?',
+    options: ['samolot', 'rower', 'pociąg', 'autobus'],
+    correctIndex: 2,
+    explanation: 'Pociąg = train. Pociąg jedzie szybko! (The train goes fast!)'
+  },
+  {
+    id: 'vocab_rev_153',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "bicycle" in Polish?',
+    options: ['autobus', 'samolot', 'pociąg', 'rower'],
+    correctIndex: 3,
+    explanation: 'Rower = bicycle. Lubię jeździć na rowerze! (I like to ride a bicycle!)'
+  },
+  {
+    id: 'vocab_rev_154',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "airplane" in Polish?',
+    options: ['samolot', 'autobus', 'pociąg', 'rower'],
+    correctIndex: 0,
+    explanation: 'Samolot = airplane. Samolot leci wysoko! (An airplane flies high!)'
+  },
+
+  // DIFFICULTY 2 - Medium (School)
+  {
+    id: 'vocab_rev_155',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "homework/task" in Polish?',
+    options: ['pytanie', 'zadanie', 'odpowiedź', 'nauczycielka'],
+    correctIndex: 1,
+    explanation: 'Zadanie = homework/task. Odrabiam zadanie domowe! (I do my homework!)'
+  },
+  {
+    id: 'vocab_rev_156',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "question" in Polish?',
+    options: ['odpowiedź', 'nauczycielka', 'pytanie', 'zadanie'],
+    correctIndex: 2,
+    explanation: 'Pytanie = question. Mam pytanie do nauczyciela! (I have a question for the teacher!)'
+  },
+  {
+    id: 'vocab_rev_157',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "answer" in Polish?',
+    options: ['zadanie', 'pytanie', 'nauczycielka', 'odpowiedź'],
+    correctIndex: 3,
+    explanation: 'Odpowiedź = answer. Znam prawidłową odpowiedź! (I know the correct answer!)'
+  },
+  {
+    id: 'vocab_rev_158',
+    difficulty: 2,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "female teacher" in Polish?',
+    options: ['nauczycielka', 'zadanie', 'odpowiedź', 'pytanie'],
+    correctIndex: 0,
+    explanation: 'Nauczycielka = female teacher. Nasza nauczycielka jest miła! (Our teacher is nice!)'
+  },
+
+  // ========== NEW DIFFICULTY 3 QUESTIONS ==========
+
+  // DIFFICULTY 3 - Hard (Abstract Concepts)
+  {
+    id: 'vocab_rev_159',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "wisdom" in Polish?',
+    options: ['siła', 'wolność', 'mądrość', 'sprawiedliwość'],
+    correctIndex: 2,
+    explanation: 'Mądrość = wisdom. Sowa jest symbolem mądrości! (An owl is a symbol of wisdom!)'
+  },
+  {
+    id: 'vocab_rev_160',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "strength" in Polish?',
+    options: ['mądrość', 'sprawiedliwość', 'wolność', 'siła'],
+    correctIndex: 3,
+    explanation: 'Siła = strength. Rycerz ma wielką siłę! (The knight has great strength!)'
+  },
+  {
+    id: 'vocab_rev_161',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "freedom" in Polish?',
+    options: ['wolność', 'mądrość', 'siła', 'sprawiedliwość'],
+    correctIndex: 0,
+    explanation: 'Wolność = freedom. Ptaki symbolizują wolność! (Birds symbolize freedom!)'
+  },
+  {
+    id: 'vocab_rev_162',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "justice" in Polish?',
+    options: ['siła', 'sprawiedliwość', 'wolność', 'mądrość'],
+    correctIndex: 1,
+    explanation: 'Sprawiedliwość = justice. Rycerz walczy o sprawiedliwość! (The knight fights for justice!)'
+  },
+
+  // DIFFICULTY 3 - Hard (Dungeon Themes)
+  {
+    id: 'vocab_rev_163',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "knight" in Polish?',
+    options: ['królestwo', 'pułapka', 'rycerz', 'jaskinia'],
+    correctIndex: 2,
+    explanation: 'Rycerz = knight. Rycerz chroni królestwo! (The knight protects the kingdom!)'
+  },
+  {
+    id: 'vocab_rev_164',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "kingdom" in Polish?',
+    options: ['jaskinia', 'pułapka', 'rycerz', 'królestwo'],
+    correctIndex: 3,
+    explanation: 'Królestwo = kingdom. Królestwo jest w niebezpieczeństwie! (The kingdom is in danger!)'
+  },
+  {
+    id: 'vocab_rev_165',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "cave" in Polish?',
+    options: ['jaskinia', 'królestwo', 'rycerz', 'pułapka'],
+    correctIndex: 0,
+    explanation: 'Jaskinia = cave. Smok mieszka w jaskini! (The dragon lives in a cave!)'
+  },
+  {
+    id: 'vocab_rev_166',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "trap" in Polish?',
+    options: ['rycerz', 'pułapka', 'jaskinia', 'królestwo'],
+    correctIndex: 1,
+    explanation: 'Pułapka = trap. Uważaj na pułapki w lochu! (Watch out for traps in the dungeon!)'
+  },
+
+  // DIFFICULTY 3 - Hard (Advanced Verbs)
+  {
+    id: 'vocab_rev_167',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "to discover" in Polish?',
+    options: ['uciekać', 'chronić', 'odkrywać', 'pokonać'],
+    correctIndex: 2,
+    explanation: 'Odkrywać = to discover. Mr Owl odkrywa tajemnice lochu! (Mr Owl discovers the dungeon\'s secrets!)'
+  },
+  {
+    id: 'vocab_rev_168',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "to escape" in Polish?',
+    options: ['pokonać', 'odkrywać', 'chronić', 'uciekać'],
+    correctIndex: 3,
+    explanation: 'Uciekać = to escape. Trzeba uciekać przed smokiem! (You must escape from the dragon!)'
+  },
+  {
+    id: 'vocab_rev_169',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "to protect" in Polish?',
+    options: ['chronić', 'uciekać', 'pokonać', 'odkrywać'],
+    correctIndex: 0,
+    explanation: 'Chronić = to protect. Tarcza chroni rycerza! (The shield protects the knight!)'
+  },
+  {
+    id: 'vocab_rev_170',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "to defeat" in Polish?',
+    options: ['odkrywać', 'pokonać', 'uciekać', 'chronić'],
+    correctIndex: 1,
+    explanation: 'Pokonać = to defeat. Mr Owl musi pokonać smoka! (Mr Owl must defeat the dragon!)'
+  },
+
+  // DIFFICULTY 3 - Hard (Advanced Adjectives)
+  {
+    id: 'vocab_rev_171',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "invincible" in Polish?',
+    options: ['potężny', 'tajemniczy', 'niezwyciężony', 'nieznany'],
+    correctIndex: 2,
+    explanation: 'Niezwyciężony = invincible. Niezwyciężony rycerz wygra każdą bitwę! (An invincible knight will win every battle!)'
+  },
+  {
+    id: 'vocab_rev_172',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "powerful" in Polish?',
+    options: ['nieznany', 'niezwyciężony', 'tajemniczy', 'potężny'],
+    correctIndex: 3,
+    explanation: 'Potężny = powerful. Smok jest potężnym stworzeniem! (A dragon is a powerful creature!)'
+  },
+  {
+    id: 'vocab_rev_173',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "mysterious" in Polish?',
+    options: ['tajemniczy', 'potężny', 'nieznany', 'niezwyciężony'],
+    correctIndex: 0,
+    explanation: 'Tajemniczy = mysterious. Loch jest tajemniczy! (The dungeon is mysterious!)'
+  },
+  {
+    id: 'vocab_rev_174',
+    difficulty: 3,
+    category: 'vocabulary_reverse',
+    prompt: 'How do you say "unknown" in Polish?',
+    options: ['niezwyciężony', 'nieznany', 'potężny', 'tajemniczy'],
+    correctIndex: 1,
+    explanation: 'Nieznany = unknown. Przed nami nieznane niebezpieczeństwa! (Unknown dangers lie ahead!)'
   }
 ];
 

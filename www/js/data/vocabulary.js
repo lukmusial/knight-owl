@@ -820,6 +820,835 @@ const VOCABULARY_QUESTIONS = [
     options: ['to destroy', 'to save/rescue', 'to find', 'to lose'],
     correctIndex: 1,
     explanation: 'Ratować = to save/rescue. Mr Owl ratuje królestwo! (Mr Owl saves the kingdom!)'
+  },
+
+  // ========== NEW DIFFICULTY 1 QUESTIONS ==========
+
+  // DIFFICULTY 1 - Easy (Even More Animals)
+  {
+    id: 'vocab_088',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "żaba" mean?',
+    options: ['frog', 'toad', 'lizard', 'snake'],
+    correctIndex: 0,
+    explanation: 'Żaba = frog. Żaby skaczą wysoko! (Frogs jump high!)'
+  },
+  {
+    id: 'vocab_089',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "motyl" mean?',
+    options: ['moth', 'bee', 'butterfly', 'dragonfly'],
+    correctIndex: 2,
+    explanation: 'Motyl = butterfly. Motyle mają kolorowe skrzydła! (Butterflies have colorful wings!)'
+  },
+  {
+    id: 'vocab_090',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "królik" mean?',
+    options: ['squirrel', 'rabbit', 'hamster', 'guinea pig'],
+    correctIndex: 1,
+    explanation: 'Królik = rabbit. Króliki lubią marchewki! (Rabbits like carrots!)'
+  },
+  {
+    id: 'vocab_091',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "wilk" mean?',
+    options: ['fox', 'bear', 'wolf', 'dog'],
+    correctIndex: 2,
+    explanation: 'Wilk = wolf. Wilki żyją w lesie! (Wolves live in the forest!)'
+  },
+  {
+    id: 'vocab_092',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "lis" mean?',
+    options: ['fox', 'wolf', 'rabbit', 'deer'],
+    correctIndex: 0,
+    explanation: 'Lis = fox. Lis jest sprytny! (A fox is clever!)'
+  },
+  {
+    id: 'vocab_093',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "kaczka" mean?',
+    options: ['goose', 'chicken', 'swan', 'duck'],
+    correctIndex: 3,
+    explanation: 'Kaczka = duck. Kaczki pływają w jeziorze! (Ducks swim in the lake!)'
+  },
+  {
+    id: 'vocab_094',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "kura" mean?',
+    options: ['rooster', 'hen', 'turkey', 'pigeon'],
+    correctIndex: 1,
+    explanation: 'Kura = hen. Kury znoszą jajka! (Hens lay eggs!)'
+  },
+  {
+    id: 'vocab_095',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "żółw" mean?',
+    options: ['snail', 'crab', 'turtle', 'frog'],
+    correctIndex: 2,
+    explanation: 'Żółw = turtle. Żółw chodzi bardzo wolno! (A turtle walks very slowly!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Even More Colors)
+  {
+    id: 'vocab_096',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What color is "fioletowy" in English?',
+    options: ['purple', 'blue', 'pink', 'red'],
+    correctIndex: 0,
+    explanation: 'Fioletowy = purple. Fioletowy to piękny kolor! (Purple is a beautiful color!)'
+  },
+  {
+    id: 'vocab_097',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What color is "brązowy" in English?',
+    options: ['red', 'orange', 'brown', 'black'],
+    correctIndex: 2,
+    explanation: 'Brązowy = brown. Niedźwiedzie są brązowe! (Bears are brown!)'
+  },
+  {
+    id: 'vocab_098',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What color is "szary" in English?',
+    options: ['white', 'gray', 'silver', 'black'],
+    correctIndex: 1,
+    explanation: 'Szary = gray. Myszy są szare! (Mice are gray!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Even More Numbers)
+  {
+    id: 'vocab_099',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What number is "sześć" in English?',
+    options: ['five', 'six', 'seven', 'eight'],
+    correctIndex: 1,
+    explanation: 'Sześć = six. Owady mają sześć nóg! (Insects have six legs!)'
+  },
+  {
+    id: 'vocab_100',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What number is "siedem" in English?',
+    options: ['six', 'eight', 'seven', 'nine'],
+    correctIndex: 2,
+    explanation: 'Siedem = seven. Tydzień ma siedem dni! (A week has seven days!)'
+  },
+  {
+    id: 'vocab_101',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What number is "osiem" in English?',
+    options: ['seven', 'nine', 'six', 'eight'],
+    correctIndex: 3,
+    explanation: 'Osiem = eight. Pająk ma osiem nóg! (A spider has eight legs!)'
+  },
+  {
+    id: 'vocab_102',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What number is "dziewięć" in English?',
+    options: ['nine', 'ten', 'eight', 'seven'],
+    correctIndex: 0,
+    explanation: 'Dziewięć = nine. Kot ma dziewięć żyć! (A cat has nine lives!)'
+  },
+
+  // DIFFICULTY 1 - Easy (More Family)
+  {
+    id: 'vocab_103',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "wujek" mean?',
+    options: ['uncle', 'cousin', 'nephew', 'grandpa'],
+    correctIndex: 0,
+    explanation: 'Wujek = uncle. Wujek jest bratem mamy! (Uncle is mom\'s brother!)'
+  },
+  {
+    id: 'vocab_104',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "ciocia" mean?',
+    options: ['grandma', 'cousin', 'aunt', 'sister'],
+    correctIndex: 2,
+    explanation: 'Ciocia = aunt. Ciocia zawsze przynosi prezenty! (Auntie always brings gifts!)'
+  },
+  {
+    id: 'vocab_105',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "kuzyn" mean?',
+    options: ['brother', 'friend', 'neighbor', 'cousin'],
+    correctIndex: 3,
+    explanation: 'Kuzyn = cousin. Mój kuzyn lubi grać w piłkę! (My cousin likes to play ball!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Clothing)
+  {
+    id: 'vocab_106',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "buty" mean?',
+    options: ['shoes', 'boots', 'socks', 'sandals'],
+    correctIndex: 0,
+    explanation: 'Buty = shoes. Zakładam buty przed wyjściem! (I put on shoes before going out!)'
+  },
+  {
+    id: 'vocab_107',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "czapka" mean?',
+    options: ['scarf', 'hat/cap', 'gloves', 'coat'],
+    correctIndex: 1,
+    explanation: 'Czapka = hat/cap. Zimą noszę czapkę! (I wear a hat in winter!)'
+  },
+  {
+    id: 'vocab_108',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "koszula" mean?',
+    options: ['pants', 'jacket', 'shirt', 'dress'],
+    correctIndex: 2,
+    explanation: 'Koszula = shirt. Tata nosi białą koszulę! (Dad wears a white shirt!)'
+  },
+  {
+    id: 'vocab_109',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "spodnie" mean?',
+    options: ['shorts', 'shoes', 'skirt', 'pants'],
+    correctIndex: 3,
+    explanation: 'Spodnie = pants. Moje spodnie są niebieskie! (My pants are blue!)'
+  },
+  {
+    id: 'vocab_110',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "skarpetki" mean?',
+    options: ['socks', 'gloves', 'shoes', 'slippers'],
+    correctIndex: 0,
+    explanation: 'Skarpetki = socks. Mam kolorowe skarpetki! (I have colorful socks!)'
+  },
+  {
+    id: 'vocab_111',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "sukienka" mean?',
+    options: ['skirt', 'dress', 'blouse', 'coat'],
+    correctIndex: 1,
+    explanation: 'Sukienka = dress. Mama ma piękną sukienkę! (Mom has a beautiful dress!)'
+  },
+
+  // DIFFICULTY 1 - Easy (More Nature)
+  {
+    id: 'vocab_112',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "góra" mean?',
+    options: ['hill', 'valley', 'mountain', 'river'],
+    correctIndex: 2,
+    explanation: 'Góra = mountain. Góry są bardzo wysokie! (Mountains are very high!)'
+  },
+  {
+    id: 'vocab_113',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "morze" mean?',
+    options: ['lake', 'sea', 'river', 'ocean'],
+    correctIndex: 1,
+    explanation: 'Morze = sea. Morze jest niebieskie! (The sea is blue!)'
+  },
+  {
+    id: 'vocab_114',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "gwiazda" mean?',
+    options: ['moon', 'sun', 'planet', 'star'],
+    correctIndex: 3,
+    explanation: 'Gwiazda = star. Gwiazdy świecą w nocy! (Stars shine at night!)'
+  },
+  {
+    id: 'vocab_115',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "chmura" mean?',
+    options: ['cloud', 'sky', 'rain', 'wind'],
+    correctIndex: 0,
+    explanation: 'Chmura = cloud. Chmury są białe i puszyste! (Clouds are white and fluffy!)'
+  },
+
+  // DIFFICULTY 1 - Easy (More Objects)
+  {
+    id: 'vocab_116',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "drzwi" mean?',
+    options: ['window', 'door', 'wall', 'roof'],
+    correctIndex: 1,
+    explanation: 'Drzwi = door. Otwórz drzwi! (Open the door!)'
+  },
+  {
+    id: 'vocab_117',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "okno" mean?',
+    options: ['door', 'roof', 'window', 'wall'],
+    correctIndex: 2,
+    explanation: 'Okno = window. Patrzę przez okno! (I look through the window!)'
+  },
+  {
+    id: 'vocab_118',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "krzesło" mean?',
+    options: ['table', 'bed', 'sofa', 'chair'],
+    correctIndex: 3,
+    explanation: 'Krzesło = chair. Siadam na krześle! (I sit on a chair!)'
+  },
+  {
+    id: 'vocab_119',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "ołówek" mean?',
+    options: ['pencil', 'pen', 'crayon', 'marker'],
+    correctIndex: 0,
+    explanation: 'Ołówek = pencil. Piszę ołówkiem! (I write with a pencil!)'
+  },
+  {
+    id: 'vocab_120',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "zabawka" mean?',
+    options: ['game', 'toy', 'doll', 'puzzle'],
+    correctIndex: 1,
+    explanation: 'Zabawka = toy. Dzieci lubią zabawki! (Children like toys!)'
+  },
+  {
+    id: 'vocab_121',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "zegar" mean?',
+    options: ['bell', 'alarm', 'clock', 'watch'],
+    correctIndex: 2,
+    explanation: 'Zegar = clock. Zegar pokazuje godzinę! (A clock shows the time!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Basic Food)
+  {
+    id: 'vocab_122',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "lody" mean?',
+    options: ['cake', 'candy', 'chocolate', 'ice cream'],
+    correctIndex: 3,
+    explanation: 'Lody = ice cream. Lody są zimne i smaczne! (Ice cream is cold and tasty!)'
+  },
+  {
+    id: 'vocab_123',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "ciastko" mean?',
+    options: ['cookie', 'bread', 'pie', 'cake'],
+    correctIndex: 0,
+    explanation: 'Ciastko = cookie. Babcia piecze pyszne ciastka! (Grandma bakes delicious cookies!)'
+  },
+  {
+    id: 'vocab_124',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "banan" mean?',
+    options: ['orange', 'banana', 'apple', 'pear'],
+    correctIndex: 1,
+    explanation: 'Banan = banana. Małpy lubią banany! (Monkeys like bananas!)'
+  },
+  {
+    id: 'vocab_125',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "marchewka" mean?',
+    options: ['potato', 'onion', 'carrot', 'pepper'],
+    correctIndex: 2,
+    explanation: 'Marchewka = carrot. Króliki jedzą marchewki! (Rabbits eat carrots!)'
+  },
+  {
+    id: 'vocab_126',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "pomidor" mean?',
+    options: ['pepper', 'cucumber', 'onion', 'tomato'],
+    correctIndex: 3,
+    explanation: 'Pomidor = tomato. Pomidory są czerwone! (Tomatoes are red!)'
+  },
+
+  // DIFFICULTY 1 - Easy (Basic Words)
+  {
+    id: 'vocab_127',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "tak" mean?',
+    options: ['yes', 'no', 'maybe', 'hello'],
+    correctIndex: 0,
+    explanation: 'Tak = yes. Tak, lubię lody! (Yes, I like ice cream!)'
+  },
+  {
+    id: 'vocab_128',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "nie" mean?',
+    options: ['yes', 'no', 'please', 'sorry'],
+    correctIndex: 1,
+    explanation: 'Nie = no. Nie, dziękuję! (No, thank you!)'
+  },
+  {
+    id: 'vocab_129',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "dziękuję" mean?',
+    options: ['sorry', 'please', 'thank you', 'goodbye'],
+    correctIndex: 2,
+    explanation: 'Dziękuję = thank you. Dziękuję bardzo! (Thank you very much!)'
+  },
+  {
+    id: 'vocab_130',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "proszę" mean?',
+    options: ['sorry', 'hello', 'goodbye', 'please'],
+    correctIndex: 3,
+    explanation: 'Proszę = please. Proszę, podaj mi książkę! (Please, pass me the book!)'
+  },
+  {
+    id: 'vocab_131',
+    difficulty: 1,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "cześć" mean?',
+    options: ['hello/hi', 'goodbye', 'sorry', 'thanks'],
+    correctIndex: 0,
+    explanation: 'Cześć = hello/hi. Cześć, jak się masz? (Hi, how are you?)'
+  },
+
+  // ========== NEW DIFFICULTY 2 QUESTIONS ==========
+
+  // DIFFICULTY 2 - Medium (More Food)
+  {
+    id: 'vocab_132',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "herbata" mean?',
+    options: ['coffee', 'tea', 'juice', 'water'],
+    correctIndex: 1,
+    explanation: 'Herbata = tea. Babcia pije herbatę z cytryną! (Grandma drinks tea with lemon!)'
+  },
+  {
+    id: 'vocab_133',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "sok" mean?',
+    options: ['milk', 'water', 'juice', 'tea'],
+    correctIndex: 2,
+    explanation: 'Sok = juice. Sok pomarańczowy jest smaczny! (Orange juice is tasty!)'
+  },
+  {
+    id: 'vocab_134',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "ryż" mean?',
+    options: ['bread', 'pasta', 'rice', 'flour'],
+    correctIndex: 2,
+    explanation: 'Ryż = rice. Jem ryż z kurczakiem! (I eat rice with chicken!)'
+  },
+  {
+    id: 'vocab_135',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "masło" mean?',
+    options: ['cheese', 'butter', 'cream', 'oil'],
+    correctIndex: 1,
+    explanation: 'Masło = butter. Smaruję chleb masłem! (I spread butter on bread!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Clothing)
+  {
+    id: 'vocab_136',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "kurtka" mean?',
+    options: ['shirt', 'jacket', 'sweater', 'vest'],
+    correctIndex: 1,
+    explanation: 'Kurtka = jacket. Zakładam kurtkę, bo jest zimno! (I put on a jacket because it\'s cold!)'
+  },
+  {
+    id: 'vocab_137',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "rękawiczki" mean?',
+    options: ['socks', 'shoes', 'gloves', 'mittens'],
+    correctIndex: 2,
+    explanation: 'Rękawiczki = gloves. Zimą noszę ciepłe rękawiczki! (In winter I wear warm gloves!)'
+  },
+  {
+    id: 'vocab_138',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "szalik" mean?',
+    options: ['hat', 'scarf', 'belt', 'tie'],
+    correctIndex: 1,
+    explanation: 'Szalik = scarf. Szalik grzeje szyję! (A scarf warms the neck!)'
+  },
+  {
+    id: 'vocab_139',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "kapelusz" mean?',
+    options: ['cap', 'hat', 'crown', 'helmet'],
+    correctIndex: 1,
+    explanation: 'Kapelusz = hat. Czarodziej nosi kapelusz! (A wizard wears a hat!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Home)
+  {
+    id: 'vocab_140',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "lustro" mean?',
+    options: ['window', 'mirror', 'painting', 'photo'],
+    correctIndex: 1,
+    explanation: 'Lustro = mirror. Widzę siebie w lustrze! (I see myself in the mirror!)'
+  },
+  {
+    id: 'vocab_141',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "dywan" mean?',
+    options: ['curtain', 'blanket', 'carpet/rug', 'pillow'],
+    correctIndex: 2,
+    explanation: 'Dywan = carpet/rug. Dywan jest miękki! (The carpet is soft!)'
+  },
+  {
+    id: 'vocab_142',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "lampa" mean?',
+    options: ['candle', 'lamp', 'torch', 'light'],
+    correctIndex: 1,
+    explanation: 'Lampa = lamp. Lampa oświetla pokój! (A lamp lights up the room!)'
+  },
+  {
+    id: 'vocab_143',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "schody" mean?',
+    options: ['floor', 'stairs', 'elevator', 'ladder'],
+    correctIndex: 1,
+    explanation: 'Schody = stairs. Wchodzę po schodach! (I go up the stairs!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Professions)
+  {
+    id: 'vocab_144',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "lekarz" mean?',
+    options: ['teacher', 'doctor', 'nurse', 'dentist'],
+    correctIndex: 1,
+    explanation: 'Lekarz = doctor. Lekarz pomaga chorym! (A doctor helps the sick!)'
+  },
+  {
+    id: 'vocab_145',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "nauczyciel" mean?',
+    options: ['student', 'teacher', 'principal', 'professor'],
+    correctIndex: 1,
+    explanation: 'Nauczyciel = teacher. Nauczyciel uczy w szkole! (A teacher teaches at school!)'
+  },
+  {
+    id: 'vocab_146',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "strażak" mean?',
+    options: ['policeman', 'soldier', 'firefighter', 'guard'],
+    correctIndex: 2,
+    explanation: 'Strażak = firefighter. Strażak gasi pożary! (A firefighter puts out fires!)'
+  },
+  {
+    id: 'vocab_147',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "policjant" mean?',
+    options: ['policeman', 'soldier', 'guard', 'detective'],
+    correctIndex: 0,
+    explanation: 'Policjant = policeman. Policjant pilnuje porządku! (A policeman keeps order!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Weather)
+  {
+    id: 'vocab_148',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "wiatr" mean?',
+    options: ['rain', 'wind', 'snow', 'fog'],
+    correctIndex: 1,
+    explanation: 'Wiatr = wind. Wiatr wieje mocno! (The wind blows strongly!)'
+  },
+  {
+    id: 'vocab_149',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "burza" mean?',
+    options: ['rain', 'cloud', 'storm', 'thunder'],
+    correctIndex: 2,
+    explanation: 'Burza = storm. Podczas burzy pada deszcz! (During a storm it rains!)'
+  },
+  {
+    id: 'vocab_150',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "tęcza" mean?',
+    options: ['sunrise', 'sunset', 'rainbow', 'lightning'],
+    correctIndex: 2,
+    explanation: 'Tęcza = rainbow. Tęcza ma siedem kolorów! (A rainbow has seven colors!)'
+  },
+
+  // DIFFICULTY 2 - Medium (Transportation)
+  {
+    id: 'vocab_151',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "autobus" mean?',
+    options: ['car', 'bus', 'truck', 'van'],
+    correctIndex: 1,
+    explanation: 'Autobus = bus. Jadę autobusem do szkoły! (I ride the bus to school!)'
+  },
+  {
+    id: 'vocab_152',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "pociąg" mean?',
+    options: ['bus', 'plane', 'train', 'ship'],
+    correctIndex: 2,
+    explanation: 'Pociąg = train. Pociąg jedzie szybko! (The train goes fast!)'
+  },
+  {
+    id: 'vocab_153',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "rower" mean?',
+    options: ['bicycle', 'motorcycle', 'scooter', 'skateboard'],
+    correctIndex: 0,
+    explanation: 'Rower = bicycle. Lubię jeździć na rowerze! (I like to ride a bicycle!)'
+  },
+  {
+    id: 'vocab_154',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "samolot" mean?',
+    options: ['helicopter', 'rocket', 'kite', 'airplane'],
+    correctIndex: 3,
+    explanation: 'Samolot = airplane. Samolot leci wysoko! (An airplane flies high!)'
+  },
+
+  // DIFFICULTY 2 - Medium (School)
+  {
+    id: 'vocab_155',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "zadanie" mean?',
+    options: ['homework/task', 'lesson', 'exam', 'grade'],
+    correctIndex: 0,
+    explanation: 'Zadanie = homework/task. Odrabiam zadanie domowe! (I do my homework!)'
+  },
+  {
+    id: 'vocab_156',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "pytanie" mean?',
+    options: ['answer', 'question', 'problem', 'riddle'],
+    correctIndex: 1,
+    explanation: 'Pytanie = question. Mam pytanie do nauczyciela! (I have a question for the teacher!)'
+  },
+  {
+    id: 'vocab_157',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "odpowiedź" mean?',
+    options: ['question', 'problem', 'answer', 'solution'],
+    correctIndex: 2,
+    explanation: 'Odpowiedź = answer. Znam prawidłową odpowiedź! (I know the correct answer!)'
+  },
+  {
+    id: 'vocab_158',
+    difficulty: 2,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "nauczycielka" mean?',
+    options: ['student', 'principal', 'nurse', 'female teacher'],
+    correctIndex: 3,
+    explanation: 'Nauczycielka = female teacher. Nasza nauczycielka jest miła! (Our teacher is nice!)'
+  },
+
+  // ========== NEW DIFFICULTY 3 QUESTIONS ==========
+
+  // DIFFICULTY 3 - Hard (Abstract Concepts)
+  {
+    id: 'vocab_159',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "mądrość" mean?',
+    options: ['wisdom', 'knowledge', 'intelligence', 'cleverness'],
+    correctIndex: 0,
+    explanation: 'Mądrość = wisdom. Sowa jest symbolem mądrości! (An owl is a symbol of wisdom!)'
+  },
+  {
+    id: 'vocab_160',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "siła" mean?',
+    options: ['speed', 'strength', 'power', 'energy'],
+    correctIndex: 1,
+    explanation: 'Siła = strength. Rycerz ma wielką siłę! (The knight has great strength!)'
+  },
+  {
+    id: 'vocab_161',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "wolność" mean?',
+    options: ['peace', 'justice', 'freedom', 'hope'],
+    correctIndex: 2,
+    explanation: 'Wolność = freedom. Ptaki symbolizują wolność! (Birds symbolize freedom!)'
+  },
+  {
+    id: 'vocab_162',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "sprawiedliwość" mean?',
+    options: ['truth', 'honor', 'loyalty', 'justice'],
+    correctIndex: 3,
+    explanation: 'Sprawiedliwość = justice. Rycerz walczy o sprawiedliwość! (The knight fights for justice!)'
+  },
+
+  // DIFFICULTY 3 - Hard (Dungeon Themes)
+  {
+    id: 'vocab_163',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "rycerz" mean?',
+    options: ['knight', 'king', 'prince', 'warrior'],
+    correctIndex: 0,
+    explanation: 'Rycerz = knight. Rycerz chroni królestwo! (The knight protects the kingdom!)'
+  },
+  {
+    id: 'vocab_164',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "królestwo" mean?',
+    options: ['castle', 'kingdom', 'palace', 'throne'],
+    correctIndex: 1,
+    explanation: 'Królestwo = kingdom. Królestwo jest w niebezpieczeństwie! (The kingdom is in danger!)'
+  },
+  {
+    id: 'vocab_165',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "jaskinia" mean?',
+    options: ['tunnel', 'dungeon', 'cave', 'mine'],
+    correctIndex: 2,
+    explanation: 'Jaskinia = cave. Smok mieszka w jaskini! (The dragon lives in a cave!)'
+  },
+  {
+    id: 'vocab_166',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "pułapka" mean?',
+    options: ['puzzle', 'riddle', 'wall', 'trap'],
+    correctIndex: 3,
+    explanation: 'Pułapka = trap. Uważaj na pułapki w lochu! (Watch out for traps in the dungeon!)'
+  },
+
+  // DIFFICULTY 3 - Hard (Advanced Verbs)
+  {
+    id: 'vocab_167',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "odkrywać" mean?',
+    options: ['to discover', 'to hide', 'to forget', 'to remember'],
+    correctIndex: 0,
+    explanation: 'Odkrywać = to discover. Mr Owl odkrywa tajemnice lochu! (Mr Owl discovers the dungeon\'s secrets!)'
+  },
+  {
+    id: 'vocab_168',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "uciekać" mean?',
+    options: ['to chase', 'to escape', 'to catch', 'to follow'],
+    correctIndex: 1,
+    explanation: 'Uciekać = to escape. Trzeba uciekać przed smokiem! (You must escape from the dragon!)'
+  },
+  {
+    id: 'vocab_169',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "chronić" mean?',
+    options: ['to attack', 'to destroy', 'to protect', 'to watch'],
+    correctIndex: 2,
+    explanation: 'Chronić = to protect. Tarcza chroni rycerza! (The shield protects the knight!)'
+  },
+  {
+    id: 'vocab_170',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "pokonać" mean?',
+    options: ['to meet', 'to help', 'to challenge', 'to defeat'],
+    correctIndex: 3,
+    explanation: 'Pokonać = to defeat. Mr Owl musi pokonać smoka! (Mr Owl must defeat the dragon!)'
+  },
+
+  // DIFFICULTY 3 - Hard (Advanced Adjectives)
+  {
+    id: 'vocab_171',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "niezwyciężony" mean?',
+    options: ['invincible', 'invisible', 'immortal', 'incredible'],
+    correctIndex: 0,
+    explanation: 'Niezwyciężony = invincible. Niezwyciężony rycerz wygra każdą bitwę! (An invincible knight will win every battle!)'
+  },
+  {
+    id: 'vocab_172',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "potężny" mean?',
+    options: ['weak', 'powerful', 'small', 'fast'],
+    correctIndex: 1,
+    explanation: 'Potężny = powerful. Smok jest potężnym stworzeniem! (A dragon is a powerful creature!)'
+  },
+  {
+    id: 'vocab_173',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "tajemniczy" mean?',
+    options: ['obvious', 'simple', 'mysterious', 'clear'],
+    correctIndex: 2,
+    explanation: 'Tajemniczy = mysterious. Loch jest tajemniczy! (The dungeon is mysterious!)'
+  },
+  {
+    id: 'vocab_174',
+    difficulty: 3,
+    category: 'vocabulary',
+    prompt: 'What does the Polish word "nieznany" mean?',
+    options: ['famous', 'common', 'familiar', 'unknown'],
+    correctIndex: 3,
+    explanation: 'Nieznany = unknown. Przed nami nieznane niebezpieczeństwa! (Unknown dangers lie ahead!)'
   }
 ];
 
