@@ -619,6 +619,622 @@ const GRAMMAR_QUESTIONS = [
     options: ['Jest', 'Jestem', 'Bądź', 'Będę'],
     correctIndex: 2,
     explanation: 'Rule: "Bądź" is the imperative (command) of "być" (to be). Used for giving orders or advice. Bądź ostrożny! = Be careful!'
+  },
+
+  // ========== NEW DIFFICULTY 1 QUESTIONS ==========
+
+  // DIFFICULTY 1 - Easy (More Gender Articles)
+  {
+    id: 'gram_056',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "hen":',
+    sentence: '___ kura',
+    hint: 'Kura ends in -a',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 1,
+    explanation: 'Rule: Nouns ending in -a are usually feminine and use "ta". Kura (hen) is feminine.'
+  },
+  {
+    id: 'gram_057',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "bicycle":',
+    sentence: '___ rower',
+    hint: 'Rower ends in a consonant',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 0,
+    explanation: 'Rule: Nouns ending in a consonant are usually masculine and use "ten". Rower (bicycle) is masculine.'
+  },
+  {
+    id: 'gram_058',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "sea":',
+    sentence: '___ morze',
+    hint: 'Morze ends in -e',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 2,
+    explanation: 'Rule: Nouns ending in -e are usually neuter and use "to". Morze (sea) is neuter.'
+  },
+  {
+    id: 'gram_059',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "lamp":',
+    sentence: '___ lampa',
+    hint: 'Lampa ends in -a',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 1,
+    explanation: 'Rule: Nouns ending in -a are usually feminine and use "ta". Lampa (lamp) is feminine.'
+  },
+  {
+    id: 'gram_060',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "cookie":',
+    sentence: '___ ciastko',
+    hint: 'Ciastko ends in -o',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 2,
+    explanation: 'Rule: Nouns ending in -o are usually neuter and use "to". Ciastko (cookie) is neuter.'
+  },
+  {
+    id: 'gram_061',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "lion":',
+    sentence: '___ lew',
+    hint: 'Lew ends in a consonant',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 0,
+    explanation: 'Rule: Nouns ending in a consonant are usually masculine and use "ten". Lew (lion) is masculine.'
+  },
+  {
+    id: 'gram_062',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "mountain":',
+    sentence: '___ góra',
+    hint: 'Góra ends in -a',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 1,
+    explanation: 'Rule: Nouns ending in -a are usually feminine and use "ta". Góra (mountain) is feminine.'
+  },
+  {
+    id: 'gram_063',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "chair":',
+    sentence: '___ krzesło',
+    hint: 'Krzesło ends in -o',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 2,
+    explanation: 'Rule: Nouns ending in -o are usually neuter and use "to". Krzesło (chair) is neuter.'
+  },
+
+  // ========== NEW DIFFICULTY 2 QUESTIONS ==========
+
+  // DIFFICULTY 2 - Medium (More Plurals)
+  {
+    id: 'gram_064',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'What is the plural form of "lew" (lion)?',
+    sentence: 'lew → ___',
+    hint: 'Masculine nouns with stem changes',
+    options: ['lewy', 'lwy', 'lewów', 'lewem'],
+    correctIndex: 1,
+    explanation: 'Rule: Some masculine nouns have stem changes in plural. Lew → lwy (lions). The -e- disappears.'
+  },
+  {
+    id: 'gram_065',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'What is the plural form of "kura" (hen)?',
+    sentence: 'kura → ___',
+    hint: 'Feminine nouns ending in -a',
+    options: ['kuri', 'kurą', 'kury', 'kurem'],
+    correctIndex: 2,
+    explanation: 'Rule: Feminine nouns ending in -a change to -y in plural. Kura → kury (hens).'
+  },
+  {
+    id: 'gram_066',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'What is the plural form of "okno" (window)?',
+    sentence: 'okno → ___',
+    hint: 'Neuter nouns ending in -o',
+    options: ['okny', 'okna', 'okien', 'oknem'],
+    correctIndex: 1,
+    explanation: 'Rule: Neuter nouns ending in -o change to -a in plural. Okno → okna (windows).'
+  },
+  {
+    id: 'gram_067',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'What is the plural form of "lampa" (lamp)?',
+    sentence: 'lampa → ___',
+    hint: 'Feminine nouns ending in -a',
+    options: ['lampy', 'lampą', 'lamp', 'lampem'],
+    correctIndex: 0,
+    explanation: 'Rule: Feminine nouns ending in -a change to -y in plural. Lampa → lampy (lamps).'
+  },
+  {
+    id: 'gram_068',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'What is the plural form of "krzesło" (chair)?',
+    sentence: 'krzesło → ___',
+    hint: 'Neuter nouns ending in -o',
+    options: ['krzesły', 'krzesła', 'krzesłów', 'krzesłem'],
+    correctIndex: 1,
+    explanation: 'Rule: Neuter nouns ending in -ło change -o to -a in plural. Krzesło → krzesła (chairs).'
+  },
+  {
+    id: 'gram_069',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'What is the plural form of "ząb" (tooth)?',
+    sentence: 'ząb → ___',
+    hint: 'Masculine nouns with vowel change',
+    options: ['ząby', 'zęby', 'zębów', 'zębem'],
+    correctIndex: 1,
+    explanation: 'Rule: Some nouns have vowel changes in plural. Ząb → zęby (teeth). The ą changes to ę.'
+  },
+
+  // DIFFICULTY 2 - Medium (More Verb Conjugations)
+  {
+    id: 'gram_070',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to do/make" (robić):',
+    sentence: 'Ja ___ (I do/make)',
+    hint: 'First person singular',
+    options: ['robię', 'robisz', 'robi', 'robimy'],
+    correctIndex: 0,
+    explanation: 'Rule: "Robić" conjugation: ja robię, ty robisz, on/ona robi, my robimy, wy robicie, oni robią.'
+  },
+  {
+    id: 'gram_071',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to write" (pisać):',
+    sentence: 'On ___ (He writes)',
+    hint: 'Third person singular',
+    options: ['piszę', 'piszesz', 'pisze', 'piszemy'],
+    correctIndex: 2,
+    explanation: 'Rule: "Pisać" conjugation: ja piszę, ty piszesz, on/ona pisze, my piszemy, wy piszecie, oni piszą.'
+  },
+  {
+    id: 'gram_072',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to run" (biegać):',
+    sentence: 'My ___ (We run)',
+    hint: 'First person plural',
+    options: ['biegam', 'biegasz', 'biega', 'biegamy'],
+    correctIndex: 3,
+    explanation: 'Rule: "Biegać" conjugation: ja biegam, ty biegasz, on/ona biega, my biegamy, wy biegacie, oni biegają.'
+  },
+  {
+    id: 'gram_073',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to play" (grać):',
+    sentence: 'Ty ___ (You play)',
+    hint: 'Second person singular',
+    options: ['gram', 'grasz', 'gra', 'gramy'],
+    correctIndex: 1,
+    explanation: 'Rule: "Grać" conjugation: ja gram, ty grasz, on/ona gra, my gramy, wy gracie, oni grają.'
+  },
+  {
+    id: 'gram_074',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to speak" (mówić):',
+    sentence: 'Oni ___ (They speak)',
+    hint: 'Third person plural',
+    options: ['mówię', 'mówisz', 'mówi', 'mówią'],
+    correctIndex: 3,
+    explanation: 'Rule: "Mówić" conjugation: ja mówię, ty mówisz, on/ona mówi, my mówimy, wy mówicie, oni mówią.'
+  },
+  {
+    id: 'gram_075',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to jump" (skakać):',
+    sentence: 'Ja ___ (I jump)',
+    hint: 'First person singular',
+    options: ['skaczę', 'skaczesz', 'skacze', 'skaczemy'],
+    correctIndex: 0,
+    explanation: 'Rule: "Skakać" conjugation: ja skaczę, ty skaczesz, on/ona skacze. Note the k→cz consonant change.'
+  },
+  {
+    id: 'gram_076',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to dance" (tańczyć):',
+    sentence: 'Ona ___ (She dances)',
+    hint: 'Third person singular',
+    options: ['tańczę', 'tańczysz', 'tańczy', 'tańczymy'],
+    correctIndex: 2,
+    explanation: 'Rule: "Tańczyć" conjugation: ja tańczę, ty tańczysz, on/ona tańczy, my tańczymy, wy tańczycie, oni tańczą.'
+  },
+  {
+    id: 'gram_077',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to swim" (pływać):',
+    sentence: 'My ___ (We swim)',
+    hint: 'First person plural',
+    options: ['pływam', 'pływasz', 'pływa', 'pływamy'],
+    correctIndex: 3,
+    explanation: 'Rule: "Pływać" conjugation: ja pływam, ty pływasz, on/ona pływa, my pływamy, wy pływacie, oni pływają.'
+  },
+
+  // DIFFICULTY 2 - Medium (More Adjective Agreement)
+  {
+    id: 'gram_078',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the feminine noun:',
+    sentence: 'Sowa jest ___ (The owl is small)',
+    hint: 'Feminine adjectives often end in -a',
+    options: ['mały', 'mała', 'małe', 'mali'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine adjectives end in -a. Sowa is feminine, so we use mała (small).'
+  },
+  {
+    id: 'gram_079',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the masculine noun:',
+    sentence: 'Dom jest ___ (The house is old)',
+    hint: 'Masculine adjectives often end in -y',
+    options: ['stary', 'stara', 'stare', 'starzy'],
+    correctIndex: 0,
+    explanation: 'Rule: Masculine singular adjectives end in -y. Dom is masculine, so we use stary (old).'
+  },
+  {
+    id: 'gram_080',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the neuter noun:',
+    sentence: 'Morze jest ___ (The sea is deep)',
+    hint: 'Neuter adjectives often end in -e or -ie',
+    options: ['głęboki', 'głęboka', 'głębokie', 'głęboccy'],
+    correctIndex: 2,
+    explanation: 'Rule: Neuter adjectives end in -e (or -ie after k, g). Morze is neuter, so we use głębokie (deep).'
+  },
+  {
+    id: 'gram_081',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the feminine noun:',
+    sentence: 'Książka jest ___ (The book is new)',
+    hint: 'Feminine adjectives often end in -a',
+    options: ['nowy', 'nowa', 'nowe', 'nowi'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine adjectives end in -a. Książka is feminine, so we use nowa (new).'
+  },
+  {
+    id: 'gram_082',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the masculine noun:',
+    sentence: 'Rycerz jest ___ (The knight is strong)',
+    hint: 'Masculine adjectives often end in -y',
+    options: ['silny', 'silna', 'silne', 'silni'],
+    correctIndex: 0,
+    explanation: 'Rule: Masculine singular adjectives end in -y. Rycerz is masculine, so we use silny (strong).'
+  },
+  {
+    id: 'gram_083',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the neuter noun:',
+    sentence: 'Jabłko jest ___ (The apple is sweet)',
+    hint: 'Neuter adjectives often end in -ie after k',
+    options: ['słodki', 'słodka', 'słodkie', 'słodcy'],
+    correctIndex: 2,
+    explanation: 'Rule: Neuter adjectives end in -ie (after k). Jabłko is neuter, so we use słodkie (sweet).'
+  },
+
+  // DIFFICULTY 2 - Medium (More jest/są)
+  {
+    id: 'gram_084',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose "is" or "are" for this sentence:',
+    sentence: 'Psy ___ głodne (Dogs are hungry)',
+    hint: '"Są" is used for plural subjects',
+    options: ['jest', 'są', 'jestem', 'jesteś'],
+    correctIndex: 1,
+    explanation: 'Rule: Use "są" for plural subjects. Psy (dogs) is plural, so we use są.'
+  },
+  {
+    id: 'gram_085',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose "is" or "are" for this sentence:',
+    sentence: 'Kot ___ mały (The cat is small)',
+    hint: '"Jest" is used for singular subjects',
+    options: ['jest', 'są', 'jestem', 'jesteś'],
+    correctIndex: 0,
+    explanation: 'Rule: Use "jest" for singular subjects. Kot (cat) is singular, so we use jest.'
+  },
+  {
+    id: 'gram_086',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose "is" or "are" for this sentence:',
+    sentence: 'Dzieci ___ wesołe (Children are happy)',
+    hint: '"Są" is used for plural subjects',
+    options: ['jest', 'są', 'jestem', 'jesteś'],
+    correctIndex: 1,
+    explanation: 'Rule: Use "są" for plural subjects. Dzieci (children) is plural, so we use są.'
+  },
+  {
+    id: 'gram_087',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose "is" or "are" for this sentence:',
+    sentence: 'Książka ___ ciekawa (The book is interesting)',
+    hint: '"Jest" is used for singular subjects',
+    options: ['jest', 'są', 'jestem', 'jesteś'],
+    correctIndex: 0,
+    explanation: 'Rule: Use "jest" for singular subjects. Książka (book) is singular, so we use jest.'
+  },
+
+  // ========== NEW DIFFICULTY 3 QUESTIONS ==========
+
+  // DIFFICULTY 3 - Hard (More Cases)
+  {
+    id: 'gram_088',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the genitive case (after "od"):',
+    sentence: 'Uciekam od ___ (I run from the dragon)',
+    hint: '"Od" (from) requires genitive case',
+    options: ['smok', 'smoka', 'smokiem', 'smoku'],
+    correctIndex: 1,
+    explanation: 'Rule: The preposition "od" (from) requires genitive case. Smok → smoka. Similar prepositions: od, do, bez, z (from).'
+  },
+  {
+    id: 'gram_089',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the accusative case (direct object):',
+    sentence: 'Lubię ___ (I like the cat)',
+    hint: 'Direct objects of "lubić" use accusative case',
+    options: ['kot', 'kota', 'kotem', 'kocie'],
+    correctIndex: 1,
+    explanation: 'Rule: Direct objects take accusative case. Animate masculine nouns: kot → kota. "Lubić" (to like) takes accusative.'
+  },
+  {
+    id: 'gram_090',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case (after "z"):',
+    sentence: 'Rozmawiam z ___ (I talk with the owl)',
+    hint: '"Z" (with) requires instrumental case',
+    options: ['sowa', 'sowy', 'sowie', 'sową'],
+    correctIndex: 3,
+    explanation: 'Rule: "Z" (with) requires instrumental case. Feminine nouns: sowa → sową. The instrumental of -a nouns ends in -ą.'
+  },
+  {
+    id: 'gram_091',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the locative case (after "na"):',
+    sentence: 'Jestem na ___ (I am on the mountain)',
+    hint: '"Na" (on) requires locative case',
+    options: ['góra', 'góry', 'górze', 'górą'],
+    correctIndex: 2,
+    explanation: 'Rule: "Na" (on) requires locative case. Góra → górze. Feminine nouns ending in -a often change to -ze or -ie in locative.'
+  },
+  {
+    id: 'gram_092',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete showing possession (genitive):',
+    sentence: 'To jest miecz ___ (This is the knight\'s sword)',
+    hint: 'Possession uses genitive case',
+    options: ['rycerz', 'rycerza', 'rycerzem', 'rycerzu'],
+    correctIndex: 1,
+    explanation: 'Rule: Possession uses genitive case. Rycerz → rycerza. "Miecz rycerza" = the knight\'s sword.'
+  },
+  {
+    id: 'gram_093',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the dative case (indirect object):',
+    sentence: 'Pomagam ___ (I help mom)',
+    hint: '"Pomagać" (to help) requires dative case',
+    options: ['mama', 'mamę', 'mamie', 'mamą'],
+    correctIndex: 2,
+    explanation: 'Rule: "Pomagać" (to help) requires dative case. Mama → mamie. Feminine -a nouns often change to -ie in dative.'
+  },
+  {
+    id: 'gram_094',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the accusative case (direct object):',
+    sentence: 'Widzę ___ (I see the owl)',
+    hint: 'Feminine nouns ending in -a change to -ę',
+    options: ['sowa', 'sowę', 'sowie', 'sową'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine nouns ending in -a change to -ę in accusative. Sowa → sowę. "Widzę sowę" = I see the owl.'
+  },
+  {
+    id: 'gram_095',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case:',
+    sentence: 'Jadę ___ (I travel by train)',
+    hint: 'Means of transport uses instrumental case',
+    options: ['pociąg', 'pociągu', 'pociągiem', 'pociąga'],
+    correctIndex: 2,
+    explanation: 'Rule: Means of transport uses instrumental case. Pociąg → pociągiem. Masculine nouns often take -em in instrumental.'
+  },
+
+  // DIFFICULTY 3 - Hard (More Tenses)
+  {
+    id: 'gram_096',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (feminine subject):',
+    sentence: 'Sowa ___ wysoko (The owl flew high)',
+    hint: 'Feminine past tense ends in -ła',
+    options: ['leciał', 'leciała', 'leciało', 'lecieli'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine past tense uses -ła. Sowa (owl) is feminine: leciała. Masculine: leciał, Neuter: leciało.'
+  },
+  {
+    id: 'gram_097',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (masculine subject):',
+    sentence: 'Rycerz ___ smoka (The knight defeated the dragon)',
+    hint: 'Masculine past tense ends in -ł',
+    options: ['pokonał', 'pokonała', 'pokonało', 'pokonali'],
+    correctIndex: 0,
+    explanation: 'Rule: Masculine past tense uses -ł. Rycerz (knight) is masculine: pokonał. Feminine: pokonała.'
+  },
+  {
+    id: 'gram_098',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the future tense:',
+    sentence: 'Ja ___ klucz (I will find the key)',
+    hint: 'Future tense of "znaleźć" (to find)',
+    options: ['znajdę', 'znajdziesz', 'znajdzie', 'znajdziemy'],
+    correctIndex: 0,
+    explanation: 'Rule: Perfective verbs form simple future. Znaleźć → ja znajdę, ty znajdziesz, on znajdzie, my znajdziemy.'
+  },
+  {
+    id: 'gram_099',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (neuter subject):',
+    sentence: 'Dziecko ___ w piłkę (The child played ball)',
+    hint: 'Neuter past tense ends in -ło',
+    options: ['grał', 'grała', 'grało', 'grali'],
+    correctIndex: 2,
+    explanation: 'Rule: Neuter past tense uses -ło. Dziecko (child) is neuter: grało. Masculine: grał, Feminine: grała.'
+  },
+  {
+    id: 'gram_100',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the future tense:',
+    sentence: 'My ___ do domu (We will return home)',
+    hint: 'Future tense of "wrócić" (to return)',
+    options: ['wrócę', 'wrócisz', 'wróci', 'wrócimy'],
+    correctIndex: 3,
+    explanation: 'Rule: Perfective verbs form simple future. Wrócić → ja wrócę, ty wrócisz, on wróci, my wrócimy.'
+  },
+  {
+    id: 'gram_101',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (masculine plural):',
+    sentence: 'Oni ___ po lesie (They walked in the forest)',
+    hint: 'Masculine personal plural past tense',
+    options: ['chodził', 'chodziła', 'chodziło', 'chodzili'],
+    correctIndex: 3,
+    explanation: 'Rule: Masculine personal plural past tense uses -li. Oni (they, masc.) chodzili. Feminine plural: chodziły.'
+  },
+
+  // DIFFICULTY 3 - Hard (Complex Grammar)
+  {
+    id: 'gram_102',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct comparative adjective:',
+    sentence: 'Sowa jest ___ od kury (The owl is smarter than the hen)',
+    hint: 'Comparative form of "mądra" (feminine)',
+    options: ['mądra', 'mądrzejsza', 'najmądrzejsza', 'mądrzy'],
+    correctIndex: 1,
+    explanation: 'Rule: "Mądrzejsza" is the feminine comparative of "mądry" (wise → wiser). Sowa is feminine, so we use the feminine form.'
+  },
+  {
+    id: 'gram_103',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct superlative adjective:',
+    sentence: 'Smok jest ___ potworem (The dragon is the strongest monster)',
+    hint: 'Superlative form of "silny"',
+    options: ['silny', 'silniejszy', 'najsilniejszy', 'silna'],
+    correctIndex: 2,
+    explanation: 'Rule: Superlative adds "naj-" to comparative. Silny → silniejszy → najsilniejszy (strong → stronger → strongest).'
+  },
+  {
+    id: 'gram_104',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the imperative (command form):',
+    sentence: '___ tu! (Come here!)',
+    hint: 'Command form of "chodzić"',
+    options: ['Chodzę', 'Chodzisz', 'Chodź', 'Chodzimy'],
+    correctIndex: 2,
+    explanation: 'Rule: "Chodź" is the imperative of "chodzić" (to walk/come). Imperatives are used for commands and requests.'
+  },
+  {
+    id: 'gram_105',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the imperative (command form):',
+    sentence: '___ książkę! (Read the book!)',
+    hint: 'Command form of "czytać"',
+    options: ['Czytam', 'Czytaj', 'Czyta', 'Czytasz'],
+    correctIndex: 1,
+    explanation: 'Rule: "Czytaj" is the imperative of "czytać" (to read). For -ać verbs, the imperative often uses the -aj form.'
+  },
+  {
+    id: 'gram_106',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete the reflexive verb:',
+    sentence: 'Kot ___ myje (The cat washes itself)',
+    hint: 'Reflexive verbs use "się"',
+    options: ['go', 'mu', 'się', 'ich'],
+    correctIndex: 2,
+    explanation: 'Rule: Reflexive verbs use "się" (oneself). "Myć się" = to wash oneself. Kot się myje = The cat washes itself.'
+  },
+  {
+    id: 'gram_107',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete the negation (requires genitive):',
+    sentence: 'Nie mam ___ (I don\'t have a sword)',
+    hint: 'Negation of "mieć" uses genitive',
+    options: ['miecz', 'miecza', 'mieczem', 'mieczu'],
+    correctIndex: 1,
+    explanation: 'Rule: Negation of "mieć" requires genitive. "Mam miecz" (I have a sword) → "Nie mam miecza" (I don\'t have a sword).'
+  },
+  {
+    id: 'gram_108',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the conditional form:',
+    sentence: '___ walczyć ze smokiem (He would like to fight the dragon)',
+    hint: 'Conditional of "chcieć" (masculine)',
+    options: ['Chce', 'Chciał', 'Chciałby', 'Chcący'],
+    correctIndex: 2,
+    explanation: 'Rule: Conditional uses past tense + "by". Chcieć → chciał + by = chciałby (he would like). Feminine: chciałaby.'
+  },
+  {
+    id: 'gram_109',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct plural adjective:',
+    sentence: 'Rycerze są ___ (Knights are brave)',
+    hint: 'Masculine personal plural adjective',
+    options: ['odważny', 'odważna', 'odważne', 'odważni'],
+    correctIndex: 3,
+    explanation: 'Rule: Masculine personal plural adjectives end in -i. Rycerze (knights) → odważni (brave).'
   }
 ];
 
