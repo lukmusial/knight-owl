@@ -17,6 +17,72 @@ const Game = (function() {
   function init() {
     if (initialized) return;
 
+    // On iOS, show splash video before anything else
+    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+      showSplashVideo(function() {
+        initGame();
+      });
+    } else {
+      initGame();
+    }
+  }
+
+  /**
+   * Show splash video (iOS only), then call callback when done
+   * @param {Function} callback - Called when video ends or is skipped
+   */
+  function showSplashVideo(callback) {
+    var splashScreen = document.getElementById('splash-screen');
+    var video = document.getElementById('splash-video');
+    var skipBtn = document.getElementById('splash-skip-btn');
+    var tapPrompt = document.getElementById('splash-tap-prompt');
+    var gameContainer = document.getElementById('game-container');
+    var ended = false;
+
+    if (!splashScreen || !video) {
+      callback();
+      return;
+    }
+
+    // Hide game container, show splash with tap prompt
+    gameContainer.style.display = 'none';
+    splashScreen.classList.remove('hidden');
+
+    function endSplash() {
+      if (ended) return;
+      ended = true;
+      splashScreen.classList.add('hidden');
+      gameContainer.style.display = '';
+      video.pause();
+      callback();
+    }
+
+    // Wait for user tap to play with audio (iOS requires user gesture)
+    function startVideo() {
+      tapPrompt.style.display = 'none';
+      video.play().catch(function(err) {
+        console.warn('Splash video play failed:', err);
+        endSplash();
+      });
+    }
+
+    tapPrompt.addEventListener('click', startVideo);
+    splashScreen.addEventListener('click', function(e) {
+      if (e.target === skipBtn) return;
+      if (tapPrompt.style.display === 'none') return;
+      startVideo();
+    });
+
+    video.addEventListener('ended', endSplash);
+    skipBtn.addEventListener('click', endSplash);
+  }
+
+  /**
+   * Core game initialization (called after splash video)
+   */
+  function initGame() {
+    if (initialized) return;
+
     // Initialize UI
     UI.init();
 
