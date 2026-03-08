@@ -445,6 +445,22 @@ const MONSTERS = [
     defeatMessagePL: 'Wampirzy lord kłania się dramatycznie i zmienia w nietoperza, odlatując!'
   },
   {
+    id: 'frankenstein',
+    name: 'Frankenstein\'s Monster',
+    namePL: 'Potwór Frankensteina',
+    difficulty: 3,
+    description: 'A towering creature stitched together from different parts, with bolts in its neck and a confused expression.',
+    descriptionPL: 'Górująca istota zszyta z różnych części, ze śrubami w szyi i zdezorientowanym wyrazem twarzy.',
+    imagePrompt: 'A cartoon Frankenstein monster with green skin, stitches across forehead, metal bolts on neck, torn dark clothes, big boots, standing in a dungeon laboratory with bubbling beakers, fantasy art style, confused and gentle expression, suitable for children',
+    loot: [
+      { name: 'Neck Bolt', namePL: 'Śruba z Szyi', value: 28 },
+      { name: 'Stitching Thread', namePL: 'Nić do Szycia', value: 22 },
+      { name: 'Lightning Rod', namePL: 'Piorunochron', value: 35 }
+    ],
+    defeatMessage: 'The monster groans softly and shuffles away to find its creator!',
+    defeatMessagePL: 'Potwór cicho jęczy i odchodzi szukać swojego twórcy!'
+  },
+  {
     id: 'minotaur',
     name: 'Minotaur',
     namePL: 'Minotaur',
