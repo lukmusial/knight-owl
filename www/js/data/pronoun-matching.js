@@ -326,7 +326,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'sok' },
       { left: 'ta', right: 'lemoniada' },
-      { left: 'to', right: 'piwo' },
+      { left: 'to', right: 'kakao' },
       { left: 'te', right: 'soki' }
     ]
   },
@@ -426,7 +426,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'dzwonek' },
       { left: 'ta', right: 'flaga' },
-      { left: 'to', right: 'godło' },
+      { left: 'to', right: 'jabłko' },
       { left: 'te', right: 'dzwonki' }
     ]
   },
@@ -912,7 +912,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_090', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'tłumacz' },
+      { left: 'ten', right: 'strażak' },
       { left: 'ta', right: 'aktorka' },
       { left: 'to', right: 'przedstawienie' },
       { left: 'ci', right: 'aktorzy' }
@@ -922,19 +922,19 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_091', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'żołnierz' },
-      { left: 'ta', right: 'armia' },
-      { left: 'te', right: 'mundury' },
-      { left: 'ci', right: 'żołnierze' }
+      { left: 'ten', right: 'rycerz' },
+      { left: 'ta', right: 'zbroja' },
+      { left: 'to', right: 'zaklęcie' },
+      { left: 'ci', right: 'rycerze' }
     ]
   },
   {
     id: 'pronoun_092', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'chirurg' },
+      { left: 'ten', right: 'lekarz' },
       { left: 'ta', right: 'pielęgniarka' },
-      { left: 'to', right: 'pogotowie' },
+      { left: 'to', right: 'łóżko' },
       { left: 'ci', right: 'lekarze' }
     ]
   },
@@ -942,9 +942,9 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_093', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'rzeźbiarz' },
-      { left: 'ta', right: 'galeria' },
-      { left: 'to', right: 'atelier' },
+      { left: 'ten', right: 'malarz' },
+      { left: 'ta', right: 'farba' },
+      { left: 'to', right: 'malowidło' },
       { left: 'ci', right: 'malarze' }
     ]
   },
@@ -962,30 +962,30 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_095', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'eksperyment' },
-      { left: 'ta', right: 'probówka' },
-      { left: 'to', right: 'laboratorium' },
-      { left: 'te', right: 'probówki' }
+      { left: 'ten', right: 'magnes' },
+      { left: 'ta', right: 'lupa' },
+      { left: 'to', right: 'szkiełko' },
+      { left: 'te', right: 'lupy' }
     ]
   },
   {
     id: 'pronoun_096', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'lek' },
+      { left: 'ten', right: 'lekarz' },
       { left: 'ta', right: 'apteka' },
       { left: 'to', right: 'lekarstwo' },
-      { left: 'ci', right: 'farmaceuci' }
+      { left: 'ci', right: 'lekarze' }
     ]
   },
   {
     id: 'pronoun_097', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'teleskop' },
-      { left: 'ta', right: 'planeta' },
-      { left: 'to', right: 'obserwatorium' },
-      { left: 'te', right: 'planety' }
+      { left: 'ten', right: 'księżyc' },
+      { left: 'ta', right: 'gwiazda' },
+      { left: 'to', right: 'niebo' },
+      { left: 'te', right: 'gwiazdy' }
     ]
   },
   {
@@ -995,17 +995,17 @@ const PRONOUN_MATCHING_QUESTIONS = [
       { left: 'ten', right: 'tramwaj' },
       { left: 'ta', right: 'stacja' },
       { left: 'to', right: 'lotnisko' },
-      { left: 'ci', right: 'pasażerowie' }
+      { left: 'ci', right: 'kierowcy' }
     ]
   },
   {
     id: 'pronoun_099', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'reżyser' },
+      { left: 'ten', right: 'aktor' },
       { left: 'ta', right: 'scena' },
       { left: 'to', right: 'kino' },
-      { left: 'ci', right: 'widzowie' }
+      { left: 'ci', right: 'aktorzy' }
     ]
   },
   {
@@ -1023,8 +1023,8 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'demonstrative',
     pairs: [
       { left: 'ten', right: 'budynek' },
-      { left: 'ta', right: 'katedra' },
-      { left: 'to', right: 'sanktuarium' },
+      { left: 'ta', right: 'szkoła' },
+      { left: 'to', right: 'boisko' },
       { left: 'te', right: 'budynki' }
     ]
   },
@@ -1042,10 +1042,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_103', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'dokument' },
+      { left: 'ten', right: 'list' },
       { left: 'ta', right: 'koperta' },
-      { left: 'to', right: 'archiwum' },
-      { left: 'te', right: 'dokumenty' }
+      { left: 'to', right: 'biurko' },
+      { left: 'te', right: 'listy' }
     ]
   },
   {
@@ -1053,8 +1053,8 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'demonstrative',
     pairs: [
       { left: 'ten', right: 'wiatrak' },
-      { left: 'ta', right: 'elektrownia' },
-      { left: 'to', right: 'urządzenie' },
+      { left: 'ta', right: 'latarnia' },
+      { left: 'to', right: 'światło' },
       { left: 'te', right: 'wiatraki' }
     ]
   },
@@ -1064,8 +1064,8 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'kapitan' },
       { left: 'ta', right: 'łódź' },
-      { left: 'to', right: 'nabrzeże' },
-      { left: 'ci', right: 'marynarze' }
+      { left: 'to', right: 'morze' },
+      { left: 'ci', right: 'rybacy' }
     ]
   },
   {
@@ -1082,10 +1082,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_107', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'monitor' },
-      { left: 'ta', right: 'drukarka' },
-      { left: 'to', right: 'oprogramowanie' },
-      { left: 'te', right: 'monitory' }
+      { left: 'ten', right: 'telewizor' },
+      { left: 'ta', right: 'kamera' },
+      { left: 'to', right: 'zdjęcie' },
+      { left: 'te', right: 'zdjęcia' }
     ]
   },
   {
@@ -1122,20 +1122,20 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_111', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'lodowiec' },
+      { left: 'ten', right: 'sopel' },
       { left: 'ta', right: 'jaskinia' },
       { left: 'to', right: 'źródło' },
-      { left: 'te', right: 'lodowce' }
+      { left: 'te', right: 'sople' }
     ]
   },
   {
     id: 'pronoun_112', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'program' },
-      { left: 'ta', right: 'aplikacja' },
-      { left: 'to', right: 'narzędzie' },
-      { left: 'ci', right: 'programiści' }
+      { left: 'ten', right: 'pilot' },
+      { left: 'ta', right: 'zabawka' },
+      { left: 'to', right: 'pudełko' },
+      { left: 'te', right: 'zabawki' }
     ]
   },
   {
@@ -1152,10 +1152,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_114', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'kompozytor' },
-      { left: 'ta', right: 'orkiestra' },
-      { left: 'to', right: 'audytorium' },
-      { left: 'ci', right: 'dyrygenci' }
+      { left: 'ten', right: 'bęben' },
+      { left: 'ta', right: 'trąbka' },
+      { left: 'to', right: 'pianino' },
+      { left: 'ci', right: 'muzycy' }
     ]
   },
   {
@@ -1164,7 +1164,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'pomnik' },
       { left: 'ta', right: 'fontanna' },
-      { left: 'to', right: 'rondo' },
+      { left: 'to', right: 'jezioro' },
       { left: 'te', right: 'pomniki' }
     ]
   },
@@ -1204,10 +1204,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_119', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'żołnierz' },
-      { left: 'dwa', right: 'żołnierze' },
+      { left: 'jeden', right: 'rycerz' },
+      { left: 'dwa', right: 'miecze' },
       { left: 'cztery', right: 'mundury' },
-      { left: 'pięć', right: 'oficerów' }
+      { left: 'pięć', right: 'tarcz' }
     ]
   },
   {
@@ -1217,7 +1217,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
       { left: 'jedna', right: 'planeta' },
       { left: 'dwie', right: 'planety' },
       { left: 'trzy', right: 'komety' },
-      { left: 'pięć', right: 'galaktyk' }
+      { left: 'pięć', right: 'gwiazd' }
     ]
   },
   {
@@ -1234,10 +1234,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_122', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'laboratorium' },
-      { left: 'dwa', right: 'laboratoria' },
-      { left: 'trzy', right: 'obserwatoria' },
-      { left: 'pięć', right: 'szpitali' }
+      { left: 'jedno', right: 'muzeum' },
+      { left: 'dwa', right: 'muzea' },
+      { left: 'trzy', right: 'kina' },
+      { left: 'pięć', right: 'boisk' }
     ]
   },
   {
@@ -1246,8 +1246,8 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jedna', right: 'drużyna' },
       { left: 'dwie', right: 'drużyny' },
-      { left: 'cztery', right: 'armie' },
-      { left: 'pięć', right: 'ekip' }
+      { left: 'cztery', right: 'klasy' },
+      { left: 'pięć', right: 'drużyn' }
     ]
   },
   {
@@ -1276,18 +1276,18 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jedno', right: 'lotnisko' },
       { left: 'dwa', right: 'lotniska' },
-      { left: 'trzy', right: 'nabrzeża' },
-      { left: 'pięć', right: 'portów' }
+      { left: 'trzy', right: 'jeziora' },
+      { left: 'pięć', right: 'miast' }
     ]
   },
   {
     id: 'pronoun_127', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'wulkan' },
-      { left: 'dwa', right: 'wulkany' },
-      { left: 'cztery', right: 'lodowce' },
-      { left: 'pięć', right: 'gejzerów' }
+      { left: 'jeden', right: 'wodospad' },
+      { left: 'dwa', right: 'wodospady' },
+      { left: 'cztery', right: 'kamienie' },
+      { left: 'pięć', right: 'skał' }
     ]
   },
   {
@@ -1297,27 +1297,27 @@ const PRONOUN_MATCHING_QUESTIONS = [
       { left: 'jedna', right: 'jaskinia' },
       { left: 'dwie', right: 'jaskinie' },
       { left: 'trzy', right: 'doliny' },
-      { left: 'pięć', right: 'przełęczy' }
+      { left: 'pięć', right: 'jaskiń' }
     ]
   },
   {
     id: 'pronoun_129', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'dokument' },
-      { left: 'dwa', right: 'dokumenty' },
-      { left: 'cztery', right: 'programy' },
-      { left: 'pięć', right: 'raportów' }
+      { left: 'jeden', right: 'zeszyt' },
+      { left: 'dwa', right: 'zeszyty' },
+      { left: 'cztery', right: 'plakaty' },
+      { left: 'pięć', right: 'listów' }
     ]
   },
   {
     id: 'pronoun_130', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'archiwum' },
-      { left: 'dwa', right: 'archiwa' },
-      { left: 'trzy', right: 'akwaria' },
-      { left: 'pięć', right: 'audytoriów' }
+      { left: 'jedno', right: 'akwarium' },
+      { left: 'dwa', right: 'akwaria' },
+      { left: 'trzy', right: 'muzea' },
+      { left: 'pięć', right: 'kin' }
     ]
   },
   {
@@ -1326,8 +1326,8 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jedna', right: 'fontanna' },
       { left: 'dwie', right: 'fontanny' },
-      { left: 'cztery', right: 'katedry' },
-      { left: 'pięć', right: 'kaplic' }
+      { left: 'cztery', right: 'wieże' },
+      { left: 'pięć', right: 'bram' }
     ]
   },
   {
@@ -1356,7 +1356,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jeden', right: 'monitor' },
       { left: 'dwa', right: 'monitory' },
-      { left: 'trzy', right: 'serwery' },
+      { left: 'trzy', right: 'ekrany' },
       { left: 'pięć', right: 'kabli' }
     ]
   },
@@ -1374,10 +1374,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_136', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'narzędzie' },
-      { left: 'dwa', right: 'narzędzia' },
-      { left: 'trzy', right: 'urządzenia' },
-      { left: 'pięć', right: 'przyrządów' }
+      { left: 'jedno', right: 'wiaderko' },
+      { left: 'dwa', right: 'wiaderka' },
+      { left: 'trzy', right: 'łopatki' },
+      { left: 'pięć', right: 'wiaderek' }
     ]
   },
   {
@@ -1386,18 +1386,18 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jeden', right: 'pomnik' },
       { left: 'dwa', right: 'pomniki' },
-      { left: 'cztery', right: 'obeliski' },
-      { left: 'pięć', right: 'posągów' }
+      { left: 'cztery', right: 'zamki' },
+      { left: 'pięć', right: 'wież' }
     ]
   },
   {
     id: 'pronoun_138', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'orkiestra' },
-      { left: 'dwie', right: 'orkiestry' },
-      { left: 'trzy', right: 'opery' },
-      { left: 'pięć', right: 'filharmonii' }
+      { left: 'jedna', right: 'gitara' },
+      { left: 'dwie', right: 'gitary' },
+      { left: 'trzy', right: 'trąbki' },
+      { left: 'pięć', right: 'bębnów' }
     ]
   },
   {
@@ -1414,20 +1414,20 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_140', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'rondo' },
-      { left: 'dwa', right: 'ronda' },
-      { left: 'trzy', right: 'skrzyżowania' },
-      { left: 'pięć', right: 'rond' }
+      { left: 'jedno', right: 'podwórko' },
+      { left: 'dwa', right: 'podwórka' },
+      { left: 'trzy', right: 'boiska' },
+      { left: 'pięć', right: 'podwórek' }
     ]
   },
   {
     id: 'pronoun_141', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'elektrownia' },
-      { left: 'dwie', right: 'elektrownie' },
-      { left: 'cztery', right: 'rafinerie' },
-      { left: 'pięć', right: 'kopalń' }
+      { left: 'jedna', right: 'piekarnia' },
+      { left: 'dwie', right: 'piekarnie' },
+      { left: 'cztery', right: 'cukiernie' },
+      { left: 'pięć', right: 'piekarni' }
     ]
   },
   {
@@ -1461,7 +1461,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'demonstrative',
     pairs: [
       { left: 'ten', right: 'dentysta' },
-      { left: 'ta', right: 'poetka' },
+      { left: 'ta', right: 'nauczycielka' },
       { left: 'to', right: 'cielę' },
       { left: 'ci', right: 'dentyści' }
     ]
@@ -1510,7 +1510,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_149', difficulty: 3, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'satelita' },
+      { left: 'ten', right: 'kosmonauta' },
       { left: 'ta', right: 'kometa' },
       { left: 'to', right: 'jagnię' },
       { left: 'te', right: 'jagnięta' }
@@ -1571,7 +1571,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'demonstrative',
     pairs: [
       { left: 'ten', right: 'sprzedawca' },
-      { left: 'ta', right: 'myśl' },
+      { left: 'ta', right: 'marchew' },
       { left: 'to', right: 'cielę' },
       { left: 'ci', right: 'sprzedawcy' }
     ]
@@ -1580,18 +1580,18 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_156', difficulty: 3, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'znawca' },
-      { left: 'ta', right: 'miłość' },
+      { left: 'ten', right: 'wychowawca' },
+      { left: 'ta', right: 'kość' },
       { left: 'to', right: 'lwię' },
-      { left: 'ci', right: 'znawcy' }
+      { left: 'ci', right: 'wychowawcy' }
     ]
   },
   {
     id: 'pronoun_157', difficulty: 3, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'kaleka' },
-      { left: 'ta', right: 'młodzież' },
+      { left: 'ten', right: 'wędkarz' },
+      { left: 'ta', right: 'pieśń' },
       { left: 'to', right: 'dziewczę' },
       { left: 'te', right: 'dziewczęta' }
     ]
@@ -1703,7 +1703,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'sędzia' },
-      { left: 'dwa', right: 'wyroki' },
+      { left: 'dwa', right: 'medale' },
       { left: 'cztery', right: 'poeci' },
       { left: 'pięć', right: 'sędziów' }
     ]
@@ -1712,10 +1712,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_169', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'miłość' },
-      { left: 'dwie', right: 'miłości' },
-      { left: 'trzy', right: 'radości' },
-      { left: 'pięć', right: 'miłości' }
+      { left: 'jedna', right: 'rzecz' },
+      { left: 'dwie', right: 'rzeczy' },
+      { left: 'trzy', right: 'noce' },
+      { left: 'pięć', right: 'rzeczy' }
     ]
   },
   {
