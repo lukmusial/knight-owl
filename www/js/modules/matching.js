@@ -70,6 +70,10 @@ var Matching = (function() {
    * Start a matching session with a set
    * @param {Object} set - Matching question set with pairs array
    */
+  // Cached shuffled display order (set once per session)
+  var displayLeft = [];
+  var displayRight = [];
+
   function startMatching(set) {
     currentSet = set;
     failed = false;
@@ -79,6 +83,14 @@ var Matching = (function() {
     remainingPairs = set.pairs.map(function(pair, i) {
       return { left: pair.left, right: pair.right, index: i, matched: false };
     });
+
+    // Shuffle display order once at start
+    displayLeft = shuffle(remainingPairs.map(function(p) {
+      return { text: p.left, pairIndex: p.index };
+    }));
+    displayRight = shuffle(remainingPairs.map(function(p) {
+      return { text: p.right, pairIndex: p.index };
+    }));
   }
 
   /**
@@ -98,13 +110,23 @@ var Matching = (function() {
   }
 
   /**
-   * Get shuffled left and right columns for display
-   * @returns {Object} { leftItems, rightItems } with shuffled order
+   * Get display items with stable positions and matched status
+   * @returns {Object} { leftItems, rightItems } with matched flag
    */
   function getDisplayItems() {
-    var active = remainingPairs.filter(function(p) { return !p.matched; });
-    var leftItems = shuffle(active.map(function(p) { return { text: p.left, pairIndex: p.index }; }));
-    var rightItems = shuffle(active.map(function(p) { return { text: p.right, pairIndex: p.index }; }));
+    var matchedSet = {};
+    for (var i = 0; i < remainingPairs.length; i++) {
+      if (remainingPairs[i].matched) {
+        matchedSet[remainingPairs[i].index] = true;
+      }
+    }
+
+    var leftItems = displayLeft.map(function(item) {
+      return { text: item.text, pairIndex: item.pairIndex, matched: !!matchedSet[item.pairIndex] };
+    });
+    var rightItems = displayRight.map(function(item) {
+      return { text: item.text, pairIndex: item.pairIndex, matched: !!matchedSet[item.pairIndex] };
+    });
     return { leftItems: leftItems, rightItems: rightItems };
   }
 

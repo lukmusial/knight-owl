@@ -1084,8 +1084,7 @@ const UI = (function() {
 
     // Set monster info
     if (elements.matchingMonsterImage) {
-      var imagePath = monster.id ? 'assets/monsters/' + monster.id + '.png' : 'assets/placeholder.svg';
-      elements.matchingMonsterImage.src = imagePath;
+      elements.matchingMonsterImage.src = 'assets/' + (monster.id || 'placeholder') + '.png';
       elements.matchingMonsterImage.onerror = function() {
         elements.matchingMonsterImage.src = 'assets/placeholder.svg';
       };
@@ -1120,25 +1119,26 @@ const UI = (function() {
     if (!elements.matchingLeft || !elements.matchingRight) return;
     if (typeof Matching === 'undefined') return;
 
-    var display = Matching.getDisplayItems();
-    var selectedItem = null;
-
     function renderColumns() {
-      var currentDisplay = Matching.getDisplayItems();
+      var display = Matching.getDisplayItems();
 
-      elements.matchingLeft.innerHTML = currentDisplay.leftItems.map(function(item) {
-        var selectedClass = selectedItem && selectedItem.side === 'left' && selectedItem.pairIndex === item.pairIndex ? ' selected' : '';
-        return '<button class="matching-item' + selectedClass + '" data-side="left" data-pair-index="' + item.pairIndex + '">' + item.text + '</button>';
+      elements.matchingLeft.innerHTML = display.leftItems.map(function(item) {
+        var classes = 'matching-item';
+        if (item.matched) classes += ' matched';
+        return '<button class="' + classes + '" data-side="left" data-pair-index="' + item.pairIndex + '"' +
+          (item.matched ? ' disabled' : '') + '>' + item.text + '</button>';
       }).join('');
 
-      elements.matchingRight.innerHTML = currentDisplay.rightItems.map(function(item) {
-        var selectedClass = selectedItem && selectedItem.side === 'right' && selectedItem.pairIndex === item.pairIndex ? ' selected' : '';
-        return '<button class="matching-item' + selectedClass + '" data-side="right" data-pair-index="' + item.pairIndex + '">' + item.text + '</button>';
+      elements.matchingRight.innerHTML = display.rightItems.map(function(item) {
+        var classes = 'matching-item';
+        if (item.matched) classes += ' matched';
+        return '<button class="' + classes + '" data-side="right" data-pair-index="' + item.pairIndex + '"' +
+          (item.matched ? ' disabled' : '') + '>' + item.text + '</button>';
       }).join('');
 
-      // Add click handlers
-      var allItems = elements.matchingModal.querySelectorAll('.matching-item');
-      allItems.forEach(function(btn) {
+      // Add click handlers to non-matched items
+      var activeItems = elements.matchingModal.querySelectorAll('.matching-item:not(.matched)');
+      activeItems.forEach(function(btn) {
         btn.addEventListener('click', function() {
           var side = btn.dataset.side;
           var pairIndex = parseInt(btn.dataset.pairIndex);
@@ -1148,52 +1148,57 @@ const UI = (function() {
     }
 
     function handleMatchingClick(side, pairIndex) {
-      if (!selectedItem) {
-        selectedItem = { side: side, pairIndex: pairIndex };
-        renderColumns();
-        return;
-      }
-
-      if (selectedItem.side === side) {
-        // Same side — switch selection
-        selectedItem = { side: side, pairIndex: pairIndex };
-        renderColumns();
-        return;
-      }
-
-      // Opposite side — check match
       var result = Matching.selectItem(side, pairIndex);
 
-      // We need to check ourselves since we track selection in UI
-      var leftIdx = side === 'left' ? pairIndex : selectedItem.pairIndex;
-      var rightIdx = side === 'right' ? pairIndex : selectedItem.pairIndex;
+      if (result.type === 'selected') {
+        // Highlight selected item, clear others
+        var allActive = elements.matchingModal.querySelectorAll('.matching-item:not(.matched)');
+        allActive.forEach(function(btn) { btn.classList.remove('selected'); });
+        // Find and highlight the clicked button
+        var clicked = elements.matchingModal.querySelector(
+          '.matching-item[data-side="' + side + '"][data-pair-index="' + pairIndex + '"]'
+        );
+        if (clicked) clicked.classList.add('selected');
 
-      if (leftIdx === rightIdx) {
-        // Correct match — animate removal
-        selectedItem = null;
+      } else if (result.type === 'match') {
+        // Correct match — animate matched pair
         var matchedButtons = elements.matchingModal.querySelectorAll(
-          '[data-pair-index="' + leftIdx + '"]'
+          '[data-pair-index="' + result.pairIndex + '"]'
         );
         matchedButtons.forEach(function(btn) {
+          btn.classList.remove('selected');
           btn.classList.add('matched');
+          btn.disabled = true;
+        });
+
+        // Clear any remaining selection highlights
+        var allActive = elements.matchingModal.querySelectorAll('.matching-item:not(.matched)');
+        allActive.forEach(function(btn) { btn.classList.remove('selected'); });
+
+      } else if (result.type === 'complete') {
+        // All matched — animate last pair then complete
+        var lastPair = elements.matchingModal.querySelectorAll(
+          '.matching-item:not(.matched)'
+        );
+        lastPair.forEach(function(btn) {
+          btn.classList.remove('selected');
+          btn.classList.add('matched');
+          btn.disabled = true;
         });
 
         setTimeout(function() {
-          if (Matching.isComplete()) {
-            if (onComplete) onComplete(true);
-          } else {
-            renderColumns();
-          }
+          if (onComplete) onComplete(true);
         }, 400);
-      } else {
+
+      } else if (result.type === 'mismatch') {
         // Wrong match — flash red and fail
-        selectedItem = null;
-        var allBtns = elements.matchingModal.querySelectorAll('.matching-item');
+        var allBtns = elements.matchingModal.querySelectorAll('.matching-item:not(.matched)');
         allBtns.forEach(function(btn) {
           btn.classList.remove('selected');
           var idx = parseInt(btn.dataset.pairIndex);
-          if ((btn.dataset.side === 'left' && idx === leftIdx) ||
-              (btn.dataset.side === 'right' && idx === rightIdx)) {
+          var btnSide = btn.dataset.side;
+          if ((btnSide === 'left' && idx === result.leftPairIndex) ||
+              (btnSide === 'right' && idx === result.rightPairIndex)) {
             btn.classList.add('wrong');
           }
         });

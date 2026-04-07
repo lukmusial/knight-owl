@@ -58,13 +58,42 @@ TestRunner.suite('Matching Module', () => {
     TestRunner.assert(!Matching.hasFailed(), 'Should not have failed at start');
   });
 
-  TestRunner.test('should get shuffled display items', () => {
+  TestRunner.test('should get display items with stable positions', () => {
     setup();
     var set = Matching.getMatchingSet(1);
     Matching.startMatching(set);
+    var display1 = Matching.getDisplayItems();
+    var display2 = Matching.getDisplayItems();
+    TestRunner.assertEqual(display1.leftItems.length, 4, 'Should have 4 left items');
+    TestRunner.assertEqual(display1.rightItems.length, 4, 'Should have 4 right items');
+    // Positions should be stable across calls
+    TestRunner.assertEqual(display1.leftItems[0].text, display2.leftItems[0].text, 'Left items should be in same order on repeated calls');
+    TestRunner.assertEqual(display1.rightItems[0].text, display2.rightItems[0].text, 'Right items should be in same order on repeated calls');
+  });
+
+  TestRunner.test('display items should show matched status after match', () => {
+    setup();
+    var set = Matching.getMatchingSet(1);
+    Matching.startMatching(set);
+
+    // Match pair 0
+    Matching.selectItem('left', 0);
+    Matching.selectItem('right', 0);
+
     var display = Matching.getDisplayItems();
-    TestRunner.assertEqual(display.leftItems.length, 4, 'Should have 4 left items');
-    TestRunner.assertEqual(display.rightItems.length, 4, 'Should have 4 right items');
+    // All 4 items should still be present
+    TestRunner.assertEqual(display.leftItems.length, 4, 'Should still have 4 left items');
+    TestRunner.assertEqual(display.rightItems.length, 4, 'Should still have 4 right items');
+
+    // Find items with pairIndex 0 and check they are matched
+    var matchedLeft = display.leftItems.filter(function(item) { return item.pairIndex === 0; });
+    var matchedRight = display.rightItems.filter(function(item) { return item.pairIndex === 0; });
+    TestRunner.assert(matchedLeft.length > 0 && matchedLeft[0].matched, 'Left item of matched pair should have matched=true');
+    TestRunner.assert(matchedRight.length > 0 && matchedRight[0].matched, 'Right item of matched pair should have matched=true');
+
+    // Unmatched items should not be matched
+    var unmatchedLeft = display.leftItems.filter(function(item) { return item.pairIndex !== 0; });
+    TestRunner.assert(unmatchedLeft.every(function(item) { return !item.matched; }), 'Unmatched items should have matched=false');
   });
 
   TestRunner.test('should handle correct match selection', () => {

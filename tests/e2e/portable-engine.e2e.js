@@ -198,4 +198,193 @@ TestRunner.describe('E2E: Portable Engine', () => {
     TestRunner.assertNotNull(directData, 'Data should be in localStorage');
   });
 
+  TestRunner.scenario('Matching encounter: full flow completes correctly', () => {
+    // Setup
+    Matching.init();
+    Matching.resetUsed();
+
+    // Get a word matching set
+    var set = Matching.getMatchingSet(1, 'matching');
+    TestRunner.assertNotNull(set, 'Should get a matching set');
+    TestRunner.assertEqual(set.pairs.length, 4, 'Set should have 4 pairs');
+
+    // Start matching session
+    Matching.startMatching(set);
+    TestRunner.assert(!Matching.isComplete(), 'Should not be complete at start');
+
+    // Verify display items are stable
+    var display1 = Matching.getDisplayItems();
+    var display2 = Matching.getDisplayItems();
+    TestRunner.assertEqual(display1.leftItems[0].text, display2.leftItems[0].text,
+      'Display items should be stable across calls');
+    TestRunner.assertEqual(display1.leftItems.length, 4, 'Should show all 4 items');
+
+    // Match all 4 pairs correctly one by one
+    for (var i = 0; i < 4; i++) {
+      Matching.selectItem('left', i);
+      var result = Matching.selectItem('right', i);
+
+      if (i < 3) {
+        TestRunner.assertEqual(result.type, 'match', 'Pair ' + i + ' should match');
+
+        // Verify matched items are flagged in display
+        var displayAfter = Matching.getDisplayItems();
+        TestRunner.assertEqual(displayAfter.leftItems.length, 4,
+          'Should still have 4 display items after match ' + i);
+        var matchedCount = displayAfter.leftItems.filter(function(item) { return item.matched; }).length;
+        TestRunner.assertEqual(matchedCount, i + 1,
+          'Should have ' + (i + 1) + ' matched items after match ' + i);
+      } else {
+        TestRunner.assertEqual(result.type, 'complete', 'Last pair should complete');
+      }
+    }
+
+    TestRunner.assert(Matching.isComplete(), 'Should be complete after all pairs matched');
+  });
+
+  TestRunner.scenario('Matching encounter: wrong match fails immediately', () => {
+    Matching.init();
+    Matching.resetUsed();
+
+    var set = Matching.getMatchingSet(1, 'pronoun_matching');
+    TestRunner.assertNotNull(set, 'Should get a pronoun matching set');
+
+    Matching.startMatching(set);
+
+    // Select mismatched pair
+    Matching.selectItem('left', 0);
+    var result = Matching.selectItem('right', 1);
+    TestRunner.assertEqual(result.type, 'mismatch', 'Wrong pair should mismatch');
+    TestRunner.assert(Matching.hasFailed(), 'Should be failed after mismatch');
+  });
+
+  TestRunner.scenario('Matching sets persist in save data', () => {
+    localStorage.clear();
+    Matching.init();
+    Matching.resetUsed();
+
+    // Use some matching sets
+    Matching.getMatchingSet(1, 'matching');
+    Matching.getMatchingSet(2, 'pronoun_matching');
+    var usedIds = Matching.getUsedIds();
+    TestRunner.assertEqual(usedIds.length, 2, 'Should have 2 used matching IDs');
+
+    // Save game with matching IDs
+    var playerState = { name: 'MatchSaveTest', monstersDefeated: 0, currentRoom: 'room_0_0' };
+    var dungeonState = { rooms: {}, entrance: 'room_0_0' };
+    Save.saveGame(playerState, dungeonState, [], {}, usedIds);
+
+    // Load and verify matching IDs persisted
+    var loaded = Save.loadGame('MatchSaveTest');
+    TestRunner.assertNotNull(loaded, 'Should load save');
+    TestRunner.assertArray(loaded.usedMatchingQuestions, 'Should have usedMatchingQuestions array');
+    TestRunner.assertEqual(loaded.usedMatchingQuestions.length, 2, 'Should have 2 matching IDs in save');
+  });
+
+  TestRunner.scenario('User profile tracks question mastery across runs', () => {
+    localStorage.clear();
+
+    // First run
+    UserProfile.load('ProfileE2E');
+    UserProfile.recordAttempt('vocab_001', true);
+    UserProfile.recordAttempt('vocab_001', true);
+    UserProfile.recordAttempt('vocab_001', true);
+    UserProfile.recordAttempt('vocab_002', false);
+    UserProfile.recordAttempt('vocab_002', false);
+    UserProfile.completeRun();
+    UserProfile.save();
+
+    // Reset and reload (simulates new game)
+    UserProfile.reset();
+    UserProfile.load('ProfileE2E');
+
+    var stats = UserProfile.getMasteryStats();
+    TestRunner.assertEqual(stats.runsCompleted, 1, 'Should have 1 run completed');
+    TestRunner.assertEqual(stats.totalSeen, 2, 'Should have seen 2 questions');
+    TestRunner.assertEqual(stats.mastered, 1, 'Should have 1 mastered question');
+
+    // Mastered question should have low weight
+    var masteredWeight = UserProfile.getQuestionWeight('vocab_001');
+    var struggledWeight = UserProfile.getQuestionWeight('vocab_002');
+    var unseenWeight = UserProfile.getQuestionWeight('vocab_999');
+
+    TestRunner.assert(unseenWeight > masteredWeight,
+      'Unseen weight (' + unseenWeight + ') should be higher than mastered (' + masteredWeight + ')');
+    TestRunner.assert(struggledWeight > masteredWeight,
+      'Struggled weight (' + struggledWeight + ') should be higher than mastered (' + masteredWeight + ')');
+
+    UserProfile.reset();
+  });
+
+  TestRunner.scenario('Weighted question selection uses profile data', () => {
+    localStorage.clear();
+    Questions.init();
+    Questions.resetUsed();
+
+    // Load profile and set weight function
+    UserProfile.load('WeightE2E');
+
+    // Mark many questions as mastered
+    for (var i = 1; i <= 50; i++) {
+      var qId = 'vocab_' + String(i).padStart(3, '0');
+      for (var j = 0; j < 5; j++) {
+        UserProfile.recordAttempt(qId, true);
+      }
+    }
+    UserProfile.save();
+
+    // Set weight function on Questions
+    Questions.setWeightFunction(function(qId) {
+      return UserProfile.getQuestionWeight(qId);
+    });
+
+    // Get several questions and verify weighted selection works
+    // (mastered questions should appear less often)
+    var selected = {};
+    for (var k = 0; k < 20; k++) {
+      Questions.resetUsed();
+      var q = Questions.getQuestion(1, 'vocabulary');
+      if (q) {
+        selected[q.id] = (selected[q.id] || 0) + 1;
+      }
+    }
+
+    // The function should work without errors
+    TestRunner.assert(Object.keys(selected).length > 0, 'Should select questions with weighting');
+
+    // Cleanup
+    Questions.setWeightFunction(null);
+    UserProfile.reset();
+  });
+
+  TestRunner.scenario('Dungeon generates matching encounter rooms', () => {
+    Matching.init();
+    Dungeon.generate();
+    var state = Dungeon.getState();
+    var rooms = state.rooms;
+
+    var matchingRooms = 0;
+    var quizRooms = 0;
+    var roomIds = Object.keys(rooms);
+
+    for (var i = 0; i < roomIds.length; i++) {
+      var room = rooms[roomIds[i]];
+      if (room.type === 'monster') {
+        if (room.encounterType === 'matching') {
+          matchingRooms++;
+          // Verify matching rooms have a category
+          TestRunner.assert(
+            room.matchingCategory === 'matching' || room.matchingCategory === 'pronoun_matching',
+            'Matching room should have valid matchingCategory'
+          );
+        } else {
+          quizRooms++;
+        }
+      }
+    }
+
+    TestRunner.assert(matchingRooms > 0, 'Dungeon should have at least 1 matching room (got ' + matchingRooms + ')');
+    TestRunner.assert(quizRooms > 0, 'Dungeon should have quiz rooms too (got ' + quizRooms + ')');
+  });
+
 });
