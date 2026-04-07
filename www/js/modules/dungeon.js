@@ -216,6 +216,7 @@ const Dungeon = (function() {
     const monsterCount = Math.min(settings.MIN_MONSTER_ROOMS, shuffled.length);
 
     var usedMonsterIds = new Set();
+    var matchingCount = 0;
     for (let i = 0; i < monsterCount; i++) {
       const roomId = shuffled[i];
       const room = roomGrid[roomId];
@@ -229,6 +230,15 @@ const Dungeon = (function() {
       };
       usedMonsterIds.add(room.monster.id);
       room.cleared = false;
+
+      // Assign ~30% of monster rooms as matching encounters
+      if (typeof Matching !== 'undefined' && Math.random() < 0.3) {
+        room.encounterType = 'matching';
+        room.matchingCategory = (matchingCount % 2 === 0) ? 'matching' : 'pronoun_matching';
+        matchingCount++;
+      } else {
+        room.encounterType = 'quiz';
+      }
     }
 
     // Copy roomGrid to rooms

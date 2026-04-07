@@ -132,7 +132,7 @@ const Save = (function() {
    * @param {Object} mapState - Map state from DungeonMap module
    * @returns {boolean} Whether save succeeded
    */
-  function saveGame(playerState, dungeonState, usedQuestionIds, mapState) {
+  function saveGame(playerState, dungeonState, usedQuestionIds, mapState, usedMatchingIds) {
     if (!isStorageAvailable()) {
       console.error('Storage is not available');
       return false;
@@ -145,12 +145,13 @@ const Save = (function() {
     }
 
     const saveData = {
-      version: 2,
+      version: 3,
       savedAt: Date.now(),
       player: playerState,
       dungeon: dungeonState,
       usedQuestions: usedQuestionIds,
-      mapState: mapState
+      mapState: mapState,
+      usedMatchingQuestions: usedMatchingIds || []
     };
 
     try {

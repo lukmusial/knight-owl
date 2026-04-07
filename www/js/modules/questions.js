@@ -8,6 +8,7 @@ const Questions = (function() {
   // Internal question storage
   let questions = [];
   let usedQuestionIds = new Set();
+  let weightFunction = null;
 
   /**
    * Initialize with default questions from data files
@@ -107,8 +108,24 @@ const Questions = (function() {
       available = exactMatch;
     }
 
-    // Select random question
-    const selected = available[Math.floor(Math.random() * available.length)];
+    // Select question (weighted if profile available, otherwise uniform random)
+    var selected;
+    if (weightFunction) {
+      var weights = available.map(function(q) { return weightFunction(q.id); });
+      var totalWeight = weights.reduce(function(sum, w) { return sum + w; }, 0);
+      var roll = Math.random() * totalWeight;
+      var cumulative = 0;
+      selected = available[available.length - 1]; // fallback
+      for (var wi = 0; wi < available.length; wi++) {
+        cumulative += weights[wi];
+        if (roll < cumulative) {
+          selected = available[wi];
+          break;
+        }
+      }
+    } else {
+      selected = available[Math.floor(Math.random() * available.length)];
+    }
     usedQuestionIds.add(selected.id);
 
     // Shuffle options and track correct answer
@@ -203,6 +220,14 @@ const Questions = (function() {
    * @param {number} depth - Current room depth
    * @returns {number} Difficulty level 1-3
    */
+  /**
+   * Set a weight function for spaced repetition question selection
+   * @param {Function|null} fn - Function(questionId) returning weight 0.0-1.0, or null to disable
+   */
+  function setWeightFunction(fn) {
+    weightFunction = fn || null;
+  }
+
   function getDifficultyForDepth(depth) {
     if (depth <= 7) return 1;  // Easy
     if (depth <= 14) return 2; // Medium
@@ -221,6 +246,7 @@ const Questions = (function() {
     resetUsed,
     getUsedIds,
     setUsedIds,
+    setWeightFunction,
     getDifficultyForDepth
   };
 })();
