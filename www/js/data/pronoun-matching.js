@@ -286,7 +286,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'długopis' },
       { left: 'ta', right: 'kartka' },
-      { left: 'to', right: 'zeszyt' },
+      { left: 'to', right: 'biurko' },
       { left: 'te', right: 'kartki' }
     ]
   },
@@ -452,54 +452,55 @@ const PRONOUN_MATCHING_QUESTIONS = [
   },
 
   // --- Numeral sets (difficulty 1) ---
+  // Templates: A = jeden/jedna/jedno/pięć, B = jeden/dwie/jedno/pięć, C = jedna/dwa/jedno/pięć
   {
     id: 'pronoun_045', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'kot' },
-      { left: 'dwa', right: 'psy' },
-      { left: 'trzy', right: 'ptaki' },
-      { left: 'cztery', right: 'konie' }
+      { left: 'jedna', right: 'ryba' },
+      { left: 'jedno', right: 'okno' },
+      { left: 'pięć', right: 'psów' }
     ]
   },
   {
     id: 'pronoun_046', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'ryba' },
-      { left: 'dwie', right: 'żaby' },
-      { left: 'trzy', right: 'sowy' },
-      { left: 'cztery', right: 'krowy' }
+      { left: 'jeden', right: 'pies' },
+      { left: 'jedna', right: 'żaba' },
+      { left: 'jedno', right: 'jajko' },
+      { left: 'pięć', right: 'kotów' }
     ]
   },
   {
     id: 'pronoun_047', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
+      { left: 'jeden', right: 'dom' },
+      { left: 'jedna', right: 'sowa' },
       { left: 'jedno', right: 'dziecko' },
-      { left: 'dwa', right: 'okna' },
-      { left: 'trzy', right: 'jajka' },
-      { left: 'cztery', right: 'krzesła' }
+      { left: 'pięć', right: 'domów' }
     ]
   },
   {
     id: 'pronoun_048', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'dom' },
-      { left: 'dwa', right: 'domy' },
-      { left: 'trzy', right: 'samochody' },
-      { left: 'cztery', right: 'rowery' }
+      { left: 'jeden', right: 'koń' },
+      { left: 'jedna', right: 'krowa' },
+      { left: 'jedno', right: 'cielę' },
+      { left: 'pięć', right: 'koni' }
     ]
   },
   {
     id: 'pronoun_049', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'piłka' },
-      { left: 'dwie', right: 'lalki' },
-      { left: 'trzy', right: 'zabawki' },
-      { left: 'cztery', right: 'książki' }
+      { left: 'jeden', right: 'ptak' },
+      { left: 'jedna', right: 'kura' },
+      { left: 'jedno', right: 'pisklę' },
+      { left: 'pięć', right: 'ptaków' }
     ]
   },
   {
@@ -507,49 +508,49 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'stół' },
-      { left: 'dwa', right: 'stoły' },
-      { left: 'trzy', right: 'talerze' },
-      { left: 'cztery', right: 'kubki' }
+      { left: 'dwie', right: 'lampy' },
+      { left: 'jedno', right: 'krzesło' },
+      { left: 'pięć', right: 'stołów' }
     ]
   },
   {
     id: 'pronoun_051', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
+      { left: 'jeden', right: 'kwiat' },
       { left: 'jedna', right: 'gwiazda' },
-      { left: 'dwie', right: 'gwiazdy' },
-      { left: 'trzy', right: 'chmury' },
-      { left: 'cztery', right: 'góry' }
+      { left: 'jedno', right: 'drzewo' },
+      { left: 'pięć', right: 'kwiatów' }
     ]
   },
   {
     id: 'pronoun_052', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'okno' },
-      { left: 'dwa', right: 'drzewa' },
-      { left: 'trzy', right: 'jabłka' },
-      { left: 'cztery', right: 'pudełka' }
+      { left: 'jedna', right: 'piłka' },
+      { left: 'dwa', right: 'misie' },
+      { left: 'jedno', right: 'auto' },
+      { left: 'pięć', right: 'lalek' }
     ]
   },
   {
     id: 'pronoun_053', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'klucz' },
-      { left: 'dwa', right: 'klucze' },
-      { left: 'trzy', right: 'zamki' },
-      { left: 'cztery', right: 'mosty' }
+      { left: 'jeden', right: 'ser' },
+      { left: 'jedna', right: 'bułka' },
+      { left: 'jedno', right: 'masło' },
+      { left: 'pięć', right: 'serów' }
     ]
   },
   {
     id: 'pronoun_054', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'szkoła' },
-      { left: 'dwie', right: 'szkoły' },
-      { left: 'trzy', right: 'ulice' },
-      { left: 'cztery', right: 'bramy' }
+      { left: 'jeden', right: 'chleb' },
+      { left: 'dwie', right: 'kanapki' },
+      { left: 'jedno', right: 'ciasto' },
+      { left: 'pięć', right: 'chlebów' }
     ]
   },
   {
@@ -557,99 +558,99 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'obraz' },
-      { left: 'dwa', right: 'obrazy' },
-      { left: 'trzy', right: 'zegary' },
-      { left: 'cztery', right: 'długopisy' }
+      { left: 'jedna', right: 'lampa' },
+      { left: 'jedno', right: 'lustro' },
+      { left: 'pięć', right: 'obrazów' }
     ]
   },
   {
     id: 'pronoun_056', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'lustro' },
-      { left: 'dwa', right: 'lustra' },
-      { left: 'trzy', right: 'pióra' },
-      { left: 'cztery', right: 'światła' }
+      { left: 'jedna', right: 'szkoła' },
+      { left: 'dwa', right: 'zeszyty' },
+      { left: 'jedno', right: 'biurko' },
+      { left: 'pięć', right: 'szkół' }
     ]
   },
   {
     id: 'pronoun_057', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'lampa' },
-      { left: 'dwie', right: 'lampy' },
-      { left: 'trzy', right: 'torby' },
-      { left: 'cztery', right: 'filiżanki' }
+      { left: 'jeden', right: 'ołówek' },
+      { left: 'jedna', right: 'kredka' },
+      { left: 'jedno', right: 'pióro' },
+      { left: 'pięć', right: 'ołówków' }
     ]
   },
   {
     id: 'pronoun_058', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'kwiat' },
-      { left: 'dwa', right: 'kwiaty' },
-      { left: 'trzy', right: 'liście' },
-      { left: 'cztery', right: 'kamienie' }
+      { left: 'jeden', right: 'kubek' },
+      { left: 'dwie', right: 'szklanki' },
+      { left: 'jedno', right: 'wiadro' },
+      { left: 'pięć', right: 'kubków' }
     ]
   },
   {
     id: 'pronoun_059', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'kredka' },
-      { left: 'dwie', right: 'kredki' },
-      { left: 'trzy', right: 'kartki' },
-      { left: 'cztery', right: 'świeczki' }
+      { left: 'jeden', right: 'balon' },
+      { left: 'jedna', right: 'zabawka' },
+      { left: 'jedno', right: 'pudełko' },
+      { left: 'pięć', right: 'balonów' }
     ]
   },
   {
     id: 'pronoun_060', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'garnek' },
-      { left: 'dwa', right: 'garnki' },
-      { left: 'trzy', right: 'noże' },
-      { left: 'cztery', right: 'widelce' }
+      { left: 'jedna', right: 'czapka' },
+      { left: 'dwa', right: 'szaliki' },
+      { left: 'jedno', right: 'ubranie' },
+      { left: 'pięć', right: 'czapek' }
     ]
   },
   {
     id: 'pronoun_061', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'ciasto' },
-      { left: 'dwa', right: 'ciastka' },
-      { left: 'trzy', right: 'lody' },
-      { left: 'cztery', right: 'owoce' }
+      { left: 'jeden', right: 'but' },
+      { left: 'jedna', right: 'kurtka' },
+      { left: 'jedno', right: 'ucho' },
+      { left: 'pięć', right: 'butów' }
     ]
   },
   {
     id: 'pronoun_062', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'butelka' },
-      { left: 'dwie', right: 'butelki' },
-      { left: 'trzy', right: 'szklanki' },
-      { left: 'cztery', right: 'miski' }
+      { left: 'jeden', right: 'tort' },
+      { left: 'dwie', right: 'świeczki' },
+      { left: 'jedno', right: 'ciastko' },
+      { left: 'pięć', right: 'tortów' }
     ]
   },
   {
     id: 'pronoun_063', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'balon' },
-      { left: 'dwa', right: 'balony' },
-      { left: 'trzy', right: 'misie' },
-      { left: 'cztery', right: 'motyle' }
+      { left: 'jeden', right: 'samochód' },
+      { left: 'jedna', right: 'droga' },
+      { left: 'jedno', right: 'koło' },
+      { left: 'pięć', right: 'samochodów' }
     ]
   },
   {
     id: 'pronoun_064', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'czapka' },
-      { left: 'dwie', right: 'czapki' },
-      { left: 'trzy', right: 'kurtki' },
-      { left: 'cztery', right: 'sukienki' }
+      { left: 'jedna', right: 'butelka' },
+      { left: 'dwa', right: 'talerze' },
+      { left: 'jedno', right: 'mleko' },
+      { left: 'pięć', right: 'butelek' }
     ]
   },
   {
@@ -657,69 +658,69 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'plecak' },
-      { left: 'dwa', right: 'plecaki' },
-      { left: 'trzy', right: 'worki' },
-      { left: 'cztery', right: 'kosze' }
+      { left: 'jedna', right: 'torba' },
+      { left: 'jedno', right: 'słońce' },
+      { left: 'pięć', right: 'plecaków' }
     ]
   },
   {
     id: 'pronoun_066', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
+      { left: 'jeden', right: 'zegar' },
+      { left: 'dwie', right: 'minuty' },
       { left: 'jedno', right: 'łóżko' },
-      { left: 'dwa', right: 'łóżka' },
-      { left: 'trzy', right: 'biurka' },
-      { left: 'cztery', right: 'okna' }
+      { left: 'pięć', right: 'zegarów' }
     ]
   },
   {
     id: 'pronoun_067', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'róża' },
-      { left: 'dwie', right: 'róże' },
-      { left: 'trzy', right: 'grządki' },
-      { left: 'cztery', right: 'łyżki' }
+      { left: 'jeden', right: 'parasol' },
+      { left: 'jedna', right: 'chmura' },
+      { left: 'jedno', right: 'morze' },
+      { left: 'pięć', right: 'parasoli' }
     ]
   },
   {
     id: 'pronoun_068', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'parasol' },
-      { left: 'dwa', right: 'parasole' },
-      { left: 'trzy', right: 'szaliki' },
-      { left: 'cztery', right: 'dzwonki' }
+      { left: 'jedna', right: 'róża' },
+      { left: 'dwa', right: 'tulipany' },
+      { left: 'jedno', right: 'ziarno' },
+      { left: 'pięć', right: 'róż' }
     ]
   },
   {
     id: 'pronoun_069', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
+      { left: 'jeden', right: 'motyl' },
       { left: 'jedna', right: 'biedronka' },
-      { left: 'dwie', right: 'biedronki' },
-      { left: 'trzy', right: 'pszczoły' },
-      { left: 'cztery', right: 'ważki' }
+      { left: 'jedno', right: 'gniazdo' },
+      { left: 'pięć', right: 'motyli' }
     ]
   },
   {
     id: 'pronoun_070', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'ołówek' },
-      { left: 'dwa', right: 'ołówki' },
-      { left: 'trzy', right: 'zeszyty' },
-      { left: 'cztery', right: 'penały' }
+      { left: 'jeden', right: 'klucz' },
+      { left: 'dwie', right: 'bramy' },
+      { left: 'jedno', right: 'miasto' },
+      { left: 'pięć', right: 'kluczy' }
     ]
   },
   {
     id: 'pronoun_071', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'ziarno' },
-      { left: 'dwa', right: 'ziarna' },
-      { left: 'trzy', right: 'gniazda' },
-      { left: 'cztery', right: 'jaja' }
+      { left: 'jeden', right: 'garnek' },
+      { left: 'jedna', right: 'miska' },
+      { left: 'jedno', right: 'naczynie' },
+      { left: 'pięć', right: 'garnków' }
     ]
   },
   {
@@ -727,29 +728,29 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jedna', right: 'poduszka' },
-      { left: 'dwie', right: 'poduszki' },
-      { left: 'trzy', right: 'kołdry' },
-      { left: 'cztery', right: 'prześcieradła' }
+      { left: 'dwa', right: 'koce' },
+      { left: 'jedno', right: 'łóżko' },
+      { left: 'pięć', right: 'poduszek' }
     ]
   },
   {
     id: 'pronoun_073', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'tort' },
-      { left: 'dwa', right: 'torty' },
-      { left: 'trzy', right: 'cukierki' },
-      { left: 'cztery', right: 'lizaki' }
+      { left: 'jeden', right: 'sok' },
+      { left: 'jedna', right: 'herbata' },
+      { left: 'jedno', right: 'jabłko' },
+      { left: 'pięć', right: 'soków' }
     ]
   },
   {
     id: 'pronoun_074', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'kanapa' },
-      { left: 'dwie', right: 'kanapy' },
-      { left: 'trzy', right: 'szafy' },
-      { left: 'cztery', right: 'półki' }
+      { left: 'jeden', right: 'las' },
+      { left: 'dwie', right: 'góry' },
+      { left: 'jedno', right: 'jezioro' },
+      { left: 'pięć', right: 'lasów' }
     ]
   },
   {
@@ -757,89 +758,89 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'telewizor' },
-      { left: 'dwa', right: 'telewizory' },
-      { left: 'trzy', right: 'telefony' },
-      { left: 'cztery', right: 'komputery' }
+      { left: 'jedna', right: 'kanapa' },
+      { left: 'jedno', right: 'radio' },
+      { left: 'pięć', right: 'telewizorów' }
     ]
   },
   {
     id: 'pronoun_076', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'mieszkanie' },
-      { left: 'dwa', right: 'mieszkania' },
-      { left: 'trzy', right: 'miasta' },
-      { left: 'cztery', right: 'jeziora' }
+      { left: 'jedna', right: 'flaga' },
+      { left: 'dwa', right: 'zamki' },
+      { left: 'jedno', right: 'pole' },
+      { left: 'pięć', right: 'flag' }
     ]
   },
   {
     id: 'pronoun_077', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'miska' },
-      { left: 'dwie', right: 'patelnie' },
-      { left: 'trzy', right: 'łyżeczki' },
-      { left: 'cztery', right: 'rękawiczki' }
+      { left: 'jeden', right: 'dywan' },
+      { left: 'jedna', right: 'ściana' },
+      { left: 'jedno', right: 'okno' },
+      { left: 'pięć', right: 'dywanów' }
     ]
   },
   {
     id: 'pronoun_078', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'dywan' },
-      { left: 'dwa', right: 'dywany' },
-      { left: 'trzy', right: 'obrazy' },
-      { left: 'cztery', right: 'wazony' }
+      { left: 'jeden', right: 'rower' },
+      { left: 'dwie', right: 'piłki' },
+      { left: 'jedno', right: 'boisko' },
+      { left: 'pięć', right: 'rowerów' }
     ]
   },
   {
     id: 'pronoun_079', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'ściana' },
-      { left: 'dwie', right: 'ściany' },
-      { left: 'trzy', right: 'podłogi' },
-      { left: 'cztery', right: 'polany' }
+      { left: 'jeden', right: 'most' },
+      { left: 'jedna', right: 'rzeka' },
+      { left: 'jedno', right: 'jezioro' },
+      { left: 'pięć', right: 'mostów' }
     ]
   },
   {
     id: 'pronoun_080', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'ser' },
-      { left: 'dwa', right: 'sery' },
-      { left: 'trzy', right: 'chleby' },
-      { left: 'cztery', right: 'soki' }
+      { left: 'jedna', right: 'książka' },
+      { left: 'dwa', right: 'długopisy' },
+      { left: 'jedno', right: 'zdjęcie' },
+      { left: 'pięć', right: 'książek' }
     ]
   },
   {
     id: 'pronoun_081', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'pole' },
-      { left: 'dwa', right: 'pola' },
-      { left: 'trzy', right: 'morza' },
-      { left: 'cztery', right: 'boiska' }
+      { left: 'jeden', right: 'talerz' },
+      { left: 'jedna', right: 'łyżka' },
+      { left: 'jedno', right: 'naczynie' },
+      { left: 'pięć', right: 'talerzy' }
     ]
   },
   {
     id: 'pronoun_082', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'flaga' },
-      { left: 'dwie', right: 'flagi' },
-      { left: 'trzy', right: 'siatki' },
-      { left: 'cztery', right: 'skrzynki' }
+      { left: 'jeden', right: 'ogród' },
+      { left: 'dwie', right: 'grządki' },
+      { left: 'jedno', right: 'drzewo' },
+      { left: 'pięć', right: 'ogrodów' }
     ]
   },
   {
     id: 'pronoun_083', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'sok' },
-      { left: 'dwa', right: 'kubki' },
-      { left: 'trzy', right: 'talerze' },
-      { left: 'cztery', right: 'koszyki' }
+      { left: 'jeden', right: 'koszyk' },
+      { left: 'jedna', right: 'skrzynka' },
+      { left: 'jedno', right: 'pudło' },
+      { left: 'pięć', right: 'koszyków' }
     ]
   },
   {
@@ -847,49 +848,49 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jedna', right: 'gazeta' },
-      { left: 'dwie', right: 'gazety' },
-      { left: 'trzy', right: 'koperty' },
-      { left: 'cztery', right: 'pocztówki' }
+      { left: 'dwa', right: 'listy' },
+      { left: 'jedno', right: 'pismo' },
+      { left: 'pięć', right: 'gazet' }
     ]
   },
   {
     id: 'pronoun_085', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'but' },
-      { left: 'dwa', right: 'buty' },
-      { left: 'trzy', right: 'kapcie' },
-      { left: 'cztery', right: 'kapelusze' }
+      { left: 'jeden', right: 'kapelusz' },
+      { left: 'jedna', right: 'sukienka' },
+      { left: 'jedno', right: 'ubranie' },
+      { left: 'pięć', right: 'kapeluszy' }
     ]
   },
   {
     id: 'pronoun_086', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'radio' },
-      { left: 'dwa', right: 'radia' },
-      { left: 'trzy', right: 'zdjęcia' },
-      { left: 'cztery', right: 'wiadra' }
+      { left: 'jeden', right: 'wazon' },
+      { left: 'dwie', right: 'polany' },
+      { left: 'jedno', right: 'mieszkanie' },
+      { left: 'pięć', right: 'wazonów' }
     ]
   },
   {
     id: 'pronoun_087', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
+      { left: 'jeden', right: 'lizak' },
       { left: 'jedna', right: 'trawa' },
-      { left: 'dwie', right: 'trawy' },
-      { left: 'trzy', right: 'rzeki' },
-      { left: 'cztery', right: 'drogi' }
+      { left: 'jedno', right: 'słońce' },
+      { left: 'pięć', right: 'lizaków' }
     ]
   },
   {
     id: 'pronoun_088', difficulty: 1, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'las' },
-      { left: 'dwa', right: 'lasy' },
-      { left: 'trzy', right: 'ogrody' },
-      { left: 'cztery', right: 'parki' }
+      { left: 'jedna', right: 'lalka' },
+      { left: 'dwa', right: 'klocki' },
+      { left: 'jedno', right: 'kółko' },
+      { left: 'pięć', right: 'lalek' }
     ]
   },
 
@@ -1175,8 +1176,8 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'kalendarz' },
-      { left: 'dwa', right: 'kalendarze' },
-      { left: 'trzy', right: 'podręczniki' },
+      { left: 'jedna', right: 'biblioteka' },
+      { left: 'jedno', right: 'muzeum' },
       { left: 'pięć', right: 'zeszytów' }
     ]
   },
@@ -1184,189 +1185,189 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_117', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'biblioteka' },
-      { left: 'dwie', right: 'biblioteki' },
-      { left: 'cztery', right: 'szkoły' },
-      { left: 'pięć', right: 'kościołów' }
+      { left: 'jeden', right: 'rycerz' },
+      { left: 'dwie', right: 'tarcze' },
+      { left: 'jedno', right: 'kopie' },
+      { left: 'pięć', right: 'rycerzy' }
     ]
   },
   {
     id: 'pronoun_118', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'muzeum' },
-      { left: 'dwa', right: 'muzea' },
-      { left: 'trzy', right: 'kina' },
-      { left: 'pięć', right: 'teatrów' }
+      { left: 'jedna', right: 'planeta' },
+      { left: 'dwa', right: 'teleskopy' },
+      { left: 'jedno', right: 'niebo' },
+      { left: 'pięć', right: 'gwiazd' }
     ]
   },
   {
     id: 'pronoun_119', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'rycerz' },
-      { left: 'dwa', right: 'miecze' },
-      { left: 'cztery', right: 'mundury' },
-      { left: 'pięć', right: 'tarcz' }
+      { left: 'jeden', right: 'tramwaj' },
+      { left: 'jedna', right: 'lokomotywa' },
+      { left: 'jedno', right: 'metro' },
+      { left: 'pięć', right: 'pociągów' }
     ]
   },
   {
     id: 'pronoun_120', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'planeta' },
-      { left: 'dwie', right: 'planety' },
-      { left: 'trzy', right: 'komety' },
-      { left: 'pięć', right: 'gwiazd' }
+      { left: 'jeden', right: 'budynek' },
+      { left: 'dwie', right: 'kamienice' },
+      { left: 'jedno', right: 'lotnisko' },
+      { left: 'pięć', right: 'budynków' }
     ]
   },
   {
     id: 'pronoun_121', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'tramwaj' },
-      { left: 'dwa', right: 'tramwaje' },
-      { left: 'cztery', right: 'autobusy' },
-      { left: 'pięć', right: 'pociągów' }
+      { left: 'jedna', right: 'restauracja' },
+      { left: 'dwa', right: 'kościoły' },
+      { left: 'jedno', right: 'kino' },
+      { left: 'pięć', right: 'restauracji' }
     ]
   },
   {
     id: 'pronoun_122', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'muzeum' },
-      { left: 'dwa', right: 'muzea' },
-      { left: 'trzy', right: 'kina' },
-      { left: 'pięć', right: 'boisk' }
+      { left: 'jeden', right: 'wodospad' },
+      { left: 'jedna', right: 'jaskinia' },
+      { left: 'jedno', right: 'wzgórze' },
+      { left: 'pięć', right: 'wodospadów' }
     ]
   },
   {
     id: 'pronoun_123', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'drużyna' },
-      { left: 'dwie', right: 'drużyny' },
-      { left: 'cztery', right: 'klasy' },
-      { left: 'pięć', right: 'drużyn' }
+      { left: 'jeden', right: 'podręcznik' },
+      { left: 'dwie', right: 'encyklopedie' },
+      { left: 'jedno', right: 'akwarium' },
+      { left: 'pięć', right: 'podręczników' }
     ]
   },
   {
     id: 'pronoun_124', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'budynek' },
-      { left: 'dwa', right: 'budynki' },
-      { left: 'trzy', right: 'wieżowce' },
-      { left: 'pięć', right: 'wieżowców' }
+      { left: 'jedna', right: 'drużyna' },
+      { left: 'dwa', right: 'mecze' },
+      { left: 'jedno', right: 'boisko' },
+      { left: 'pięć', right: 'drużyn' }
     ]
   },
   {
     id: 'pronoun_125', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'restauracja' },
-      { left: 'dwie', right: 'restauracje' },
-      { left: 'cztery', right: 'kawiarnie' },
-      { left: 'pięć', right: 'piekarni' }
+      { left: 'jeden', right: 'fortepian' },
+      { left: 'jedna', right: 'gitara' },
+      { left: 'jedno', right: 'skrzypce' },
+      { left: 'pięć', right: 'fortepianów' }
     ]
   },
   {
     id: 'pronoun_126', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'lotnisko' },
-      { left: 'dwa', right: 'lotniska' },
-      { left: 'trzy', right: 'jeziora' },
-      { left: 'pięć', right: 'miast' }
+      { left: 'jeden', right: 'monitor' },
+      { left: 'dwie', right: 'drukarki' },
+      { left: 'jedno', right: 'urządzenie' },
+      { left: 'pięć', right: 'monitorów' }
     ]
   },
   {
     id: 'pronoun_127', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'wodospad' },
-      { left: 'dwa', right: 'wodospady' },
-      { left: 'cztery', right: 'kamienie' },
-      { left: 'pięć', right: 'skał' }
+      { left: 'jedna', right: 'fontanna' },
+      { left: 'dwa', right: 'pomniki' },
+      { left: 'jedno', right: 'rondo' },
+      { left: 'pięć', right: 'fontann' }
     ]
   },
   {
     id: 'pronoun_128', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'jaskinia' },
-      { left: 'dwie', right: 'jaskinie' },
-      { left: 'trzy', right: 'doliny' },
-      { left: 'pięć', right: 'jaskiń' }
+      { left: 'jeden', right: 'plakat' },
+      { left: 'jedna', right: 'mapa' },
+      { left: 'jedno', right: 'zdjęcie' },
+      { left: 'pięć', right: 'plakatów' }
     ]
   },
   {
     id: 'pronoun_129', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'zeszyt' },
-      { left: 'dwa', right: 'zeszyty' },
-      { left: 'cztery', right: 'plakaty' },
-      { left: 'pięć', right: 'listów' }
+      { left: 'jeden', right: 'piekarnik' },
+      { left: 'dwie', right: 'lodówki' },
+      { left: 'jedno', right: 'wiaderko' },
+      { left: 'pięć', right: 'piekarników' }
     ]
   },
   {
     id: 'pronoun_130', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'akwarium' },
-      { left: 'dwa', right: 'akwaria' },
-      { left: 'trzy', right: 'muzea' },
-      { left: 'pięć', right: 'kin' }
+      { left: 'jedna', right: 'piekarnia' },
+      { left: 'dwa', right: 'sklepy' },
+      { left: 'jedno', right: 'targowisko' },
+      { left: 'pięć', right: 'piekarni' }
     ]
   },
   {
     id: 'pronoun_131', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'fontanna' },
-      { left: 'dwie', right: 'fontanny' },
-      { left: 'cztery', right: 'wieże' },
-      { left: 'pięć', right: 'bram' }
+      { left: 'jeden', right: 'zamek' },
+      { left: 'jedna', right: 'wieża' },
+      { left: 'jedno', right: 'podwórko' },
+      { left: 'pięć', right: 'zamków' }
     ]
   },
   {
     id: 'pronoun_132', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'fortepian' },
-      { left: 'dwa', right: 'fortepiany' },
-      { left: 'trzy', right: 'perkusje' },
-      { left: 'pięć', right: 'skrzypiec' }
+      { left: 'jeden', right: 'bęben' },
+      { left: 'dwie', right: 'trąbki' },
+      { left: 'jedno', right: 'pianino' },
+      { left: 'pięć', right: 'bębnów' }
     ]
   },
   {
     id: 'pronoun_133', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'gitara' },
-      { left: 'dwie', right: 'gitary' },
-      { left: 'cztery', right: 'trąbki' },
-      { left: 'pięć', right: 'fletów' }
+      { left: 'jedna', right: 'dolina' },
+      { left: 'dwa', right: 'szczyty' },
+      { left: 'jedno', right: 'jezioro' },
+      { left: 'pięć', right: 'dolin' }
     ]
   },
   {
     id: 'pronoun_134', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'monitor' },
-      { left: 'dwa', right: 'monitory' },
-      { left: 'trzy', right: 'ekrany' },
-      { left: 'pięć', right: 'kabli' }
+      { left: 'jeden', right: 'portfel' },
+      { left: 'jedna', right: 'torebka' },
+      { left: 'jedno', right: 'pudełko' },
+      { left: 'pięć', right: 'portfeli' }
     ]
   },
   {
     id: 'pronoun_135', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'lokomotywa' },
-      { left: 'dwie', right: 'lokomotywy' },
-      { left: 'cztery', right: 'przyczepy' },
+      { left: 'jeden', right: 'wagon' },
+      { left: 'dwie', right: 'przyczepy' },
+      { left: 'jedno', right: 'siedlisko' },
       { left: 'pięć', right: 'wagonów' }
     ]
   },
@@ -1374,70 +1375,70 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_136', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'wiaderko' },
-      { left: 'dwa', right: 'wiaderka' },
-      { left: 'trzy', right: 'łopatki' },
-      { left: 'pięć', right: 'wiaderek' }
+      { left: 'jedna', right: 'kawiarnia' },
+      { left: 'dwa', right: 'bary' },
+      { left: 'jedno', right: 'centrum' },
+      { left: 'pięć', right: 'kawiarni' }
     ]
   },
   {
     id: 'pronoun_137', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'pomnik' },
-      { left: 'dwa', right: 'pomniki' },
-      { left: 'cztery', right: 'zamki' },
-      { left: 'pięć', right: 'wież' }
+      { left: 'jeden', right: 'komputer' },
+      { left: 'jedna', right: 'klawiatura' },
+      { left: 'jedno', right: 'radio' },
+      { left: 'pięć', right: 'komputerów' }
     ]
   },
   {
     id: 'pronoun_138', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'gitara' },
-      { left: 'dwie', right: 'gitary' },
-      { left: 'trzy', right: 'trąbki' },
-      { left: 'pięć', right: 'bębnów' }
+      { left: 'jeden', right: 'autobus' },
+      { left: 'dwie', right: 'taksówki' },
+      { left: 'jedno', right: 'lotnisko' },
+      { left: 'pięć', right: 'autobusów' }
     ]
   },
   {
     id: 'pronoun_139', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'piekarnik' },
-      { left: 'dwa', right: 'piekarniki' },
-      { left: 'cztery', right: 'mikrofale' },
-      { left: 'pięć', right: 'lodówek' }
+      { left: 'jedna', right: 'galeria' },
+      { left: 'dwa', right: 'teatry' },
+      { left: 'jedno', right: 'muzeum' },
+      { left: 'pięć', right: 'galerii' }
     ]
   },
   {
     id: 'pronoun_140', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'podwórko' },
-      { left: 'dwa', right: 'podwórka' },
-      { left: 'trzy', right: 'boiska' },
-      { left: 'pięć', right: 'podwórek' }
+      { left: 'jeden', right: 'zegarek' },
+      { left: 'jedna', right: 'bransoletka' },
+      { left: 'jedno', right: 'naszyjnik' },
+      { left: 'pięć', right: 'zegarków' }
     ]
   },
   {
     id: 'pronoun_141', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'piekarnia' },
-      { left: 'dwie', right: 'piekarnie' },
-      { left: 'cztery', right: 'cukiernie' },
-      { left: 'pięć', right: 'piekarni' }
+      { left: 'jeden', right: 'ekran' },
+      { left: 'dwie', right: 'kamery' },
+      { left: 'jedno', right: 'zdjęcie' },
+      { left: 'pięć', right: 'ekranów' }
     ]
   },
   {
     id: 'pronoun_142', difficulty: 2, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'portfel' },
-      { left: 'dwa', right: 'portfele' },
-      { left: 'trzy', right: 'zegarki' },
-      { left: 'pięć', right: 'pierścionków' }
+      { left: 'jedna', right: 'skała' },
+      { left: 'dwa', right: 'wulkany' },
+      { left: 'jedno', right: 'źródło' },
+      { left: 'pięć', right: 'skał' }
     ]
   },
 
@@ -1608,13 +1609,14 @@ const PRONOUN_MATCHING_QUESTIONS = [
   },
 
   // --- Numeral sets (difficulty 3) ---
+  // Templates D (jedna/dwie/jedno/pięć) and A/B/C mixed with tricky declensions
   {
     id: 'pronoun_159', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'mężczyzna' },
-      { left: 'dwa', right: 'niemowlęta' },
-      { left: 'trzy', right: 'szczenięta' },
+      { left: 'jedna', right: 'mysz' },
+      { left: 'jedno', right: 'zwierzę' },
       { left: 'pięć', right: 'mężczyzn' }
     ]
   },
@@ -1622,60 +1624,60 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_160', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'mysz' },
-      { left: 'dwie', right: 'myszy' },
-      { left: 'cztery', right: 'gęsi' },
-      { left: 'pięć', right: 'myszy' }
+      { left: 'jeden', right: 'przyjaciel' },
+      { left: 'dwie', right: 'noce' },
+      { left: 'jedno', right: 'imię' },
+      { left: 'pięć', right: 'przyjaciół' }
     ]
   },
   {
     id: 'pronoun_161', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'zwierzę' },
-      { left: 'dwa', right: 'zwierzęta' },
-      { left: 'trzy', right: 'cielęta' },
-      { left: 'pięć', right: 'zwierząt' }
+      { left: 'jedna', right: 'noc' },
+      { left: 'dwa', right: 'tygodnie' },
+      { left: 'jedno', right: 'niemowlę' },
+      { left: 'pięć', right: 'nocy' }
     ]
   },
   {
     id: 'pronoun_162', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'przyjaciel' },
-      { left: 'dwa', right: 'przyjaciele' },
-      { left: 'cztery', right: 'bracia' },
-      { left: 'pięć', right: 'przyjaciół' }
+      { left: 'jeden', right: 'książę' },
+      { left: 'jedna', right: 'księżniczka' },
+      { left: 'jedno', right: 'prosię' },
+      { left: 'pięć', right: 'książąt' }
     ]
   },
   {
     id: 'pronoun_163', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'noc' },
-      { left: 'dwie', right: 'noce' },
-      { left: 'trzy', right: 'podróże' },
-      { left: 'pięć', right: 'nocy' }
+      { left: 'jedna', right: 'rzecz' },
+      { left: 'dwie', right: 'podróże' },
+      { left: 'jedno', right: 'źrebię' },
+      { left: 'pięć', right: 'rzeczy' }
     ]
   },
   {
     id: 'pronoun_164', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'imię' },
-      { left: 'dwa', right: 'imiona' },
-      { left: 'cztery', right: 'ramiona' },
-      { left: 'pięć', right: 'imion' }
+      { left: 'jeden', right: 'tydzień' },
+      { left: 'jedna', right: 'wieś' },
+      { left: 'jedno', right: 'kurczę' },
+      { left: 'pięć', right: 'tygodni' }
     ]
   },
   {
     id: 'pronoun_165', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'książę' },
-      { left: 'dwa', right: 'książęta' },
-      { left: 'trzy', right: 'zamki' },
-      { left: 'pięć', right: 'książąt' }
+      { left: 'jeden', right: 'sędzia' },
+      { left: 'dwie', right: 'gęsi' },
+      { left: 'jedno', right: 'cielę' },
+      { left: 'pięć', right: 'sędziów' }
     ]
   },
   {
@@ -1683,8 +1685,8 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jedna', right: 'twarz' },
-      { left: 'dwie', right: 'twarze' },
-      { left: 'cztery', right: 'rzeczy' },
+      { left: 'dwa', right: 'miesiące' },
+      { left: 'jedno', right: 'ramię' },
       { left: 'pięć', right: 'twarzy' }
     ]
   },
@@ -1692,80 +1694,80 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_167', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'prosię' },
-      { left: 'dwa', right: 'prosięta' },
-      { left: 'trzy', right: 'jagnięta' },
-      { left: 'pięć', right: 'prosiąt' }
+      { left: 'jeden', right: 'liść' },
+      { left: 'jedna', right: 'gałąź' },
+      { left: 'jedno', right: 'drzewko' },
+      { left: 'pięć', right: 'liści' }
     ]
   },
   {
     id: 'pronoun_168', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'sędzia' },
-      { left: 'dwa', right: 'medale' },
-      { left: 'cztery', right: 'poeci' },
-      { left: 'pięć', right: 'sędziów' }
+      { left: 'jeden', right: 'gość' },
+      { left: 'dwie', right: 'wsie' },
+      { left: 'jedno', right: 'dziecię' },
+      { left: 'pięć', right: 'gości' }
     ]
   },
   {
     id: 'pronoun_169', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'rzecz' },
-      { left: 'dwie', right: 'rzeczy' },
-      { left: 'trzy', right: 'noce' },
-      { left: 'pięć', right: 'rzeczy' }
+      { left: 'jedna', right: 'kolej' },
+      { left: 'dwa', right: 'bracia' },
+      { left: 'jedno', right: 'zwierzę' },
+      { left: 'pięć', right: 'kolei' }
     ]
   },
   {
     id: 'pronoun_170', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'źrebię' },
-      { left: 'dwa', right: 'źrebięta' },
-      { left: 'cztery', right: 'koźlęta' },
-      { left: 'pięć', right: 'źrebiąt' }
+      { left: 'jeden', right: 'rok' },
+      { left: 'jedna', right: 'chwila' },
+      { left: 'jedno', right: 'stulecie' },
+      { left: 'pięć', right: 'lat' }
     ]
   },
   {
     id: 'pronoun_171', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'tydzień' },
-      { left: 'dwa', right: 'tygodnie' },
-      { left: 'trzy', right: 'miesiące' },
-      { left: 'pięć', right: 'tygodni' }
+      { left: 'jeden', right: 'kamień' },
+      { left: 'dwie', right: 'łodzie' },
+      { left: 'jedno', right: 'koźlę' },
+      { left: 'pięć', right: 'kamieni' }
     ]
   },
   {
     id: 'pronoun_172', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedna', right: 'wieś' },
-      { left: 'dwie', right: 'wsie' },
-      { left: 'cztery', right: 'osie' },
-      { left: 'pięć', right: 'wsi' }
+      { left: 'jedna', right: 'pieśń' },
+      { left: 'dwa', right: 'wiersze' },
+      { left: 'jedno', right: 'dzieło' },
+      { left: 'pięć', right: 'pieśni' }
     ]
   },
   {
     id: 'pronoun_173', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jedno', right: 'kurczę' },
-      { left: 'dwa', right: 'kurczęta' },
-      { left: 'trzy', right: 'pisklęta' },
-      { left: 'pięć', right: 'kurcząt' }
+      { left: 'jeden', right: 'łabędź' },
+      { left: 'jedna', right: 'gęś' },
+      { left: 'jedno', right: 'jagnię' },
+      { left: 'pięć', right: 'łabędzi' }
     ]
   },
   {
     id: 'pronoun_174', difficulty: 3, category: 'pronoun_matching',
     subtype: 'numeral',
     pairs: [
-      { left: 'jeden', right: 'rok' },
-      { left: 'dwa', right: 'lata' },
-      { left: 'cztery', right: 'lata' },
-      { left: 'pięć', right: 'lat' }
+      { left: 'jeden', right: 'miesiąc' },
+      { left: 'dwie', right: 'chwile' },
+      { left: 'jedno', right: 'imię' },
+      { left: 'pięć', right: 'miesięcy' }
     ]
   }
 ];
