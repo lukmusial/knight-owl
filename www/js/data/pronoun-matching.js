@@ -1600,10 +1600,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_158', difficulty: 3, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'monarcha' },
+      { left: 'ten', right: 'książę' },
       { left: 'ta', right: 'wieś' },
-      { left: 'to', right: 'książę' },
-      { left: 'ci', right: 'monarchowie' }
+      { left: 'to', right: 'królestwo' },
+      { left: 'ci', right: 'książęta' }
     ]
   },
 
