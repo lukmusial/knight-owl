@@ -18,7 +18,8 @@ const MATCHING_QUESTIONS = [
       { left: 'bird', right: 'ptak' },
       { left: 'fish', right: 'ryba' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'cat = kot, dog = pies, bird = ptak, fish = ryba. Kot łowi rybę! (The cat catches a fish!)'
   },
   {
     id: 'match_002', difficulty: 1, category: 'matching',
@@ -28,7 +29,8 @@ const MATCHING_QUESTIONS = [
       { left: 'pig', right: 'świnia' },
       { left: 'sheep', right: 'owca' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'horse = koń, cow = krowa, pig = świnia, sheep = owca. Koń biega po łące! (The horse runs in the meadow!)'
   },
   {
     id: 'match_003', difficulty: 1, category: 'matching',
@@ -38,7 +40,8 @@ const MATCHING_QUESTIONS = [
       { left: 'frog', right: 'żaba' },
       { left: 'bear', right: 'niedźwiedź' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'rabbit = królik, mouse = mysz, frog = żaba, bear = niedźwiedź. Żaba skacze do wody! (The frog jumps into the water!)'
   },
   {
     id: 'match_004', difficulty: 1, category: 'matching',
@@ -48,7 +51,8 @@ const MATCHING_QUESTIONS = [
       { left: 'goose', right: 'gęś' },
       { left: 'turkey', right: 'indyk' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'chicken = kurczak, duck = kaczka, goose = gęś, turkey = indyk. Kaczka pływa w stawie! (The duck swims in the pond!)'
   },
   {
     id: 'match_005', difficulty: 1, category: 'matching',
@@ -58,7 +62,8 @@ const MATCHING_QUESTIONS = [
       { left: 'elephant', right: 'słoń' },
       { left: 'monkey', right: 'małpa' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'lion = lew, tiger = tygrys, elephant = słoń, monkey = małpa. Słoń jest bardzo duży! (The elephant is very big!)'
   },
   {
     id: 'match_006', difficulty: 1, category: 'matching',
@@ -68,7 +73,8 @@ const MATCHING_QUESTIONS = [
       { left: 'deer', right: 'jeleń' },
       { left: 'squirrel', right: 'wiewiórka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'wolf = wilk, fox = lis, deer = jeleń, squirrel = wiewiórka. Lis mieszka w lesie! (The fox lives in the forest!)'
   },
   {
     id: 'match_007', difficulty: 1, category: 'matching',
@@ -78,7 +84,8 @@ const MATCHING_QUESTIONS = [
       { left: 'ant', right: 'mrówka' },
       { left: 'spider', right: 'pająk' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'butterfly = motyl, bee = pszczoła, ant = mrówka, spider = pająk. Motyl lata nad kwiatami! (The butterfly flies over the flowers!)'
   },
   {
     id: 'match_008', difficulty: 1, category: 'matching',
@@ -88,7 +95,8 @@ const MATCHING_QUESTIONS = [
       { left: 'owl', right: 'sowa' },
       { left: 'eagle', right: 'orzeł' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'snake = wąż, turtle = żółw, owl = sowa, eagle = orzeł. Sowa widzi w nocy! (The owl sees at night!)'
   },
 
   // --- Colors (sets 009-012) ---
@@ -100,7 +108,8 @@ const MATCHING_QUESTIONS = [
       { left: 'green', right: 'zielony' },
       { left: 'yellow', right: 'żółty' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'red = czerwony, blue = niebieski, green = zielony, yellow = żółty. Niebo jest niebieskie! (The sky is blue!)'
   },
   {
     id: 'match_010', difficulty: 1, category: 'matching',
@@ -110,7 +119,8 @@ const MATCHING_QUESTIONS = [
       { left: 'brown', right: 'brązowy' },
       { left: 'orange', right: 'pomarańczowy' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'white = biały, black = czarny, brown = brązowy, orange = pomarańczowy. Śnieg jest biały! (Snow is white!)'
   },
   {
     id: 'match_011', difficulty: 1, category: 'matching',
@@ -120,7 +130,8 @@ const MATCHING_QUESTIONS = [
       { left: 'grey', right: 'szary' },
       { left: 'gold', right: 'złoty' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'pink = różowy, purple = fioletowy, grey = szary, gold = złoty. Kwiat jest różowy! (The flower is pink!)'
   },
   {
     id: 'match_012', difficulty: 1, category: 'matching',
@@ -130,7 +141,8 @@ const MATCHING_QUESTIONS = [
       { left: 'light', right: 'jasny' },
       { left: 'colorful', right: 'kolorowy' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'silver = srebrny, dark = ciemny, light = jasny, colorful = kolorowy. Tęcza jest kolorowa! (The rainbow is colorful!)'
   },
 
   // --- Numbers 1-20 (sets 013-017) ---
@@ -142,7 +154,8 @@ const MATCHING_QUESTIONS = [
       { left: 'three', right: 'trzy' },
       { left: 'four', right: 'cztery' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'one = jeden, two = dwa, three = trzy, four = cztery. Mam dwa koty! (I have two cats!)'
   },
   {
     id: 'match_014', difficulty: 1, category: 'matching',
@@ -152,7 +165,8 @@ const MATCHING_QUESTIONS = [
       { left: 'seven', right: 'siedem' },
       { left: 'eight', right: 'osiem' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'five = pięć, six = sześć, seven = siedem, eight = osiem. Mam pięć palców! (I have five fingers!)'
   },
   {
     id: 'match_015', difficulty: 1, category: 'matching',
@@ -162,7 +176,8 @@ const MATCHING_QUESTIONS = [
       { left: 'eleven', right: 'jedenaście' },
       { left: 'twelve', right: 'dwanaście' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'nine = dziewięć, ten = dziesięć, eleven = jedenaście, twelve = dwanaście. Zegar ma dwanaście godzin! (A clock has twelve hours!)'
   },
   {
     id: 'match_016', difficulty: 1, category: 'matching',
@@ -172,7 +187,8 @@ const MATCHING_QUESTIONS = [
       { left: 'fifteen', right: 'piętnaście' },
       { left: 'sixteen', right: 'szesnaście' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'thirteen = trzynaście, fourteen = czternaście, fifteen = piętnaście, sixteen = szesnaście. Mam piętnaście lat! (I am fifteen years old!)'
   },
   {
     id: 'match_017', difficulty: 1, category: 'matching',
@@ -182,7 +198,8 @@ const MATCHING_QUESTIONS = [
       { left: 'nineteen', right: 'dziewiętnaście' },
       { left: 'twenty', right: 'dwadzieścia' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'seventeen = siedemnaście, eighteen = osiemnaście, nineteen = dziewiętnaście, twenty = dwadzieścia. W klasie jest dwadzieścia dzieci! (There are twenty children in class!)'
   },
 
   // --- Family Members (sets 018-021) ---
@@ -194,7 +211,8 @@ const MATCHING_QUESTIONS = [
       { left: 'sister', right: 'siostra' },
       { left: 'brother', right: 'brat' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'mom = mama, dad = tata, sister = siostra, brother = brat. Mama i tata mnie kochają! (Mom and dad love me!)'
   },
   {
     id: 'match_019', difficulty: 1, category: 'matching',
@@ -204,7 +222,8 @@ const MATCHING_QUESTIONS = [
       { left: 'aunt', right: 'ciocia' },
       { left: 'uncle', right: 'wujek' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'grandmother = babcia, grandfather = dziadek, aunt = ciocia, uncle = wujek. Babcia piecze ciasto! (Grandma bakes a cake!)'
   },
   {
     id: 'match_020', difficulty: 1, category: 'matching',
@@ -214,7 +233,8 @@ const MATCHING_QUESTIONS = [
       { left: 'baby', right: 'niemowlę' },
       { left: 'child', right: 'dziecko' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'son = syn, daughter = córka, baby = niemowlę, child = dziecko. Dziecko się śmieje! (The child is laughing!)'
   },
   {
     id: 'match_021', difficulty: 1, category: 'matching',
@@ -224,7 +244,8 @@ const MATCHING_QUESTIONS = [
       { left: 'parents', right: 'rodzice' },
       { left: 'friend', right: 'przyjaciel' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'cousin = kuzyn, family = rodzina, parents = rodzice, friend = przyjaciel. Rodzina je razem obiad! (The family eats dinner together!)'
   },
 
   // --- Body Parts (sets 022-026) ---
@@ -236,7 +257,8 @@ const MATCHING_QUESTIONS = [
       { left: 'leg', right: 'noga' },
       { left: 'foot', right: 'stopa' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'head = głowa, hand = ręka, leg = noga, foot = stopa. Kiwam głową! (I nod my head!)'
   },
   {
     id: 'match_023', difficulty: 1, category: 'matching',
@@ -246,7 +268,8 @@ const MATCHING_QUESTIONS = [
       { left: 'nose', right: 'nos' },
       { left: 'mouth', right: 'usta' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'eye = oko, ear = ucho, nose = nos, mouth = usta. Mam niebieskie oczy! (I have blue eyes!)'
   },
   {
     id: 'match_024', difficulty: 1, category: 'matching',
@@ -256,7 +279,8 @@ const MATCHING_QUESTIONS = [
       { left: 'finger', right: 'palec' },
       { left: 'knee', right: 'kolano' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hair = włosy, tooth = ząb, finger = palec, knee = kolano. Myję zęby rano! (I brush my teeth in the morning!)'
   },
   {
     id: 'match_025', difficulty: 1, category: 'matching',
@@ -266,7 +290,8 @@ const MATCHING_QUESTIONS = [
       { left: 'back', right: 'plecy' },
       { left: 'neck', right: 'szyja' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'heart = serce, stomach = brzuch, back = plecy, neck = szyja. Serce bije szybko! (The heart beats fast!)'
   },
   {
     id: 'match_026', difficulty: 1, category: 'matching',
@@ -276,7 +301,8 @@ const MATCHING_QUESTIONS = [
       { left: 'face', right: 'twarz' },
       { left: 'tongue', right: 'język' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'arm = ramię, shoulder = bark, face = twarz, tongue = język. Mam uśmiech na twarzy! (I have a smile on my face!)'
   },
 
   // --- Basic Food (sets 027-032) ---
@@ -288,7 +314,8 @@ const MATCHING_QUESTIONS = [
       { left: 'water', right: 'woda' },
       { left: 'juice', right: 'sok' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'bread = chleb, milk = mleko, water = woda, juice = sok. Piję mleko na śniadanie! (I drink milk for breakfast!)'
   },
   {
     id: 'match_028', difficulty: 1, category: 'matching',
@@ -298,7 +325,8 @@ const MATCHING_QUESTIONS = [
       { left: 'egg', right: 'jajko' },
       { left: 'rice', right: 'ryż' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'cheese = ser, butter = masło, egg = jajko, rice = ryż. Jem jajko na śniadanie! (I eat an egg for breakfast!)'
   },
   {
     id: 'match_029', difficulty: 1, category: 'matching',
@@ -308,7 +336,8 @@ const MATCHING_QUESTIONS = [
       { left: 'cake', right: 'ciasto' },
       { left: 'ice cream', right: 'lody' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'soup = zupa, meat = mięso, cake = ciasto, ice cream = lody. Lubię jeść lody! (I like eating ice cream!)'
   },
   {
     id: 'match_030', difficulty: 1, category: 'matching',
@@ -318,7 +347,8 @@ const MATCHING_QUESTIONS = [
       { left: 'tea', right: 'herbata' },
       { left: 'chocolate', right: 'czekolada' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'sugar = cukier, salt = sól, tea = herbata, chocolate = czekolada. Piję herbatę z cukrem! (I drink tea with sugar!)'
   },
   {
     id: 'match_031', difficulty: 1, category: 'matching',
@@ -328,7 +358,8 @@ const MATCHING_QUESTIONS = [
       { left: 'pasta', right: 'makaron' },
       { left: 'potato', right: 'ziemniak' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'sandwich = kanapka, pizza = pizza, pasta = makaron, potato = ziemniak. Jem kanapkę na obiad! (I eat a sandwich for lunch!)'
   },
   {
     id: 'match_032', difficulty: 1, category: 'matching',
@@ -338,7 +369,8 @@ const MATCHING_QUESTIONS = [
       { left: 'cookie', right: 'ciastko' },
       { left: 'candy', right: 'cukierek' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'honey = miód, jam = dżem, cookie = ciastko, candy = cukierek. Miód jest słodki! (Honey is sweet!)'
   },
 
   // --- Clothing (sets 033-036) ---
@@ -350,7 +382,8 @@ const MATCHING_QUESTIONS = [
       { left: 'dress', right: 'sukienka' },
       { left: 'shoes', right: 'buty' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'shirt = koszulka, pants = spodnie, dress = sukienka, shoes = buty. Zakładam buty! (I put on my shoes!)'
   },
   {
     id: 'match_034', difficulty: 1, category: 'matching',
@@ -360,7 +393,8 @@ const MATCHING_QUESTIONS = [
       { left: 'socks', right: 'skarpetki' },
       { left: 'scarf', right: 'szalik' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hat = czapka, jacket = kurtka, socks = skarpetki, scarf = szalik. Zimą noszę czapkę! (In winter I wear a hat!)'
   },
   {
     id: 'match_035', difficulty: 1, category: 'matching',
@@ -370,7 +404,8 @@ const MATCHING_QUESTIONS = [
       { left: 'skirt', right: 'spódnica' },
       { left: 'boots', right: 'kozaki' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'gloves = rękawiczki, sweater = sweter, skirt = spódnica, boots = kozaki. Zakładam rękawiczki! (I put on my gloves!)'
   },
   {
     id: 'match_036', difficulty: 1, category: 'matching',
@@ -380,7 +415,8 @@ const MATCHING_QUESTIONS = [
       { left: 'pajamas', right: 'piżama' },
       { left: 'umbrella', right: 'parasol' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'coat = płaszcz, belt = pasek, pajamas = piżama, umbrella = parasol. Biorę parasol, bo pada! (I take an umbrella because it is raining!)'
   },
 
   // --- Common Objects (sets 037-041) ---
@@ -392,7 +428,8 @@ const MATCHING_QUESTIONS = [
       { left: 'door', right: 'drzwi' },
       { left: 'window', right: 'okno' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'table = stół, chair = krzesło, door = drzwi, window = okno. Otwieram okno! (I open the window!)'
   },
   {
     id: 'match_038', difficulty: 1, category: 'matching',
@@ -402,7 +439,8 @@ const MATCHING_QUESTIONS = [
       { left: 'clock', right: 'zegar' },
       { left: 'mirror', right: 'lustro' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'bed = łóżko, lamp = lampa, clock = zegar, mirror = lustro. Idę spać do łóżka! (I go to sleep in bed!)'
   },
   {
     id: 'match_039', difficulty: 1, category: 'matching',
@@ -412,7 +450,8 @@ const MATCHING_QUESTIONS = [
       { left: 'bag', right: 'torba' },
       { left: 'box', right: 'pudełko' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'key = klucz, phone = telefon, bag = torba, box = pudełko. Gdzie jest mój klucz? (Where is my key?)'
   },
   {
     id: 'match_040', difficulty: 1, category: 'matching',
@@ -422,7 +461,8 @@ const MATCHING_QUESTIONS = [
       { left: 'flower', right: 'kwiat' },
       { left: 'toy', right: 'zabawka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'book = książka, picture = obrazek, flower = kwiat, toy = zabawka. Czytam książkę! (I read a book!)'
   },
   {
     id: 'match_041', difficulty: 1, category: 'matching',
@@ -432,7 +472,8 @@ const MATCHING_QUESTIONS = [
       { left: 'spoon', right: 'łyżka' },
       { left: 'fork', right: 'widelec' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'cup = kubek, plate = talerz, spoon = łyżka, fork = widelec. Jem zupę łyżką! (I eat soup with a spoon!)'
   },
 
   // --- Basic Verbs (sets 042-048) ---
@@ -444,7 +485,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to sleep', right: 'spać' },
       { left: 'to run', right: 'biegać' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to eat = jeść, to drink = pić, to sleep = spać, to run = biegać. Lubię biegać w parku! (I like to run in the park!)'
   },
   {
     id: 'match_043', difficulty: 1, category: 'matching',
@@ -454,7 +496,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to draw', right: 'rysować' },
       { left: 'to sing', right: 'śpiewać' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to read = czytać, to write = pisać, to draw = rysować, to sing = śpiewać. Lubię rysować kwiaty! (I like to draw flowers!)'
   },
   {
     id: 'match_044', difficulty: 1, category: 'matching',
@@ -464,7 +507,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to swim', right: 'pływać' },
       { left: 'to dance', right: 'tańczyć' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to play = grać, to jump = skakać, to swim = pływać, to dance = tańczyć. Dzieci lubią skakać! (Children like to jump!)'
   },
   {
     id: 'match_045', difficulty: 1, category: 'matching',
@@ -474,7 +518,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to hear', right: 'słyszeć' },
       { left: 'to speak', right: 'mówić' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to go = iść, to see = widzieć, to hear = słyszeć, to speak = mówić. Idę do szkoły! (I go to school!)'
   },
   {
     id: 'match_046', difficulty: 1, category: 'matching',
@@ -484,7 +529,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to take', right: 'brać' },
       { left: 'to want', right: 'chcieć' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to have = mieć, to give = dawać, to take = brać, to want = chcieć. Chcę lody! (I want ice cream!)'
   },
   {
     id: 'match_047', difficulty: 1, category: 'matching',
@@ -494,7 +540,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to know', right: 'wiedzieć' },
       { left: 'to think', right: 'myśleć' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to like = lubić, to love = kochać, to know = wiedzieć, to think = myśleć. Kocham moją mamę! (I love my mom!)'
   },
   {
     id: 'match_048', difficulty: 1, category: 'matching',
@@ -504,7 +551,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to sit', right: 'siedzieć' },
       { left: 'to stand', right: 'stać' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to open = otwierać, to close = zamykać, to sit = siedzieć, to stand = stać. Zamykam drzwi! (I close the door!)'
   },
 
   // --- Days of the Week (sets 049-050) ---
@@ -516,7 +564,8 @@ const MATCHING_QUESTIONS = [
       { left: 'Wednesday', right: 'środa' },
       { left: 'Thursday', right: 'czwartek' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'Monday = poniedziałek, Tuesday = wtorek, Wednesday = środa, Thursday = czwartek. W poniedziałek idę do szkoły! (On Monday I go to school!)'
   },
   {
     id: 'match_050', difficulty: 1, category: 'matching',
@@ -526,7 +575,8 @@ const MATCHING_QUESTIONS = [
       { left: 'Sunday', right: 'niedziela' },
       { left: 'week', right: 'tydzień' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'Friday = piątek, Saturday = sobota, Sunday = niedziela, week = tydzień. W sobotę nie ma szkoły! (On Saturday there is no school!)'
   },
 
   // --- Basic Adjectives (sets 051-056) ---
@@ -538,7 +588,8 @@ const MATCHING_QUESTIONS = [
       { left: 'tall', right: 'wysoki' },
       { left: 'short', right: 'niski' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'big = duży, small = mały, tall = wysoki, short = niski. Słoń jest duży, a mysz jest mała! (The elephant is big, and the mouse is small!)'
   },
   {
     id: 'match_052', difficulty: 1, category: 'matching',
@@ -548,7 +599,8 @@ const MATCHING_QUESTIONS = [
       { left: 'warm', right: 'ciepły' },
       { left: 'cool', right: 'chłodny' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hot = gorący, cold = zimny, warm = ciepły, cool = chłodny. Herbata jest gorąca! (The tea is hot!)'
   },
   {
     id: 'match_053', difficulty: 1, category: 'matching',
@@ -558,7 +610,8 @@ const MATCHING_QUESTIONS = [
       { left: 'new', right: 'nowy' },
       { left: 'old', right: 'stary' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'good = dobry, bad = zły, new = nowy, old = stary. Mam nowy plecak! (I have a new backpack!)'
   },
   {
     id: 'match_054', difficulty: 1, category: 'matching',
@@ -568,7 +621,8 @@ const MATCHING_QUESTIONS = [
       { left: 'fast', right: 'szybki' },
       { left: 'slow', right: 'wolny' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'happy = szczęśliwy, sad = smutny, fast = szybki, slow = wolny. Jestem szczęśliwy! (I am happy!)'
   },
   {
     id: 'match_055', difficulty: 1, category: 'matching',
@@ -578,7 +632,8 @@ const MATCHING_QUESTIONS = [
       { left: 'ugly', right: 'brzydki' },
       { left: 'strong', right: 'silny' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'young = młody, beautiful = piękny, ugly = brzydki, strong = silny. Kwiat jest piękny! (The flower is beautiful!)'
   },
   {
     id: 'match_056', difficulty: 1, category: 'matching',
@@ -588,7 +643,8 @@ const MATCHING_QUESTIONS = [
       { left: 'wet', right: 'mokry' },
       { left: 'dry', right: 'suchy' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'clean = czysty, dirty = brudny, wet = mokry, dry = suchy. Mój pokój jest czysty! (My room is clean!)'
   },
 
   // --- Fruits (sets 057-060) ---
@@ -600,7 +656,8 @@ const MATCHING_QUESTIONS = [
       { left: 'orange', right: 'pomarańcza' },
       { left: 'strawberry', right: 'truskawka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'apple = jabłko, banana = banan, orange = pomarańcza, strawberry = truskawka. Jabłko jest czerwone! (The apple is red!)'
   },
   {
     id: 'match_058', difficulty: 1, category: 'matching',
@@ -610,7 +667,8 @@ const MATCHING_QUESTIONS = [
       { left: 'pear', right: 'gruszka' },
       { left: 'plum', right: 'śliwka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'cherry = wiśnia, grape = winogrono, pear = gruszka, plum = śliwka. Gruszka rośnie na drzewie! (The pear grows on a tree!)'
   },
   {
     id: 'match_059', difficulty: 1, category: 'matching',
@@ -620,7 +678,8 @@ const MATCHING_QUESTIONS = [
       { left: 'peach', right: 'brzoskwinia' },
       { left: 'raspberry', right: 'malina' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'watermelon = arbuz, lemon = cytryna, peach = brzoskwinia, raspberry = malina. Arbuz jest słodki! (The watermelon is sweet!)'
   },
   {
     id: 'match_060', difficulty: 1, category: 'matching',
@@ -630,7 +689,8 @@ const MATCHING_QUESTIONS = [
       { left: 'melon', right: 'melon' },
       { left: 'kiwi', right: 'kiwi' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'blueberry = jagoda, pineapple = ananas, melon = melon, kiwi = kiwi. Lubię jeść jagody! (I like eating blueberries!)'
   },
 
   // --- Vegetables (sets 061-064) ---
@@ -642,7 +702,8 @@ const MATCHING_QUESTIONS = [
       { left: 'cucumber', right: 'ogórek' },
       { left: 'onion', right: 'cebula' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'carrot = marchewka, tomato = pomidor, cucumber = ogórek, onion = cebula. Królik je marchewkę! (The rabbit eats a carrot!)'
   },
   {
     id: 'match_062', difficulty: 1, category: 'matching',
@@ -652,7 +713,8 @@ const MATCHING_QUESTIONS = [
       { left: 'peas', right: 'groszek' },
       { left: 'corn', right: 'kukurydza' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'pepper = papryka, cabbage = kapusta, peas = groszek, corn = kukurydza. Groszek jest zielony! (Peas are green!)'
   },
   {
     id: 'match_063', difficulty: 1, category: 'matching',
@@ -662,7 +724,8 @@ const MATCHING_QUESTIONS = [
       { left: 'bean', right: 'fasola' },
       { left: 'mushroom', right: 'grzyb' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'lettuce = sałata, garlic = czosnek, bean = fasola, mushroom = grzyb. Grzyb rośnie w lesie! (The mushroom grows in the forest!)'
   },
   {
     id: 'match_064', difficulty: 1, category: 'matching',
@@ -672,7 +735,8 @@ const MATCHING_QUESTIONS = [
       { left: 'pumpkin', right: 'dynia' },
       { left: 'celery', right: 'seler' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'beetroot = burak, radish = rzodkiewka, pumpkin = dynia, celery = seler. Dynia jest pomarańczowa! (The pumpkin is orange!)'
   },
 
   // --- Rooms in a House (sets 065-067) ---
@@ -684,7 +748,8 @@ const MATCHING_QUESTIONS = [
       { left: 'bathroom', right: 'łazienka' },
       { left: 'living room', right: 'salon' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'kitchen = kuchnia, bedroom = sypialnia, bathroom = łazienka, living room = salon. Mama gotuje w kuchni! (Mom cooks in the kitchen!)'
   },
   {
     id: 'match_066', difficulty: 1, category: 'matching',
@@ -694,7 +759,8 @@ const MATCHING_QUESTIONS = [
       { left: 'attic', right: 'strych' },
       { left: 'basement', right: 'piwnica' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'garden = ogród, garage = garaż, attic = strych, basement = piwnica. W ogrodzie rosną kwiaty! (Flowers grow in the garden!)'
   },
   {
     id: 'match_067', difficulty: 1, category: 'matching',
@@ -704,7 +770,8 @@ const MATCHING_QUESTIONS = [
       { left: 'roof', right: 'dach' },
       { left: 'stairs', right: 'schody' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hallway = korytarz, balcony = balkon, roof = dach, stairs = schody. Kot siedzi na dachu! (The cat sits on the roof!)'
   },
 
   // --- School Items (sets 068-072) ---
@@ -716,7 +783,8 @@ const MATCHING_QUESTIONS = [
       { left: 'eraser', right: 'gumka' },
       { left: 'ruler', right: 'linijka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'pencil = ołówek, pen = długopis, eraser = gumka, ruler = linijka. Rysuję ołówkiem! (I draw with a pencil!)'
   },
   {
     id: 'match_069', difficulty: 1, category: 'matching',
@@ -726,7 +794,8 @@ const MATCHING_QUESTIONS = [
       { left: 'scissors', right: 'nożyczki' },
       { left: 'glue', right: 'klej' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'notebook = zeszyt, backpack = plecak, scissors = nożyczki, glue = klej. Mój plecak jest niebieski! (My backpack is blue!)'
   },
   {
     id: 'match_070', difficulty: 1, category: 'matching',
@@ -736,7 +805,8 @@ const MATCHING_QUESTIONS = [
       { left: 'school', right: 'szkoła' },
       { left: 'classroom', right: 'klasa' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'teacher = nauczyciel, student = uczeń, school = szkoła, classroom = klasa. Uczeń idzie do szkoły! (The student goes to school!)'
   },
   {
     id: 'match_071', difficulty: 1, category: 'matching',
@@ -746,7 +816,8 @@ const MATCHING_QUESTIONS = [
       { left: 'chalk', right: 'kreda' },
       { left: 'map', right: 'mapa' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'desk = biurko, blackboard = tablica, chalk = kreda, map = mapa. Nauczyciel pisze kredą na tablicy! (The teacher writes with chalk on the blackboard!)'
   },
   {
     id: 'match_072', difficulty: 1, category: 'matching',
@@ -756,7 +827,8 @@ const MATCHING_QUESTIONS = [
       { left: 'test', right: 'sprawdzian' },
       { left: 'grade', right: 'ocena' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'lesson = lekcja, homework = zadanie domowe, test = sprawdzian, grade = ocena. Odrabiam zadanie domowe! (I do my homework!)'
   },
 
   // --- Weather Words (sets 073-076) ---
@@ -768,7 +840,8 @@ const MATCHING_QUESTIONS = [
       { left: 'snow', right: 'śnieg' },
       { left: 'wind', right: 'wiatr' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'sun = słońce, rain = deszcz, snow = śnieg, wind = wiatr. Słońce świeci jasno! (The sun shines brightly!)'
   },
   {
     id: 'match_074', difficulty: 1, category: 'matching',
@@ -778,7 +851,8 @@ const MATCHING_QUESTIONS = [
       { left: 'rainbow', right: 'tęcza' },
       { left: 'fog', right: 'mgła' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'cloud = chmura, storm = burza, rainbow = tęcza, fog = mgła. Tęcza jest piękna! (The rainbow is beautiful!)'
   },
   {
     id: 'match_075', difficulty: 1, category: 'matching',
@@ -788,7 +862,8 @@ const MATCHING_QUESTIONS = [
       { left: 'moon', right: 'księżyc' },
       { left: 'lightning', right: 'błyskawica' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'sky = niebo, star = gwiazda, moon = księżyc, lightning = błyskawica. Gwiazdy świecą na niebie! (Stars shine in the sky!)'
   },
   {
     id: 'match_076', difficulty: 1, category: 'matching',
@@ -798,7 +873,8 @@ const MATCHING_QUESTIONS = [
       { left: 'autumn', right: 'jesień' },
       { left: 'winter', right: 'zima' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'spring = wiosna, summer = lato, autumn = jesień, winter = zima. Latem jest ciepło! (It is warm in summer!)'
   },
 
   // --- Greetings / Basic Phrases (sets 077-080) ---
@@ -810,7 +886,8 @@ const MATCHING_QUESTIONS = [
       { left: 'please', right: 'proszę' },
       { left: 'thank you', right: 'dziękuję' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hello = cześć, goodbye = do widzenia, please = proszę, thank you = dziękuję. Cześć, jak się masz? (Hello, how are you?)'
   },
   {
     id: 'match_078', difficulty: 1, category: 'matching',
@@ -820,7 +897,8 @@ const MATCHING_QUESTIONS = [
       { left: 'sorry', right: 'przepraszam' },
       { left: 'good morning', right: 'dzień dobry' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'yes = tak, no = nie, sorry = przepraszam, good morning = dzień dobry. Dzień dobry, pani! (Good morning, madam!)'
   },
   {
     id: 'match_079', difficulty: 1, category: 'matching',
@@ -830,7 +908,8 @@ const MATCHING_QUESTIONS = [
       { left: 'help', right: 'pomoc' },
       { left: 'congratulations', right: 'gratulacje' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'good night = dobranoc, welcome = witaj, help = pomoc, congratulations = gratulacje. Dobranoc, śpij dobrze! (Good night, sleep well!)'
   },
   {
     id: 'match_080', difficulty: 1, category: 'matching',
@@ -840,7 +919,8 @@ const MATCHING_QUESTIONS = [
       { left: 'see you', right: 'do zobaczenia' },
       { left: 'good luck', right: 'powodzenia' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'how are you = jak się masz, I am fine = dobrze, see you = do zobaczenia, good luck = powodzenia. Powodzenia na sprawdzianie! (Good luck on the test!)'
   },
 
   // --- More Common Objects and Misc Easy (sets 081-088) ---
@@ -852,7 +932,8 @@ const MATCHING_QUESTIONS = [
       { left: 'car', right: 'samochód' },
       { left: 'street', right: 'ulica' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'house = dom, tree = drzewo, car = samochód, street = ulica. Mój dom jest na tej ulicy! (My house is on this street!)'
   },
   {
     id: 'match_082', difficulty: 1, category: 'matching',
@@ -862,7 +943,8 @@ const MATCHING_QUESTIONS = [
       { left: 'sea', right: 'morze' },
       { left: 'lake', right: 'jezioro' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'river = rzeka, mountain = góra, sea = morze, lake = jezioro. Rzeka płynie do morza! (The river flows to the sea!)'
   },
   {
     id: 'match_083', difficulty: 1, category: 'matching',
@@ -872,7 +954,8 @@ const MATCHING_QUESTIONS = [
       { left: 'pot', right: 'garnek' },
       { left: 'bowl', right: 'miska' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'knife = nóż, glass = szklanka, pot = garnek, bowl = miska. Piję mleko ze szklanki! (I drink milk from a glass!)'
   },
   {
     id: 'match_084', difficulty: 1, category: 'matching',
@@ -882,7 +965,8 @@ const MATCHING_QUESTIONS = [
       { left: 'knight', right: 'rycerz' },
       { left: 'dragon', right: 'smok' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'king = król, queen = królowa, knight = rycerz, dragon = smok. Rycerz walczy ze smokiem! (The knight fights the dragon!)'
   },
   {
     id: 'match_085', difficulty: 1, category: 'matching',
@@ -892,7 +976,8 @@ const MATCHING_QUESTIONS = [
       { left: 'castle', right: 'zamek' },
       { left: 'treasure', right: 'skarb' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'sword = miecz, shield = tarcza, castle = zamek, treasure = skarb. Skarb jest ukryty w zamku! (The treasure is hidden in the castle!)'
   },
   {
     id: 'match_086', difficulty: 1, category: 'matching',
@@ -902,7 +987,8 @@ const MATCHING_QUESTIONS = [
       { left: 'evening', right: 'wieczór' },
       { left: 'night', right: 'noc' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'morning = rano, afternoon = popołudnie, evening = wieczór, night = noc. Rano jem śniadanie! (In the morning I eat breakfast!)'
   },
   {
     id: 'match_087', difficulty: 1, category: 'matching',
@@ -912,7 +998,8 @@ const MATCHING_QUESTIONS = [
       { left: 'yesterday', right: 'wczoraj' },
       { left: 'always', right: 'zawsze' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'today = dzisiaj, tomorrow = jutro, yesterday = wczoraj, always = zawsze. Jutro idę do parku! (Tomorrow I go to the park!)'
   },
   {
     id: 'match_088', difficulty: 1, category: 'matching',
@@ -922,7 +1009,8 @@ const MATCHING_QUESTIONS = [
       { left: 'left', right: 'lewo' },
       { left: 'right', right: 'prawo' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'here = tutaj, there = tam, left = lewo, right = prawo. Skręć w prawo! (Turn right!)'
   },
 
   // ============================================================
@@ -938,7 +1026,8 @@ const MATCHING_QUESTIONS = [
       { left: 'firefighter', right: 'strażak' },
       { left: 'police officer', right: 'policjant' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'doctor = lekarz, nurse = pielęgniarka, firefighter = strażak, police officer = policjant. Strażak gasi pożar! (The firefighter puts out the fire!)'
   },
   {
     id: 'match_090', difficulty: 2, category: 'matching',
@@ -948,7 +1037,8 @@ const MATCHING_QUESTIONS = [
       { left: 'farmer', right: 'rolnik' },
       { left: 'fisherman', right: 'rybak' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'baker = piekarz, cook = kucharz, farmer = rolnik, fisherman = rybak. Piekarz piecze chleb! (The baker bakes bread!)'
   },
   {
     id: 'match_091', difficulty: 2, category: 'matching',
@@ -958,7 +1048,8 @@ const MATCHING_QUESTIONS = [
       { left: 'mechanic', right: 'mechanik' },
       { left: 'carpenter', right: 'stolarz' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'pilot = pilot, sailor = marynarz, mechanic = mechanik, carpenter = stolarz. Marynarz pływa po morzu! (The sailor sails the sea!)'
   },
   {
     id: 'match_092', difficulty: 2, category: 'matching',
@@ -968,7 +1059,8 @@ const MATCHING_QUESTIONS = [
       { left: 'bus driver', right: 'kierowca' },
       { left: 'postman', right: 'listonosz' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'firefighter = strażak, vet = weterynarz, bus driver = kierowca, postman = listonosz. Listonosz nosi listy! (The postman carries letters!)'
   },
   {
     id: 'match_093', difficulty: 2, category: 'matching',
@@ -978,7 +1070,8 @@ const MATCHING_QUESTIONS = [
       { left: 'singer', right: 'piosenkarz' },
       { left: 'writer', right: 'pisarz' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'painter = malarz, actor = aktor, singer = piosenkarz, writer = pisarz. Malarz maluje obrazy! (The painter paints pictures!)'
   },
   {
     id: 'match_094', difficulty: 2, category: 'matching',
@@ -988,7 +1081,8 @@ const MATCHING_QUESTIONS = [
       { left: 'postman', right: 'listonosz' },
       { left: 'soldier', right: 'żołnierz' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'waiter = kelner, hairdresser = fryzjer, postman = listonosz, soldier = żołnierz. Kelner przynosi jedzenie! (The waiter brings food!)'
   },
 
   // --- Emotions (sets 095-098) ---
@@ -1000,7 +1094,8 @@ const MATCHING_QUESTIONS = [
       { left: 'surprised', right: 'zaskoczony' },
       { left: 'tired', right: 'zmęczony' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'angry = zły, scared = przestraszony, surprised = zaskoczony, tired = zmęczony. Jestem zmęczony po zabawie! (I am tired after playing!)'
   },
   {
     id: 'match_096', difficulty: 2, category: 'matching',
@@ -1010,7 +1105,8 @@ const MATCHING_QUESTIONS = [
       { left: 'proud', right: 'dumny' },
       { left: 'shy', right: 'nieśmiały' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'excited = podekscytowany, bored = znudzony, proud = dumny, shy = nieśmiały. Mama jest dumna ze mnie! (Mom is proud of me!)'
   },
   {
     id: 'match_097', difficulty: 2, category: 'matching',
@@ -1020,7 +1116,8 @@ const MATCHING_QUESTIONS = [
       { left: 'grateful', right: 'wdzięczny' },
       { left: 'worried', right: 'zaniepokojony' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'jealous = zazdrosny, lonely = samotny, grateful = wdzięczny, worried = zaniepokojony. Jestem wdzięczny za pomoc! (I am grateful for the help!)'
   },
   {
     id: 'match_098', difficulty: 2, category: 'matching',
@@ -1030,7 +1127,8 @@ const MATCHING_QUESTIONS = [
       { left: 'curious', right: 'ciekawy' },
       { left: 'confused', right: 'zdezorientowany' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'brave = odważny, calm = spokojny, curious = ciekawy, confused = zdezorientowany. Rycerz jest bardzo odważny! (The knight is very brave!)'
   },
 
   // --- Transportation (sets 099-103) ---
@@ -1042,7 +1140,8 @@ const MATCHING_QUESTIONS = [
       { left: 'airplane', right: 'samolot' },
       { left: 'bicycle', right: 'rower' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'bus = autobus, train = pociąg, airplane = samolot, bicycle = rower. Jadę do szkoły rowerem! (I ride to school by bicycle!)'
   },
   {
     id: 'match_100', difficulty: 2, category: 'matching',
@@ -1052,7 +1151,8 @@ const MATCHING_QUESTIONS = [
       { left: 'helicopter', right: 'helikopter' },
       { left: 'motorcycle', right: 'motocykl' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'ship = statek, boat = łódź, helicopter = helikopter, motorcycle = motocykl. Statek płynie po morzu! (The ship sails on the sea!)'
   },
   {
     id: 'match_101', difficulty: 2, category: 'matching',
@@ -1062,7 +1162,8 @@ const MATCHING_QUESTIONS = [
       { left: 'truck', right: 'ciężarówka' },
       { left: 'ambulance', right: 'karetka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'tram = tramwaj, taxi = taksówka, truck = ciężarówka, ambulance = karetka. Karetka jedzie szybko! (The ambulance drives fast!)'
   },
   {
     id: 'match_102', difficulty: 2, category: 'matching',
@@ -1072,7 +1173,8 @@ const MATCHING_QUESTIONS = [
       { left: 'tunnel', right: 'tunel' },
       { left: 'crossroads', right: 'skrzyżowanie' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'road = droga, bridge = most, tunnel = tunel, crossroads = skrzyżowanie. Most jest nad rzeką! (The bridge is over the river!)'
   },
   {
     id: 'match_103', difficulty: 2, category: 'matching',
@@ -1082,7 +1184,8 @@ const MATCHING_QUESTIONS = [
       { left: 'airport', right: 'lotnisko' },
       { left: 'harbor', right: 'port' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'ticket = bilet, station = stacja, airport = lotnisko, harbor = port. Kupuję bilet na pociąg! (I buy a train ticket!)'
   },
 
   // --- Nature / Landscape (sets 104-108) ---
@@ -1094,7 +1197,8 @@ const MATCHING_QUESTIONS = [
       { left: 'meadow', right: 'łąka' },
       { left: 'valley', right: 'dolina' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'forest = las, field = pole, meadow = łąka, valley = dolina. W lesie mieszka niedźwiedź! (A bear lives in the forest!)'
   },
   {
     id: 'match_105', difficulty: 2, category: 'matching',
@@ -1104,7 +1208,8 @@ const MATCHING_QUESTIONS = [
       { left: 'cave', right: 'jaskinia' },
       { left: 'cliff', right: 'klif' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'island = wyspa, waterfall = wodospad, cave = jaskinia, cliff = klif. W jaskini jest ciemno! (It is dark in the cave!)'
   },
   {
     id: 'match_106', difficulty: 2, category: 'matching',
@@ -1114,7 +1219,8 @@ const MATCHING_QUESTIONS = [
       { left: 'root', right: 'korzeń' },
       { left: 'seeds', right: 'nasiona' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'leaf = liść, branch = gałąź, root = korzeń, seeds = nasiona. Liść spada z drzewa! (The leaf falls from the tree!)'
   },
   {
     id: 'match_107', difficulty: 2, category: 'matching',
@@ -1124,7 +1230,8 @@ const MATCHING_QUESTIONS = [
       { left: 'mud', right: 'błoto' },
       { left: 'dust', right: 'kurz' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'stone = kamień, sand = piasek, mud = błoto, dust = kurz. Buduję zamek z piasku! (I build a castle from sand!)'
   },
   {
     id: 'match_108', difficulty: 2, category: 'matching',
@@ -1134,7 +1241,8 @@ const MATCHING_QUESTIONS = [
       { left: 'moss', right: 'mech' },
       { left: 'pond', right: 'staw' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'bush = krzak, grass = trawa, moss = mech, pond = staw. Żaba siedzi w stawie! (The frog sits in the pond!)'
   },
 
   // --- Household Items (sets 109-112) ---
@@ -1146,7 +1254,8 @@ const MATCHING_QUESTIONS = [
       { left: 'washing machine', right: 'pralka' },
       { left: 'vacuum cleaner', right: 'odkurzacz' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'fridge = lodówka, oven = piekarnik, washing machine = pralka, vacuum cleaner = odkurzacz. Mleko jest w lodówce! (The milk is in the fridge!)'
   },
   {
     id: 'match_110', difficulty: 2, category: 'matching',
@@ -1156,7 +1265,8 @@ const MATCHING_QUESTIONS = [
       { left: 'blanket', right: 'koc' },
       { left: 'curtain', right: 'zasłona' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'towel = ręcznik, pillow = poduszka, blanket = koc, curtain = zasłona. Śpię pod ciepłym kocem! (I sleep under a warm blanket!)'
   },
   {
     id: 'match_111', difficulty: 2, category: 'matching',
@@ -1166,7 +1276,8 @@ const MATCHING_QUESTIONS = [
       { left: 'drawer', right: 'szuflada' },
       { left: 'carpet', right: 'dywan' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'shelf = półka, wardrobe = szafa, drawer = szuflada, carpet = dywan. Książki stoją na półce! (Books stand on the shelf!)'
   },
   {
     id: 'match_112', difficulty: 2, category: 'matching',
@@ -1176,7 +1287,8 @@ const MATCHING_QUESTIONS = [
       { left: 'comb', right: 'grzebień' },
       { left: 'bathtub', right: 'wanna' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'soap = mydło, toothbrush = szczoteczka do zębów, comb = grzebień, bathtub = wanna. Myję ręce mydłem! (I wash my hands with soap!)'
   },
 
   // --- Sports (sets 113-116) ---
@@ -1188,7 +1300,8 @@ const MATCHING_QUESTIONS = [
       { left: 'volleyball', right: 'siatkówka' },
       { left: 'tennis', right: 'tenis' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'football = piłka nożna, basketball = koszykówka, volleyball = siatkówka, tennis = tenis. Gram w piłkę nożną! (I play football!)'
   },
   {
     id: 'match_114', difficulty: 2, category: 'matching',
@@ -1198,7 +1311,8 @@ const MATCHING_QUESTIONS = [
       { left: 'skating', right: 'łyżwiarstwo' },
       { left: 'running', right: 'bieganie' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'swimming = pływanie, skiing = narciarstwo, skating = łyżwiarstwo, running = bieganie. Pływanie jest fajne! (Swimming is fun!)'
   },
   {
     id: 'match_115', difficulty: 2, category: 'matching',
@@ -1208,7 +1322,8 @@ const MATCHING_QUESTIONS = [
       { left: 'team', right: 'drużyna' },
       { left: 'coach', right: 'trener' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'goal = bramka, ball = piłka, team = drużyna, coach = trener. Piłka wpadła do bramki! (The ball went into the goal!)'
   },
   {
     id: 'match_116', difficulty: 2, category: 'matching',
@@ -1218,7 +1333,8 @@ const MATCHING_QUESTIONS = [
       { left: 'champion', right: 'mistrz' },
       { left: 'stadium', right: 'stadion' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'race = wyścig, medal = medal, champion = mistrz, stadium = stadion. Mistrz dostał złoty medal! (The champion got a gold medal!)'
   },
 
   // --- Musical Instruments (sets 117-119) ---
@@ -1230,7 +1346,8 @@ const MATCHING_QUESTIONS = [
       { left: 'violin', right: 'skrzypce' },
       { left: 'drums', right: 'perkusja' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'piano = pianino, guitar = gitara, violin = skrzypce, drums = perkusja. Gram na gitarze! (I play the guitar!)'
   },
   {
     id: 'match_118', difficulty: 2, category: 'matching',
@@ -1240,7 +1357,8 @@ const MATCHING_QUESTIONS = [
       { left: 'harp', right: 'harfa' },
       { left: 'accordion', right: 'akordeon' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'flute = flet, trumpet = trąbka, harp = harfa, accordion = akordeon. Trąbka gra głośno! (The trumpet plays loudly!)'
   },
   {
     id: 'match_119', difficulty: 2, category: 'matching',
@@ -1250,7 +1368,8 @@ const MATCHING_QUESTIONS = [
       { left: 'concert', right: 'koncert' },
       { left: 'orchestra', right: 'orkiestra' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'song = piosenka, melody = melodia, concert = koncert, orchestra = orkiestra. Śpiewam piosenkę! (I sing a song!)'
   },
 
   // --- More Complex Adjectives (sets 120-123) ---
@@ -1262,7 +1381,8 @@ const MATCHING_QUESTIONS = [
       { left: 'wide', right: 'szeroki' },
       { left: 'narrow', right: 'wąski' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'heavy = ciężki, light = lekki, wide = szeroki, narrow = wąski. Ten kamień jest ciężki! (This stone is heavy!)'
   },
   {
     id: 'match_121', difficulty: 2, category: 'matching',
@@ -1272,7 +1392,8 @@ const MATCHING_QUESTIONS = [
       { left: 'thick', right: 'gruby' },
       { left: 'thin', right: 'cienki' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'deep = głęboki, shallow = płytki, thick = gruby, thin = cienki. Jezioro jest głębokie! (The lake is deep!)'
   },
   {
     id: 'match_122', difficulty: 2, category: 'matching',
@@ -1282,7 +1403,8 @@ const MATCHING_QUESTIONS = [
       { left: 'rough', right: 'szorstki' },
       { left: 'smooth', right: 'gładki' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'soft = miękki, hard = twardy, rough = szorstki, smooth = gładki. Poduszka jest miękka! (The pillow is soft!)'
   },
   {
     id: 'match_123', difficulty: 2, category: 'matching',
@@ -1292,7 +1414,8 @@ const MATCHING_QUESTIONS = [
       { left: 'loose', right: 'luźny' },
       { left: 'tight', right: 'ciasny' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'sharp = ostry, blunt = tępy, loose = luźny, tight = ciasny. Nóż jest ostry! (The knife is sharp!)'
   },
 
   // --- Kitchen Items (sets 124-126) ---
@@ -1304,7 +1427,8 @@ const MATCHING_QUESTIONS = [
       { left: 'cutting board', right: 'deska do krojenia' },
       { left: 'colander', right: 'durszlak' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'pan = patelnia, kettle = czajnik, cutting board = deska do krojenia, colander = durszlak. Woda gotuje się w czajniku! (Water boils in the kettle!)'
   },
   {
     id: 'match_125', difficulty: 2, category: 'matching',
@@ -1314,7 +1438,8 @@ const MATCHING_QUESTIONS = [
       { left: 'lid', right: 'pokrywka' },
       { left: 'saucer', right: 'spodek' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'tray = taca, jug = dzbanek, lid = pokrywka, saucer = spodek. Sok jest w dzbanku! (Juice is in the jug!)'
   },
   {
     id: 'match_126', difficulty: 2, category: 'matching',
@@ -1324,7 +1449,8 @@ const MATCHING_QUESTIONS = [
       { left: 'bowl', right: 'miska' },
       { left: 'tray', right: 'taca' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'plate = talerz, cup = filiżanka, bowl = miska, tray = taca. Zupa jest na talerzu! (The soup is on the plate!)'
   },
 
   // --- Tools (sets 127-129) ---
@@ -1336,7 +1462,8 @@ const MATCHING_QUESTIONS = [
       { left: 'saw', right: 'piła' },
       { left: 'nail', right: 'gwóźdź' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hammer = młotek, screwdriver = śrubokręt, saw = piła, nail = gwóźdź. Tata wbija gwóźdź młotkiem! (Dad hammers in a nail!)'
   },
   {
     id: 'match_128', difficulty: 2, category: 'matching',
@@ -1346,7 +1473,8 @@ const MATCHING_QUESTIONS = [
       { left: 'wheelbarrow', right: 'taczka' },
       { left: 'broom', right: 'miotła' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'watering can = konewka, rake = grabie, wheelbarrow = taczka, broom = miotła. Podlewam kwiaty konewką! (I water flowers with a watering can!)'
   },
   {
     id: 'match_129', difficulty: 2, category: 'matching',
@@ -1356,7 +1484,8 @@ const MATCHING_QUESTIONS = [
       { left: 'bucket', right: 'wiadro' },
       { left: 'shovel', right: 'łopata' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'ladder = drabina, rope = lina, bucket = wiadro, shovel = łopata. Kopię piasek łopatą! (I dig sand with a shovel!)'
   },
 
   // --- Buildings / Places (sets 130-134) ---
@@ -1368,7 +1497,8 @@ const MATCHING_QUESTIONS = [
       { left: 'library', right: 'biblioteka' },
       { left: 'museum', right: 'muzeum' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hospital = szpital, pharmacy = apteka, library = biblioteka, museum = muzeum. Czytam książki w bibliotece! (I read books in the library!)'
   },
   {
     id: 'match_131', difficulty: 2, category: 'matching',
@@ -1378,7 +1508,8 @@ const MATCHING_QUESTIONS = [
       { left: 'cinema', right: 'kino' },
       { left: 'restaurant', right: 'restauracja' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'church = kościół, theater = teatr, cinema = kino, restaurant = restauracja. Idziemy do kina! (We are going to the cinema!)'
   },
   {
     id: 'match_132', difficulty: 2, category: 'matching',
@@ -1388,7 +1519,8 @@ const MATCHING_QUESTIONS = [
       { left: 'bank', right: 'bank' },
       { left: 'post office', right: 'poczta' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'shop = sklep, market = rynek, bank = bank, post office = poczta. Kupuję chleb w sklepie! (I buy bread at the shop!)'
   },
   {
     id: 'match_133', difficulty: 2, category: 'matching',
@@ -1398,7 +1530,8 @@ const MATCHING_QUESTIONS = [
       { left: 'swimming pool', right: 'basen' },
       { left: 'zoo', right: 'zoo' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'park = park, playground = plac zabaw, swimming pool = basen, zoo = zoo. Bawię się na placu zabaw! (I play at the playground!)'
   },
   {
     id: 'match_134', difficulty: 2, category: 'matching',
@@ -1408,7 +1541,8 @@ const MATCHING_QUESTIONS = [
       { left: 'palace', right: 'pałac' },
       { left: 'monument', right: 'pomnik' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'factory = fabryka, tower = wieża, palace = pałac, monument = pomnik. Wieża jest bardzo wysoka! (The tower is very tall!)'
   },
 
   // --- Time-Related Words (sets 135-138) ---
@@ -1420,7 +1554,8 @@ const MATCHING_QUESTIONS = [
       { left: 'second', right: 'sekunda' },
       { left: 'month', right: 'miesiąc' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hour = godzina, minute = minuta, second = sekunda, month = miesiąc. Jedna godzina ma sześćdziesiąt minut! (One hour has sixty minutes!)'
   },
   {
     id: 'match_136', difficulty: 2, category: 'matching',
@@ -1430,7 +1565,8 @@ const MATCHING_QUESTIONS = [
       { left: 'March', right: 'marzec' },
       { left: 'April', right: 'kwiecień' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'January = styczeń, February = luty, March = marzec, April = kwiecień. W marcu przychodzi wiosna! (Spring comes in March!)'
   },
   {
     id: 'match_137', difficulty: 2, category: 'matching',
@@ -1440,7 +1576,8 @@ const MATCHING_QUESTIONS = [
       { left: 'July', right: 'lipiec' },
       { left: 'August', right: 'sierpień' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'May = maj, June = czerwiec, July = lipiec, August = sierpień. W lipcu jest gorąco! (It is hot in July!)'
   },
   {
     id: 'match_138', difficulty: 2, category: 'matching',
@@ -1450,7 +1587,8 @@ const MATCHING_QUESTIONS = [
       { left: 'November', right: 'listopad' },
       { left: 'December', right: 'grudzień' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'September = wrzesień, October = październik, November = listopad, December = grudzień. We wrześniu idę do szkoły! (In September I go to school!)'
   },
 
   // --- More Medium Words (sets 139-142) ---
@@ -1462,7 +1600,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to wash', right: 'myć' },
       { left: 'to iron', right: 'prasować' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to cook = gotować, to clean = sprzątać, to wash = myć, to iron = prasować. Mama gotuje obiad! (Mom cooks dinner!)'
   },
   {
     id: 'match_140', difficulty: 2, category: 'matching',
@@ -1472,7 +1611,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to carry', right: 'nosić' },
       { left: 'to push', right: 'pchać' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to build = budować, to repair = naprawiać, to carry = nosić, to push = pchać. Tata naprawia rower! (Dad repairs the bicycle!)'
   },
   {
     id: 'match_141', difficulty: 2, category: 'matching',
@@ -1482,7 +1622,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to remember', right: 'pamiętać' },
       { left: 'to forget', right: 'zapominać' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to choose = wybierać, to wait = czekać, to remember = pamiętać, to forget = zapominać. Pamiętaj o zadaniu domowym! (Remember about the homework!)'
   },
   {
     id: 'match_142', difficulty: 2, category: 'matching',
@@ -1492,7 +1633,8 @@ const MATCHING_QUESTIONS = [
       { left: 'to teach', right: 'nauczać' },
       { left: 'to understand', right: 'rozumieć' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'to explain = wyjaśniać, to learn = uczyć się, to teach = nauczać, to understand = rozumieć. Lubię się uczyć! (I like to learn!)'
   },
 
   // ============================================================
@@ -1508,7 +1650,8 @@ const MATCHING_QUESTIONS = [
       { left: 'adventure', right: 'przygoda' },
       { left: 'secret', right: 'sekret' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'magic = magia, treasure = skarb, adventure = przygoda, secret = sekret. To jest wielka przygoda! (This is a great adventure!)'
   },
   {
     id: 'match_144', difficulty: 3, category: 'matching',
@@ -1518,7 +1661,8 @@ const MATCHING_QUESTIONS = [
       { left: 'merry-go-round', right: 'karuzela' },
       { left: 'sandbox', right: 'piaskownica' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'swing = huśtawka, slide = zjeżdżalnia, merry-go-round = karuzela, sandbox = piaskownica. Lubię jeździć na huśtawce! (I like to ride the swing!)'
   },
   {
     id: 'match_145', difficulty: 3, category: 'matching',
@@ -1528,7 +1672,8 @@ const MATCHING_QUESTIONS = [
       { left: 'backpack', right: 'plecak' },
       { left: 'compass', right: 'kompas' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'tent = namiot, campfire = ognisko, backpack = plecak, compass = kompas. Śpimy w namiocie! (We sleep in a tent!)'
   },
   {
     id: 'match_146', difficulty: 3, category: 'matching',
@@ -1538,7 +1683,8 @@ const MATCHING_QUESTIONS = [
       { left: 'planet', right: 'planeta' },
       { left: 'alien', right: 'kosmita' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'rocket = rakieta, astronaut = astronauta, planet = planeta, alien = kosmita. Rakieta leci na planetę! (The rocket flies to a planet!)'
   },
   {
     id: 'match_147', difficulty: 3, category: 'matching',
@@ -1548,7 +1694,8 @@ const MATCHING_QUESTIONS = [
       { left: 'hay', right: 'siano' },
       { left: 'fence', right: 'płot' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'barn = stodoła, tractor = traktor, hay = siano, fence = płot. Traktor jedzie po polu! (The tractor drives across the field!)'
   },
   {
     id: 'match_148', difficulty: 3, category: 'matching',
@@ -1558,7 +1705,8 @@ const MATCHING_QUESTIONS = [
       { left: 'sandcastle', right: 'zamek z piasku' },
       { left: 'seagull', right: 'mewa' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'wave = fala, shell = muszelka, sandcastle = zamek z piasku, seagull = mewa. Buduję zamek z piasku na plaży! (I build a sandcastle on the beach!)'
   },
 
   // --- Science Terms (sets 149-153) ---
@@ -1570,7 +1718,8 @@ const MATCHING_QUESTIONS = [
       { left: 'shadow', right: 'cień' },
       { left: 'mirror', right: 'lustro' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'magnet = magnes, rainbow = tęcza, shadow = cień, mirror = lustro. Widzę swój cień na ścianie! (I see my shadow on the wall!)'
   },
   {
     id: 'match_150', difficulty: 3, category: 'matching',
@@ -1580,7 +1729,8 @@ const MATCHING_QUESTIONS = [
       { left: 'skeleton', right: 'szkielet' },
       { left: 'volcano', right: 'wulkan' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'dinosaur = dinozaur, fossil = skamieniałość, skeleton = szkielet, volcano = wulkan. Dinozaury żyły dawno temu! (Dinosaurs lived long ago!)'
   },
   {
     id: 'match_151', difficulty: 3, category: 'matching',
@@ -1590,7 +1740,8 @@ const MATCHING_QUESTIONS = [
       { left: 'dragonfly', right: 'ważka' },
       { left: 'snail', right: 'ślimak' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'ladybug = biedronka, caterpillar = gąsienica, dragonfly = ważka, snail = ślimak. Biedronka ma czerwone skrzydełka! (The ladybug has red wings!)'
   },
   {
     id: 'match_152', difficulty: 3, category: 'matching',
@@ -1600,7 +1751,8 @@ const MATCHING_QUESTIONS = [
       { left: 'telescope', right: 'teleskop' },
       { left: 'crater', right: 'krater' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'spaceship = statek kosmiczny, comet = kometa, telescope = teleskop, crater = krater. Patrzę przez teleskop na gwiazdy! (I look at stars through a telescope!)'
   },
   {
     id: 'match_153', difficulty: 3, category: 'matching',
@@ -1610,7 +1762,8 @@ const MATCHING_QUESTIONS = [
       { left: 'paw', right: 'łapa' },
       { left: 'tail', right: 'ogon' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'leash = smycz, collar = obroża, paw = łapa, tail = ogon. Pies macha ogonem! (The dog wags its tail!)'
   },
 
   // --- Geography (sets 154-157) ---
@@ -1622,7 +1775,8 @@ const MATCHING_QUESTIONS = [
       { left: 'desert', right: 'pustynia' },
       { left: 'glacier', right: 'lodowiec' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'continent = kontynent, ocean = ocean, desert = pustynia, glacier = lodowiec. Na pustyni jest bardzo gorąco! (It is very hot in the desert!)'
   },
   {
     id: 'match_155', difficulty: 3, category: 'matching',
@@ -1632,7 +1786,8 @@ const MATCHING_QUESTIONS = [
       { left: 'cave', right: 'jaskinia' },
       { left: 'waterfall', right: 'wodospad' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'beach = plaża, cliff = klif, cave = jaskinia, waterfall = wodospad. Wodospad jest piękny! (The waterfall is beautiful!)'
   },
   {
     id: 'match_156', difficulty: 3, category: 'matching',
@@ -1642,7 +1797,8 @@ const MATCHING_QUESTIONS = [
       { left: 'village', right: 'wieś' },
       { left: 'flag', right: 'flaga' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'country = kraj, city = miasto, village = wieś, flag = flaga. Mieszkam w dużym mieście! (I live in a big city!)'
   },
   {
     id: 'match_157', difficulty: 3, category: 'matching',
@@ -1652,7 +1808,8 @@ const MATCHING_QUESTIONS = [
       { left: 'parrot', right: 'papuga' },
       { left: 'ship', right: 'statek' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'pirate = pirat, map = mapa, parrot = papuga, ship = statek. Pirat ma mapę skarbów! (The pirate has a treasure map!)'
   },
 
   // --- Less Common Animals (sets 158-160) ---
@@ -1664,7 +1821,8 @@ const MATCHING_QUESTIONS = [
       { left: 'stork', right: 'bocian' },
       { left: 'peacock', right: 'paw' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'hedgehog = jeż, badger = borsuk, stork = bocian, peacock = paw. Bocian przynosi wiosnę! (The stork brings spring!)'
   },
   {
     id: 'match_159', difficulty: 3, category: 'matching',
@@ -1674,7 +1832,8 @@ const MATCHING_QUESTIONS = [
       { left: 'whale', right: 'wieloryb' },
       { left: 'shark', right: 'rekin' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'octopus = ośmiornica, dolphin = delfin, whale = wieloryb, shark = rekin. Delfin skacze nad wodą! (The dolphin jumps above the water!)'
   },
   {
     id: 'match_160', difficulty: 3, category: 'matching',
@@ -1684,7 +1843,8 @@ const MATCHING_QUESTIONS = [
       { left: 'parrot', right: 'papuga' },
       { left: 'penguin', right: 'pingwin' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'chameleon = kameleon, crocodile = krokodyl, parrot = papuga, penguin = pingwin. Papuga mówi cześć! (The parrot says hello!)'
   },
 
   // --- Compound Words / Cultural Terms (sets 161-164) ---
@@ -1696,7 +1856,8 @@ const MATCHING_QUESTIONS = [
       { left: 'thunderstorm', right: 'burza z piorunami' },
       { left: 'whirlpool', right: 'wir wodny' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'sunflower = słonecznik, snowflake = płatek śniegu, thunderstorm = burza z piorunami, whirlpool = wir wodny. Słonecznik rośnie w ogrodzie! (The sunflower grows in the garden!)'
   },
   {
     id: 'match_162', difficulty: 3, category: 'matching',
@@ -1706,7 +1867,8 @@ const MATCHING_QUESTIONS = [
       { left: 'birthday', right: 'urodziny' },
       { left: 'wedding', right: 'ślub' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'Christmas = Boże Narodzenie, Easter = Wielkanoc, birthday = urodziny, wedding = ślub. Wszystkiego najlepszego w urodziny! (Happy birthday!)'
   },
   {
     id: 'match_163', difficulty: 3, category: 'matching',
@@ -1716,7 +1878,8 @@ const MATCHING_QUESTIONS = [
       { left: 'hero', right: 'bohater' },
       { left: 'dragon', right: 'smok' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'fairy tale = bajka, story = opowiadanie, hero = bohater, dragon = smok. Babcia czyta mi bajkę! (Grandma reads me a fairy tale!)'
   },
   {
     id: 'match_164', difficulty: 3, category: 'matching',
@@ -1726,7 +1889,8 @@ const MATCHING_QUESTIONS = [
       { left: 'costume', right: 'kostium' },
       { left: 'feast', right: 'uczta' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'dance = taniec, parade = parada, costume = kostium, feast = uczta. Tańczę w pięknym kostiumie! (I dance in a beautiful costume!)'
   },
 
   // --- Medical / Health Terms (sets 165-168) ---
@@ -1738,7 +1902,8 @@ const MATCHING_QUESTIONS = [
       { left: 'headache', right: 'ból głowy' },
       { left: 'wound', right: 'rana' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'fever = gorączka, cough = kaszel, headache = ból głowy, wound = rana. Mam gorączkę i kaszel! (I have a fever and a cough!)'
   },
   {
     id: 'match_166', difficulty: 3, category: 'matching',
@@ -1748,7 +1913,8 @@ const MATCHING_QUESTIONS = [
       { left: 'plaster', right: 'plaster' },
       { left: 'thermometer', right: 'termometr' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'medicine = lekarstwo, bandage = bandaż, plaster = plaster, thermometer = termometr. Lekarz daje mi lekarstwo! (The doctor gives me medicine!)'
   },
   {
     id: 'match_167', difficulty: 3, category: 'matching',
@@ -1758,7 +1924,8 @@ const MATCHING_QUESTIONS = [
       { left: 'sneeze', right: 'kichanie' },
       { left: 'fever', right: 'gorączka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'cold = przeziębienie, cough = kaszel, sneeze = kichanie, fever = gorączka. Mam przeziębienie i kicham! (I have a cold and I sneeze!)'
   },
   {
     id: 'match_168', difficulty: 3, category: 'matching',
@@ -1768,7 +1935,8 @@ const MATCHING_QUESTIONS = [
       { left: 'muscle', right: 'mięsień' },
       { left: 'brain', right: 'mózg' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'blood = krew, bone = kość, muscle = mięsień, brain = mózg. Mózg pomaga nam myśleć! (The brain helps us think!)'
   },
 
   // --- Technology (sets 169-171) ---
@@ -1780,7 +1948,8 @@ const MATCHING_QUESTIONS = [
       { left: 'screen', right: 'ekran' },
       { left: 'printer', right: 'drukarka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'computer = komputer, keyboard = klawiatura, screen = ekran, printer = drukarka. Piszę na klawiaturze! (I type on the keyboard!)'
   },
   {
     id: 'match_170', difficulty: 3, category: 'matching',
@@ -1790,7 +1959,8 @@ const MATCHING_QUESTIONS = [
       { left: 'password', right: 'hasło' },
       { left: 'game', right: 'gra' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'internet = internet, tablet = tablet, password = hasło, game = gra. Gram w grę na tablecie! (I play a game on the tablet!)'
   },
   {
     id: 'match_171', difficulty: 3, category: 'matching',
@@ -1800,7 +1970,8 @@ const MATCHING_QUESTIONS = [
       { left: 'cable', right: 'kabel' },
       { left: 'plug', right: 'wtyczka' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'battery = bateria, charger = ładowarka, cable = kabel, plug = wtyczka. Ładuję tablet ładowarką! (I charge the tablet with a charger!)'
   },
 
   // --- Advanced Adjectives (sets 172-174) ---
@@ -1812,7 +1983,8 @@ const MATCHING_QUESTIONS = [
       { left: 'magical', right: 'magiczny' },
       { left: 'scary', right: 'straszny' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'invisible = niewidzialny, enormous = ogromny, magical = magiczny, scary = straszny. Smok jest ogromny i straszny! (The dragon is enormous and scary!)'
   },
   {
     id: 'match_173', difficulty: 3, category: 'matching',
@@ -1822,7 +1994,8 @@ const MATCHING_QUESTIONS = [
       { left: 'ordinary', right: 'zwyczajny' },
       { left: 'strange', right: 'dziwny' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'mysterious = tajemniczy, wonderful = cudowny, ordinary = zwyczajny, strange = dziwny. To jest cudowny dzień! (This is a wonderful day!)'
   },
   {
     id: 'match_174', difficulty: 3, category: 'matching',
@@ -1832,6 +2005,7 @@ const MATCHING_QUESTIONS = [
       { left: 'sticky', right: 'lepki' },
       { left: 'smelly', right: 'śmierdzący' }
     ],
-    leftLabel: 'English', rightLabel: 'Polski'
+    leftLabel: 'English', rightLabel: 'Polski',
+    explanation: 'shiny = błyszczący, fluffy = puszysty, sticky = lepki, smelly = śmierdzący. Kotek jest puszysty! (The kitten is fluffy!)'
   }
 ];
