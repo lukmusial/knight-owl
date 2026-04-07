@@ -55,6 +55,11 @@ const Combat = (function() {
     // Record question attempt
     Player.recordQuestion(isCorrect);
 
+    // Record to user profile for spaced repetition
+    if (typeof UserProfile !== 'undefined' && UserProfile.recordAttempt) {
+      UserProfile.recordAttempt(currentQuestion.id, isCorrect);
+    }
+
     if (isCorrect) {
       return handleCorrectAnswer();
     } else {

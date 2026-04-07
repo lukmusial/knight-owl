@@ -204,7 +204,23 @@ const UI = (function() {
       directionBar: document.getElementById('direction-bar'),
 
       // Map panel
-      mapPanel: document.getElementById('map-panel')
+      mapPanel: document.getElementById('map-panel'),
+
+      // Profile stats elements
+      profileStats: document.getElementById('profile-stats'),
+      profileRuns: document.getElementById('profile-runs'),
+      profileMastered: document.getElementById('profile-mastered'),
+      profileSeen: document.getElementById('profile-seen'),
+      profileAccuracy: document.getElementById('profile-accuracy'),
+
+      // Matching modal elements
+      matchingModal: document.getElementById('matching-modal'),
+      matchingMonsterImage: document.getElementById('matching-monster-image'),
+      matchingMonsterName: document.getElementById('matching-monster-name'),
+      matchingMonsterDescription: document.getElementById('matching-monster-description'),
+      matchingInstruction: document.getElementById('matching-instruction'),
+      matchingLeft: document.getElementById('matching-left'),
+      matchingRight: document.getElementById('matching-right')
     };
 
     // Add keyboard navigation listener
@@ -269,6 +285,45 @@ const UI = (function() {
         elements.savedGamesList.innerHTML = '<p class="no-saves">No saved games / Brak zapisanych gier</p>';
       }
     }
+
+    // Show profile stats if profile exists for current name
+    updateProfileStatsDisplay();
+
+    // Listen for name input changes to update profile stats
+    if (elements.playerNameInput) {
+      elements.playerNameInput.removeEventListener('input', updateProfileStatsDisplay);
+      elements.playerNameInput.addEventListener('input', updateProfileStatsDisplay);
+    }
+  }
+
+  /**
+   * Update profile stats display based on current name input
+   */
+  function updateProfileStatsDisplay() {
+    if (!elements.profileStats) return;
+
+    var name = elements.playerNameInput ? elements.playerNameInput.value.trim() : '';
+
+    if (typeof UserProfile === 'undefined' || !name || !UserProfile.hasProfile(name)) {
+      elements.profileStats.classList.add('hidden');
+      return;
+    }
+
+    // Temporarily load profile to get stats (without changing current game state)
+    UserProfile.load(name);
+    var stats = UserProfile.getMasteryStats();
+    UserProfile.reset();
+
+    if (stats.totalSeen === 0 && stats.runsCompleted === 0) {
+      elements.profileStats.classList.add('hidden');
+      return;
+    }
+
+    elements.profileStats.classList.remove('hidden');
+    if (elements.profileRuns) elements.profileRuns.textContent = stats.runsCompleted;
+    if (elements.profileMastered) elements.profileMastered.textContent = stats.mastered;
+    if (elements.profileSeen) elements.profileSeen.textContent = stats.totalSeen;
+    if (elements.profileAccuracy) elements.profileAccuracy.textContent = stats.accuracy + '%';
   }
 
   /**
@@ -1014,6 +1069,153 @@ const UI = (function() {
     }, 3000);
   }
 
+  // ---- Matching Modal ----
+
+  /**
+   * Show matching modal for a matching encounter
+   * @param {Object} encounter - { monster, set }
+   * @param {Function} onComplete - Callback with (success) when matching ends
+   */
+  function showMatchingModal(encounter, onComplete) {
+    var monster = encounter.monster;
+    var set = encounter.set;
+
+    if (!elements.matchingModal || !set) return;
+
+    // Set monster info
+    if (elements.matchingMonsterImage) {
+      var imagePath = monster.id ? 'assets/monsters/' + monster.id + '.png' : 'assets/placeholder.svg';
+      elements.matchingMonsterImage.src = imagePath;
+      elements.matchingMonsterImage.onerror = function() {
+        elements.matchingMonsterImage.src = 'assets/placeholder.svg';
+      };
+    }
+    if (elements.matchingMonsterName) {
+      elements.matchingMonsterName.innerHTML =
+        '<span class="label-en">' + (monster.name || 'Monster') + '</span>' +
+        '<span class="label-pl">' + (monster.namePL || monster.name || 'Potwór') + '</span>';
+    }
+    if (elements.matchingMonsterDescription) {
+      elements.matchingMonsterDescription.innerHTML =
+        '<span class="desc-en">' + (monster.description || '') + '</span>' +
+        '<span class="desc-pl">' + (monster.descriptionPL || '') + '</span>';
+    }
+
+    // Initialize matching session
+    if (typeof Matching !== 'undefined') {
+      Matching.startMatching(set);
+    }
+
+    renderMatchingColumns(onComplete);
+
+    hideDirectionBar();
+    elements.matchingModal.classList.remove('hidden');
+  }
+
+  /**
+   * Render the matching columns with current state
+   * @param {Function} onComplete - Callback when matching ends
+   */
+  function renderMatchingColumns(onComplete) {
+    if (!elements.matchingLeft || !elements.matchingRight) return;
+    if (typeof Matching === 'undefined') return;
+
+    var display = Matching.getDisplayItems();
+    var selectedItem = null;
+
+    function renderColumns() {
+      var currentDisplay = Matching.getDisplayItems();
+
+      elements.matchingLeft.innerHTML = currentDisplay.leftItems.map(function(item) {
+        var selectedClass = selectedItem && selectedItem.side === 'left' && selectedItem.pairIndex === item.pairIndex ? ' selected' : '';
+        return '<button class="matching-item' + selectedClass + '" data-side="left" data-pair-index="' + item.pairIndex + '">' + item.text + '</button>';
+      }).join('');
+
+      elements.matchingRight.innerHTML = currentDisplay.rightItems.map(function(item) {
+        var selectedClass = selectedItem && selectedItem.side === 'right' && selectedItem.pairIndex === item.pairIndex ? ' selected' : '';
+        return '<button class="matching-item' + selectedClass + '" data-side="right" data-pair-index="' + item.pairIndex + '">' + item.text + '</button>';
+      }).join('');
+
+      // Add click handlers
+      var allItems = elements.matchingModal.querySelectorAll('.matching-item');
+      allItems.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var side = btn.dataset.side;
+          var pairIndex = parseInt(btn.dataset.pairIndex);
+          handleMatchingClick(side, pairIndex);
+        });
+      });
+    }
+
+    function handleMatchingClick(side, pairIndex) {
+      if (!selectedItem) {
+        selectedItem = { side: side, pairIndex: pairIndex };
+        renderColumns();
+        return;
+      }
+
+      if (selectedItem.side === side) {
+        // Same side — switch selection
+        selectedItem = { side: side, pairIndex: pairIndex };
+        renderColumns();
+        return;
+      }
+
+      // Opposite side — check match
+      var result = Matching.selectItem(side, pairIndex);
+
+      // We need to check ourselves since we track selection in UI
+      var leftIdx = side === 'left' ? pairIndex : selectedItem.pairIndex;
+      var rightIdx = side === 'right' ? pairIndex : selectedItem.pairIndex;
+
+      if (leftIdx === rightIdx) {
+        // Correct match — animate removal
+        selectedItem = null;
+        var matchedButtons = elements.matchingModal.querySelectorAll(
+          '[data-pair-index="' + leftIdx + '"]'
+        );
+        matchedButtons.forEach(function(btn) {
+          btn.classList.add('matched');
+        });
+
+        setTimeout(function() {
+          if (Matching.isComplete()) {
+            if (onComplete) onComplete(true);
+          } else {
+            renderColumns();
+          }
+        }, 400);
+      } else {
+        // Wrong match — flash red and fail
+        selectedItem = null;
+        var allBtns = elements.matchingModal.querySelectorAll('.matching-item');
+        allBtns.forEach(function(btn) {
+          btn.classList.remove('selected');
+          var idx = parseInt(btn.dataset.pairIndex);
+          if ((btn.dataset.side === 'left' && idx === leftIdx) ||
+              (btn.dataset.side === 'right' && idx === rightIdx)) {
+            btn.classList.add('wrong');
+          }
+        });
+
+        setTimeout(function() {
+          if (onComplete) onComplete(false);
+        }, 800);
+      }
+    }
+
+    renderColumns();
+  }
+
+  /**
+   * Hide matching modal
+   */
+  function hideMatchingModal() {
+    if (elements.matchingModal) {
+      elements.matchingModal.classList.add('hidden');
+    }
+  }
+
   /**
    * Bind event handlers
    * @param {Object} handlers - Object with handler functions
@@ -1080,6 +1282,8 @@ const UI = (function() {
     hideTreasureModal,
     showVictoryScreen,
     showToast,
+    showMatchingModal,
+    hideMatchingModal,
     bindHandlers,
     renderDirectionBar,
     hideDirectionBar

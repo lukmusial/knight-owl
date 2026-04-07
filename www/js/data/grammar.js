@@ -1235,6 +1235,1241 @@ const GRAMMAR_QUESTIONS = [
     options: ['odważny', 'odważna', 'odważne', 'odważni'],
     correctIndex: 3,
     explanation: 'Rule: Masculine personal plural adjectives end in -i. Rycerze (knights) → odważni (brave).'
+  },
+
+  // ========== QUESTIONS gram_110 - gram_217 ==========
+
+  // DIFFICULTY 1 - Easy (16 questions: gram_110 - gram_125)
+
+  // Gender articles with "te" (plural)
+  {
+    id: 'gram_110',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for these plural nouns:',
+    sentence: '___ koty (cats)',
+    hint: 'Plural nouns use "te"',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 3,
+    explanation: 'Rule: Plural nouns use "te" regardless of gender. Te koty (those cats), te sowy (those owls), te okna (those windows).'
+  },
+  {
+    id: 'gram_111',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for these plural nouns:',
+    sentence: '___ domy (houses)',
+    hint: 'Plural nouns use "te"',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 3,
+    explanation: 'Rule: All plural nouns use "te". Even though dom is masculine (ten dom), the plural domy uses "te domy".'
+  },
+  {
+    id: 'gram_112',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "sun":',
+    sentence: '___ słońce',
+    hint: 'Słońce ends in -e',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 2,
+    explanation: 'Rule: Nouns ending in -e are usually neuter and use "to". Słońce (sun) is neuter.'
+  },
+  {
+    id: 'gram_113',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct article for "car":',
+    sentence: '___ samochód',
+    hint: 'Samochód ends in a consonant',
+    options: ['ten', 'ta', 'to', 'te'],
+    correctIndex: 0,
+    explanation: 'Rule: Nouns ending in a consonant are usually masculine and use "ten". Samochód (car) is masculine.'
+  },
+  // Basic "być" (to be) conjugation
+  {
+    id: 'gram_114',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to be" (być):',
+    sentence: 'Ja ___ uczniem (I am a student)',
+    hint: 'First person singular of "być"',
+    options: ['jestem', 'jesteś', 'jest', 'jesteśmy'],
+    correctIndex: 0,
+    explanation: 'Rule: "Być" (to be): ja jestem, ty jesteś, on/ona jest, my jesteśmy, wy jesteście, oni są.'
+  },
+  {
+    id: 'gram_115',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to be" (być):',
+    sentence: 'Ty ___ miły (You are nice)',
+    hint: 'Second person singular of "być"',
+    options: ['jestem', 'jesteś', 'jest', 'są'],
+    correctIndex: 1,
+    explanation: 'Rule: "Być" (to be): ty jesteś. "Ty jesteś miły" = You are nice.'
+  },
+  {
+    id: 'gram_116',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to be" (być):',
+    sentence: 'My ___ w szkole (We are at school)',
+    hint: 'First person plural of "być"',
+    options: ['jestem', 'jesteś', 'jest', 'jesteśmy'],
+    correctIndex: 3,
+    explanation: 'Rule: "Być" (to be): my jesteśmy. "My jesteśmy w szkole" = We are at school.'
+  },
+  {
+    id: 'gram_117',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to be" (być):',
+    sentence: 'Wy ___ gotowi (You all are ready)',
+    hint: 'Second person plural of "być"',
+    options: ['jestem', 'jesteś', 'jesteście', 'są'],
+    correctIndex: 2,
+    explanation: 'Rule: "Być" (to be): wy jesteście. "Wy jesteście gotowi" = You all are ready.'
+  },
+  // Simple noun plurals
+  {
+    id: 'gram_118',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct plural of "kwiat" (flower):',
+    sentence: 'kwiat → ___',
+    hint: 'Many masculine nouns add -y',
+    options: ['kwiaty', 'kwiatów', 'kwiatem', 'kwiatowi'],
+    correctIndex: 0,
+    explanation: 'Rule: Many masculine nouns form plurals by adding -y. Kwiat → kwiaty (flowers).'
+  },
+  {
+    id: 'gram_119',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct plural of "gwiazda" (star):',
+    sentence: 'gwiazda → ___',
+    hint: 'Feminine nouns ending in -a change to -y',
+    options: ['gwiazdy', 'gwiazdą', 'gwiazd', 'gwiazdę'],
+    correctIndex: 0,
+    explanation: 'Rule: Feminine nouns ending in -da change -a to -y. Gwiazda → gwiazdy (stars).'
+  },
+  // Basic possessives (mój/moja/moje)
+  {
+    id: 'gram_120',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a masculine noun:',
+    sentence: '___ kot (my cat)',
+    hint: 'Masculine possessive = mój',
+    options: ['mój', 'moja', 'moje', 'moi'],
+    correctIndex: 0,
+    explanation: 'Rule: Possessives agree with the noun gender. Masculine: mój, Feminine: moja, Neuter: moje. Kot is masculine → mój kot.'
+  },
+  {
+    id: 'gram_121',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a feminine noun:',
+    sentence: '___ sowa (my owl)',
+    hint: 'Feminine possessive = moja',
+    options: ['mój', 'moja', 'moje', 'moi'],
+    correctIndex: 1,
+    explanation: 'Rule: Possessives agree with noun gender. Sowa is feminine → moja sowa (my owl).'
+  },
+  {
+    id: 'gram_122',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a neuter noun:',
+    sentence: '___ jabłko (my apple)',
+    hint: 'Neuter possessive = moje',
+    options: ['mój', 'moja', 'moje', 'moi'],
+    correctIndex: 2,
+    explanation: 'Rule: Possessives agree with noun gender. Jabłko is neuter → moje jabłko (my apple).'
+  },
+  {
+    id: 'gram_123',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a masculine noun:',
+    sentence: '___ dom (my house)',
+    hint: 'Masculine possessive = mój',
+    options: ['mój', 'moja', 'moje', 'moi'],
+    correctIndex: 0,
+    explanation: 'Rule: Dom is masculine → mój dom (my house). Remember: mój for masculine, moja for feminine, moje for neuter.'
+  },
+  {
+    id: 'gram_124',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a feminine noun:',
+    sentence: '___ książka (my book)',
+    hint: 'Feminine possessive = moja',
+    options: ['mój', 'moja', 'moje', 'moi'],
+    correctIndex: 1,
+    explanation: 'Rule: Książka is feminine → moja książka (my book). Nouns ending in -a are usually feminine.'
+  },
+  {
+    id: 'gram_125',
+    difficulty: 1,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a neuter noun:',
+    sentence: '___ okno (my window)',
+    hint: 'Neuter possessive = moje',
+    options: ['mój', 'moja', 'moje', 'moi'],
+    correctIndex: 2,
+    explanation: 'Rule: Okno is neuter → moje okno (my window). Nouns ending in -o are usually neuter.'
+  },
+
+  // DIFFICULTY 2 - Medium (48 questions: gram_126 - gram_173)
+
+  // Accusative case (widzę kota/psa)
+  {
+    id: 'gram_126',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the accusative case:',
+    sentence: 'Widzę ___ (I see the dog)',
+    hint: 'Animate masculine nouns change in accusative',
+    options: ['pies', 'psa', 'psem', 'psu'],
+    correctIndex: 1,
+    explanation: 'Rule: Animate masculine nouns take accusative like genitive. Pies → psa. "Widzę psa" = I see the dog.'
+  },
+  {
+    id: 'gram_127',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the accusative case:',
+    sentence: 'Mam ___ (I have a pen)',
+    hint: 'Inanimate masculine nouns stay unchanged in accusative',
+    options: ['długopis', 'długopisu', 'długopisem', 'długopisowi'],
+    correctIndex: 0,
+    explanation: 'Rule: Inanimate masculine nouns keep nominative form in accusative. Długopis (pen) stays długopis. Only animate masculines change.'
+  },
+  {
+    id: 'gram_128',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the accusative case:',
+    sentence: 'Kupuję ___ (I am buying a dress)',
+    hint: 'Feminine nouns ending in -a change to -ę',
+    options: ['sukienka', 'sukienkę', 'sukienki', 'sukienką'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine nouns ending in -a change to -ę in accusative. Sukienka → sukienkę. "Kupuję sukienkę" = I buy a dress.'
+  },
+  {
+    id: 'gram_129',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the accusative case:',
+    sentence: 'Jem ___ (I eat soup)',
+    hint: 'Feminine nouns ending in -a change to -ę',
+    options: ['zupa', 'zupę', 'zupy', 'zupą'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine nouns ending in -a change to -ę in accusative. Zupa → zupę. "Jem zupę" = I eat soup.'
+  },
+  // Locative prepositions (w/na + locative)
+  {
+    id: 'gram_130',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the locative case (after "w"):',
+    sentence: 'Mieszkam w ___ (I live in a city)',
+    hint: '"W" (in) requires locative case',
+    options: ['miasto', 'miastem', 'mieście', 'miastów'],
+    correctIndex: 2,
+    explanation: 'Rule: "W" (in) requires locative. Miasto → mieście. Many neuter nouns take -cie or -ście in locative.'
+  },
+  {
+    id: 'gram_131',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the locative case (after "na"):',
+    sentence: 'Książka leży na ___ (The book lies on the table)',
+    hint: '"Na" (on) requires locative case',
+    options: ['stół', 'stołu', 'stole', 'stołem'],
+    correctIndex: 2,
+    explanation: 'Rule: "Na" (on) requires locative. Stół → stole. "Na stole" = on the table.'
+  },
+  {
+    id: 'gram_132',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the locative case (after "w"):',
+    sentence: 'Jestem w ___ (I am at school)',
+    hint: '"W" (in) requires locative case',
+    options: ['szkoła', 'szkoły', 'szkole', 'szkołą'],
+    correctIndex: 2,
+    explanation: 'Rule: "W" (in) requires locative. Szkoła → szkole. Feminine nouns ending in -a often change to -e in locative.'
+  },
+  // Instrumental case (z kotem)
+  {
+    id: 'gram_133',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case (after "z"):',
+    sentence: 'Bawię się z ___ (I play with the cat)',
+    hint: '"Z" (with) requires instrumental case',
+    options: ['kot', 'kota', 'kotem', 'kocie'],
+    correctIndex: 2,
+    explanation: 'Rule: "Z" (with) requires instrumental. Masculine nouns: kot → kotem. "Z kotem" = with the cat.'
+  },
+  {
+    id: 'gram_134',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case (after "z"):',
+    sentence: 'Idę z ___ (I go with mom)',
+    hint: '"Z" (with) requires instrumental for feminine nouns',
+    options: ['mama', 'mamę', 'mamie', 'mamą'],
+    correctIndex: 3,
+    explanation: 'Rule: "Z" (with) requires instrumental. Feminine nouns ending in -a change to -ą. Mama → mamą. "Z mamą" = with mom.'
+  },
+  {
+    id: 'gram_135',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case (after "z"):',
+    sentence: 'Gram z ___ (I play with a friend)',
+    hint: '"Z" (with) requires instrumental case',
+    options: ['kolega', 'kolegę', 'koledze', 'kolegą'],
+    correctIndex: 3,
+    explanation: 'Rule: "Z" (with) requires instrumental. Masculine nouns ending in -a (like kolega) change to -ą. "Z kolegą" = with a friend.'
+  },
+  // Adjective agreement (more examples)
+  {
+    id: 'gram_136',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the feminine noun:',
+    sentence: 'Góra jest ___ (The mountain is high)',
+    hint: 'Feminine adjectives end in -a',
+    options: ['wysoki', 'wysoka', 'wysokie', 'wysocy'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine adjectives end in -a. Góra is feminine → wysoka (high). Masculine: wysoki, Neuter: wysokie.'
+  },
+  {
+    id: 'gram_137',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the masculine noun:',
+    sentence: 'Samochód jest ___ (The car is fast)',
+    hint: 'Masculine adjectives end in -y or -i',
+    options: ['szybki', 'szybka', 'szybkie', 'szybcy'],
+    correctIndex: 0,
+    explanation: 'Rule: Masculine adjectives end in -i after k. Samochód is masculine → szybki (fast).'
+  },
+  {
+    id: 'gram_138',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the neuter noun:',
+    sentence: 'Dziecko jest ___ (The child is happy)',
+    hint: 'Neuter adjectives end in -e',
+    options: ['wesoły', 'wesoła', 'wesołe', 'weseli'],
+    correctIndex: 2,
+    explanation: 'Rule: Neuter adjectives end in -e. Dziecko is neuter → wesołe (happy).'
+  },
+  {
+    id: 'gram_139',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective that matches the plural noun:',
+    sentence: 'Kwiaty są ___ (Flowers are beautiful)',
+    hint: 'Non-masculine-personal plural adjectives end in -e',
+    options: ['piękny', 'piękna', 'piękne', 'piękni'],
+    correctIndex: 2,
+    explanation: 'Rule: Non-masculine-personal plural adjectives end in -e. Kwiaty (flowers) are not masculine personal → piękne.'
+  },
+  // Verb conjugation present tense (-ać group)
+  {
+    id: 'gram_140',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to ask" (pytać):',
+    sentence: 'Ty ___ (You ask)',
+    hint: 'Second person singular of -ać verb',
+    options: ['pytam', 'pytasz', 'pyta', 'pytamy'],
+    correctIndex: 1,
+    explanation: 'Rule: "Pytać" conjugation: ja pytam, ty pytasz, on/ona pyta. The -ać verbs follow a regular pattern.'
+  },
+  {
+    id: 'gram_141',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to listen" (słuchać):',
+    sentence: 'My ___ muzyki (We listen to music)',
+    hint: 'First person plural of -ać verb',
+    options: ['słucham', 'słuchasz', 'słucha', 'słuchamy'],
+    correctIndex: 3,
+    explanation: 'Rule: "Słuchać" conjugation: ja słucham, ty słuchasz, on/ona słucha, my słuchamy. Regular -ać pattern.'
+  },
+  {
+    id: 'gram_142',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to look" (patrzeć):',
+    sentence: 'On ___ na obraz (He looks at the picture)',
+    hint: 'Third person singular of -eć verb',
+    options: ['patrzę', 'patrzysz', 'patrzy', 'patrzymy'],
+    correctIndex: 2,
+    explanation: 'Rule: "Patrzeć" conjugation: ja patrzę, ty patrzysz, on/ona patrzy, my patrzymy. The -eć verbs use -y/-ysz pattern.'
+  },
+  // Verb conjugation present tense (-ić/-yć group)
+  {
+    id: 'gram_143',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to learn" (uczyć się):',
+    sentence: 'Ja ___ się polskiego (I learn Polish)',
+    hint: 'First person singular of -yć verb',
+    options: ['uczę', 'uczysz', 'uczy', 'uczymy'],
+    correctIndex: 0,
+    explanation: 'Rule: "Uczyć się" conjugation: ja uczę się, ty uczysz się, on/ona uczy się. The -yć verbs use -ę/-ysz pattern.'
+  },
+  {
+    id: 'gram_144',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to carry" (nosić):',
+    sentence: 'Ona ___ plecak (She carries a backpack)',
+    hint: 'Third person singular of -ić verb',
+    options: ['noszę', 'nosisz', 'nosi', 'nosimy'],
+    correctIndex: 2,
+    explanation: 'Rule: "Nosić" conjugation: ja noszę, ty nosisz, on/ona nosi. Note the consonant change: s→sz in first person.'
+  },
+  // Verb conjugation present tense (-ować group)
+  {
+    id: 'gram_145',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to travel" (podróżować):',
+    sentence: 'Oni ___ po Europie (They travel around Europe)',
+    hint: 'Third person plural of -ować verb',
+    options: ['podróżuję', 'podróżujesz', 'podróżuje', 'podróżują'],
+    correctIndex: 3,
+    explanation: 'Rule: "Podróżować" conjugation: -ować verbs change to -uję in present. Oni podróżują (they travel).'
+  },
+  {
+    id: 'gram_146',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to draw" (rysować):',
+    sentence: 'Ja ___ obraz (I draw a picture)',
+    hint: 'First person singular of -ować verb',
+    options: ['rysuję', 'rysujesz', 'rysuje', 'rysujemy'],
+    correctIndex: 0,
+    explanation: 'Rule: "Rysować" conjugation: -ować → -uję. Ja rysuję, ty rysujesz, on/ona rysuje.'
+  },
+  {
+    id: 'gram_147',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to work" (pracować):',
+    sentence: 'Ty ___ w biurze (You work in an office)',
+    hint: 'Second person singular of -ować verb',
+    options: ['pracuję', 'pracujesz', 'pracuje', 'pracujemy'],
+    correctIndex: 1,
+    explanation: 'Rule: "Pracować" conjugation: -ować → -ujesz in 2nd person. Ja pracuję, ty pracujesz, on/ona pracuje.'
+  },
+  // Past tense basic forms
+  {
+    id: 'gram_148',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (feminine subject):',
+    sentence: 'Mama ___ obiad (Mom cooked dinner)',
+    hint: 'Feminine past tense ends in -ła',
+    options: ['gotował', 'gotowała', 'gotowało', 'gotowali'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine past tense uses -ła. Mama is feminine: gotowała. "Mama gotowała obiad" = Mom cooked dinner.'
+  },
+  {
+    id: 'gram_149',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (masculine subject):',
+    sentence: 'Tata ___ gazetę (Dad read the newspaper)',
+    hint: 'Masculine past tense ends in -ł',
+    options: ['czytał', 'czytała', 'czytało', 'czytali'],
+    correctIndex: 0,
+    explanation: 'Rule: Masculine past tense uses -ł. Tata is masculine: czytał. "Tata czytał gazetę" = Dad read the newspaper.'
+  },
+  {
+    id: 'gram_150',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (masculine subject):',
+    sentence: 'Piotr ___ piłkę (Piotr kicked the ball)',
+    hint: 'Masculine past tense ends in -ł',
+    options: ['kopnął', 'kopnęła', 'kopnęło', 'kopnęli'],
+    correctIndex: 0,
+    explanation: 'Rule: Masculine past tense uses -ł (or -ął/-nął for some verbs). Piotr kopnął piłkę = Piotr kicked the ball.'
+  },
+  // Comparison (większy, mniejszy)
+  {
+    id: 'gram_151',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct comparative adjective:',
+    sentence: 'Pies jest ___ od kota (The dog is smaller than the cat)',
+    hint: 'Comparative of "mały" (small)',
+    options: ['mały', 'mniejszy', 'najmniejszy', 'mała'],
+    correctIndex: 1,
+    explanation: 'Rule: "Mniejszy" is the comparative of "mały" (small → smaller). Irregular: mały → mniejszy → najmniejszy.'
+  },
+  {
+    id: 'gram_152',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct comparative adjective:',
+    sentence: 'Ta książka jest ___ (This book is more interesting)',
+    hint: 'Comparative of "ciekawy" (interesting)',
+    options: ['ciekawy', 'ciekawsza', 'ciekawsze', 'ciekawa'],
+    correctIndex: 1,
+    explanation: 'Rule: Comparative of "ciekawy" is "ciekawszy" (masc.) / "ciekawsza" (fem.). Książka is feminine → ciekawsza.'
+  },
+  {
+    id: 'gram_153',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct comparative adjective:',
+    sentence: 'Jabłko jest ___ od cytryny (The apple is sweeter than the lemon)',
+    hint: 'Comparative of "słodki" (sweet)',
+    options: ['słodki', 'słodszy', 'najsłodszy', 'słodka'],
+    correctIndex: 1,
+    explanation: 'Rule: Comparative of "słodki" is "słodszy" (sweeter). Pattern: adjective stem + -szy. Superlative: najsłodszy.'
+  },
+  // More adjective agreement (plural forms)
+  {
+    id: 'gram_154',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective for masculine personal plural:',
+    sentence: 'Chłopcy są ___ (Boys are tall)',
+    hint: 'Masculine personal plural adjectives end in -i/-y',
+    options: ['wysoki', 'wysoka', 'wysokie', 'wysocy'],
+    correctIndex: 3,
+    explanation: 'Rule: Masculine personal plural adjectives end in -cy (after k). Wysoki → wysocy. Chłopcy are masculine personal.'
+  },
+  {
+    id: 'gram_155',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the adjective for non-masculine-personal plural:',
+    sentence: 'Sowy są ___ (Owls are wise)',
+    hint: 'Non-masculine-personal plural adjectives end in -e',
+    options: ['mądry', 'mądra', 'mądre', 'mądrzy'],
+    correctIndex: 2,
+    explanation: 'Rule: Non-masculine-personal plural adjectives end in -e. Sowy (owls) are not masculine personal → mądre.'
+  },
+  // More jest/są with names
+  {
+    id: 'gram_156',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct form of "to be":',
+    sentence: 'Ja ___ szczęśliwy (I am happy)',
+    hint: 'First person singular of "być"',
+    options: ['jestem', 'jesteś', 'jest', 'są'],
+    correctIndex: 0,
+    explanation: 'Rule: "Być" (to be): ja jestem, ty jesteś, on jest. "Ja jestem szczęśliwy" = I am happy.'
+  },
+  {
+    id: 'gram_157',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct form of "to be":',
+    sentence: 'Wy ___ zmęczeni (You all are tired)',
+    hint: 'Second person plural of "być"',
+    options: ['jestem', 'jesteś', 'jesteście', 'są'],
+    correctIndex: 2,
+    explanation: 'Rule: "Być" (to be): wy jesteście. "Wy jesteście zmęczeni" = You all are tired.'
+  },
+  // More verb forms: negation
+  {
+    id: 'gram_158',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct negation:',
+    sentence: '___ lubię kawy (I don\'t like coffee)',
+    hint: 'Polish negation uses "nie" before the verb',
+    options: ['Nie', 'Nigdy', 'Nic', 'Żaden'],
+    correctIndex: 0,
+    explanation: 'Rule: Basic negation uses "nie" directly before the verb. "Nie lubię" = I don\'t like. "Nie" is the most common negation word.'
+  },
+  {
+    id: 'gram_159',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to cook" (gotować):',
+    sentence: 'Oni ___ obiad (They cook dinner)',
+    hint: 'Third person plural of -ować verb',
+    options: ['gotuję', 'gotujesz', 'gotuje', 'gotują'],
+    correctIndex: 3,
+    explanation: 'Rule: "Gotować" conjugation: -ować → -ują in 3rd person plural. Oni gotują = They cook.'
+  },
+  {
+    id: 'gram_160',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the correct form of "to buy" (kupować):',
+    sentence: 'My ___ jedzenie (We buy food)',
+    hint: 'First person plural of -ować verb',
+    options: ['kupuję', 'kupujesz', 'kupuje', 'kupujemy'],
+    correctIndex: 3,
+    explanation: 'Rule: "Kupować" conjugation: -ować → -ujemy in 1st person plural. My kupujemy = We buy.'
+  },
+  // Possessive twój/twoja/twoje
+  {
+    id: 'gram_161',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a masculine noun:',
+    sentence: '___ pies (your dog)',
+    hint: 'Masculine possessive "your" = twój',
+    options: ['twój', 'twoja', 'twoje', 'twoi'],
+    correctIndex: 0,
+    explanation: 'Rule: "Your" (informal) agrees with noun gender. Masculine: twój, Feminine: twoja, Neuter: twoje. Pies is masculine → twój pies.'
+  },
+  {
+    id: 'gram_162',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a feminine noun:',
+    sentence: '___ torba (your bag)',
+    hint: 'Feminine possessive "your" = twoja',
+    options: ['twój', 'twoja', 'twoje', 'twoi'],
+    correctIndex: 1,
+    explanation: 'Rule: "Your" (informal) agrees with noun gender. Torba is feminine → twoja torba (your bag).'
+  },
+  {
+    id: 'gram_163',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct possessive for a neuter noun:',
+    sentence: '___ piwo (your beer)',
+    hint: 'Neuter possessive "your" = twoje',
+    options: ['twój', 'twoja', 'twoje', 'twoi'],
+    correctIndex: 2,
+    explanation: 'Rule: "Your" (informal) agrees with noun gender. Piwo is neuter → twoje piwo (your beer).'
+  },
+  // More locative
+  {
+    id: 'gram_164',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the locative case (after "w"):',
+    sentence: 'Ryby pływają w ___ (Fish swim in the lake)',
+    hint: '"W" (in) requires locative case',
+    options: ['jezioro', 'jeziorze', 'jeziora', 'jeziorem'],
+    correctIndex: 1,
+    explanation: 'Rule: "W" (in) requires locative. Jezioro → jeziorze. Neuter nouns ending in -o often change to -ze in locative.'
+  },
+  {
+    id: 'gram_165',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the locative case (after "na"):',
+    sentence: 'Gramy na ___ (We play in the yard)',
+    hint: '"Na" (on/in) requires locative case',
+    options: ['podwórko', 'podwórku', 'podwórka', 'podwórkiem'],
+    correctIndex: 1,
+    explanation: 'Rule: "Na" requires locative. Podwórko → podwórku. Some neuter nouns take -u in locative.'
+  },
+  // More instrumental
+  {
+    id: 'gram_166',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case:',
+    sentence: 'Piszę ___ (I write with a pencil)',
+    hint: 'Instrument of action uses instrumental case',
+    options: ['ołówek', 'ołówka', 'ołówkiem', 'ołówku'],
+    correctIndex: 2,
+    explanation: 'Rule: The instrument used takes instrumental case. Ołówek → ołówkiem. "Piszę ołówkiem" = I write with a pencil.'
+  },
+  {
+    id: 'gram_167',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case (after "z"):',
+    sentence: 'Jem chleb z ___ (I eat bread with butter)',
+    hint: '"Z" (with) requires instrumental case',
+    options: ['masło', 'masła', 'masłem', 'maśle'],
+    correctIndex: 2,
+    explanation: 'Rule: "Z" (with) requires instrumental. Neuter nouns: masło → masłem. "Z masłem" = with butter.'
+  },
+  // More accusative
+  {
+    id: 'gram_168',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the accusative case:',
+    sentence: 'Czytam ___ (I read a newspaper)',
+    hint: 'Feminine nouns ending in -a change to -ę in accusative',
+    options: ['gazeta', 'gazetę', 'gazety', 'gazetą'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine nouns ending in -a change to -ę in accusative. Gazeta → gazetę. "Czytam gazetę" = I read a newspaper.'
+  },
+  {
+    id: 'gram_169',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete using the accusative case:',
+    sentence: 'Piję ___ (I drink water)',
+    hint: 'Feminine nouns ending in -a change to -ę in accusative',
+    options: ['woda', 'wodę', 'wody', 'wodą'],
+    correctIndex: 1,
+    explanation: 'Rule: Feminine nouns ending in -a change to -ę in accusative. Woda → wodę. "Piję wodę" = I drink water.'
+  },
+  // More comparisons
+  {
+    id: 'gram_170',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct comparative adjective:',
+    sentence: 'To drzewo jest ___ od tamtego (This tree is taller than that one)',
+    hint: 'Comparative of "wysoki" (tall)',
+    options: ['wysoki', 'wyższy', 'najwyższy', 'wysoka'],
+    correctIndex: 1,
+    explanation: 'Rule: Comparative of "wysoki" is "wyższy" (taller). Irregular: wysoki → wyższy → najwyższy.'
+  },
+  {
+    id: 'gram_171',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Choose the correct comparative adjective:',
+    sentence: 'Ten pokój jest ___ od tamtego (This room is warmer than that one)',
+    hint: 'Comparative of "ciepły" (warm)',
+    options: ['ciepły', 'cieplejszy', 'najcieplejszy', 'ciepła'],
+    correctIndex: 1,
+    explanation: 'Rule: Comparative of "ciepły" is "cieplejszy" (warmer). Regular pattern: stem + -ejszy. Superlative: najcieplejszy.'
+  },
+  // More past tense
+  {
+    id: 'gram_172',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (feminine plural):',
+    sentence: 'Dziewczynki ___ piosenkę (The girls sang a song)',
+    hint: 'Feminine plural past tense ends in -ły',
+    options: ['śpiewał', 'śpiewała', 'śpiewały', 'śpiewali'],
+    correctIndex: 2,
+    explanation: 'Rule: Feminine/non-masculine-personal plural past tense uses -ły. Dziewczynki śpiewały = The girls sang.'
+  },
+  {
+    id: 'gram_173',
+    difficulty: 2,
+    category: 'grammar',
+    prompt: 'Complete with the past tense (first person masculine):',
+    sentence: 'Ja ___ do szkoły (I went to school)',
+    hint: 'First person masculine past tense of "iść"',
+    options: ['szedłem', 'szłam', 'szło', 'szli'],
+    correctIndex: 0,
+    explanation: 'Rule: Past tense of "iść" (to go): ja szedłem (masc.) / ja szłam (fem.). Irregular verb with stem change.'
+  },
+
+  // DIFFICULTY 3 - Hard (44 questions: gram_174 - gram_217)
+
+  // Genitive case (nie ma + genitive)
+  {
+    id: 'gram_174',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete the negation (requires genitive):',
+    sentence: 'Nie ma ___ (There is no water)',
+    hint: 'Negation of existence uses genitive',
+    options: ['woda', 'wody', 'wodę', 'wodą'],
+    correctIndex: 1,
+    explanation: 'Rule: "Nie ma" + genitive. Feminine nouns: woda → wody. "Nie ma wody" = There is no water.'
+  },
+  {
+    id: 'gram_175',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the genitive case (after "dla"):',
+    sentence: 'To jest prezent dla ___ (This is a gift for mom)',
+    hint: '"Dla" (for) requires genitive case',
+    options: ['mama', 'mamę', 'mamy', 'mamą'],
+    correctIndex: 2,
+    explanation: 'Rule: "Dla" (for) requires genitive. Mama → mamy. "Dla mamy" = for mom.'
+  },
+  {
+    id: 'gram_176',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the genitive case (after "blisko"):',
+    sentence: 'Mieszkam blisko ___ (I live near the school)',
+    hint: '"Blisko" (near) requires genitive case',
+    options: ['szkoła', 'szkołę', 'szkoły', 'szkołą'],
+    correctIndex: 2,
+    explanation: 'Rule: "Blisko" (near) requires genitive. Szkoła → szkoły. "Blisko szkoły" = near the school.'
+  },
+  {
+    id: 'gram_177',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the genitive case (quantity):',
+    sentence: 'Mam dużo ___ (I have a lot of books)',
+    hint: 'Quantity expressions require genitive plural',
+    options: ['książki', 'książek', 'książkami', 'książkom'],
+    correctIndex: 1,
+    explanation: 'Rule: Quantity words (dużo, mało, ile) require genitive plural. Książki → książek. "Dużo książek" = a lot of books.'
+  },
+  // Dative case (daję kotu)
+  {
+    id: 'gram_178',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the dative case:',
+    sentence: 'Daję mleko ___ (I give milk to the cat)',
+    hint: 'The recipient takes dative case',
+    options: ['kot', 'kota', 'kotu', 'kotem'],
+    correctIndex: 2,
+    explanation: 'Rule: The recipient of an action takes dative. Masculine nouns: kot → kotu. "Daję mleko kotu" = I give milk to the cat.'
+  },
+  {
+    id: 'gram_179',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the dative case:',
+    sentence: 'Daję prezent ___ (I give a gift to the girl)',
+    hint: 'The recipient takes dative case',
+    options: ['dziewczynka', 'dziewczynkę', 'dziewczynce', 'dziewczynką'],
+    correctIndex: 2,
+    explanation: 'Rule: Feminine nouns in dative: -ka → -ce. Dziewczynka → dziewczynce. "Daję prezent dziewczynce" = I give a gift to the girl.'
+  },
+  {
+    id: 'gram_180',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the dative case:',
+    sentence: 'Podoba mi ___ ten obraz (I like this painting)',
+    hint: '"Podobać się" uses dative for the person who likes',
+    options: ['ja', 'mnie', 'mną', 'się'],
+    correctIndex: 3,
+    explanation: 'Rule: "Podobać się" uses dative + się. "Podoba mi się" = I like (literally: it pleases to me). "Mi" is dative of "ja".'
+  },
+  {
+    id: 'gram_181',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the dative case:',
+    sentence: 'Kupuję zabawkę ___ (I buy a toy for the child)',
+    hint: 'The beneficiary takes dative case',
+    options: ['dziecko', 'dziecka', 'dziecku', 'dzieckiem'],
+    correctIndex: 2,
+    explanation: 'Rule: Neuter nouns in dative: -o → -u. Dziecko → dziecku. "Kupuję zabawkę dziecku" = I buy a toy for the child.'
+  },
+  // Vocative case
+  {
+    id: 'gram_182',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the vocative case (addressing someone):',
+    sentence: '___, chodź tutaj! (Mom, come here!)',
+    hint: 'Vocative of feminine names/nouns ending in -a',
+    options: ['Mama', 'Mamę', 'Mamo', 'Mamą'],
+    correctIndex: 2,
+    explanation: 'Rule: Vocative of feminine nouns ending in -a: change -a to -o. Mama → Mamo! Used when calling someone directly.'
+  },
+  {
+    id: 'gram_183',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the vocative case (addressing someone):',
+    sentence: '___, gdzie jesteś? (Piotr, where are you?)',
+    hint: 'Vocative of masculine names ending in a hard consonant',
+    options: ['Piotr', 'Piotra', 'Piotrze', 'Piotrem'],
+    correctIndex: 2,
+    explanation: 'Rule: Vocative of masculine nouns often adds -ze or -e. Piotr → Piotrze! Used for direct address.'
+  },
+  {
+    id: 'gram_184',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the vocative case:',
+    sentence: '___, pomóż nam! (God, help us!)',
+    hint: 'Vocative of "Bóg" (God)',
+    options: ['Bóg', 'Boga', 'Boże', 'Bogiem'],
+    correctIndex: 2,
+    explanation: 'Rule: Vocative of "Bóg" is "Boże". The ó→o change and -że ending. "Boże, pomóż nam!" = God, help us!'
+  },
+  // Conditional mood
+  {
+    id: 'gram_185',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the conditional form:',
+    sentence: '___ pojechać na wakacje (I would like to go on vacation)',
+    hint: 'Conditional of "chcieć" (first person masculine)',
+    options: ['Chcę', 'Chciałem', 'Chciałbym', 'Chcąc'],
+    correctIndex: 2,
+    explanation: 'Rule: Conditional = past tense + by (+ personal ending). Chciałbym = I would like (masc.). Feminine: chciałabym.'
+  },
+  {
+    id: 'gram_186',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the conditional form:',
+    sentence: 'Gdybym miał pieniądze, ___ nowy dom (If I had money, I would buy a new house)',
+    hint: 'Conditional of "kupić" (masculine)',
+    options: ['kupię', 'kupiłem', 'kupiłbym', 'kupując'],
+    correctIndex: 2,
+    explanation: 'Rule: Conditional: kupiłbym = I would buy (masc.). "Gdybym" = if I. Used for hypothetical situations.'
+  },
+  {
+    id: 'gram_187',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the conditional form:',
+    sentence: 'Ona ___ ci pomóc (She would help you)',
+    hint: 'Conditional of "móc" (feminine)',
+    options: ['może', 'mogła', 'mogłaby', 'mogąc'],
+    correctIndex: 2,
+    explanation: 'Rule: Conditional feminine: mogłaby = she would be able to. Past stem (mogła) + by = mogłaby.'
+  },
+  // Perfective/imperfective aspect
+  {
+    id: 'gram_188',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the perfective verb (completed action):',
+    sentence: 'Wczoraj ___ list (Yesterday I wrote a letter - completed)',
+    hint: 'Perfective = completed action',
+    options: ['pisałem', 'napisałem', 'piszę', 'napiszę'],
+    correctIndex: 1,
+    explanation: 'Rule: Perfective verbs show completed actions. Pisać (imperfective) → napisać (perfective). "Napisałem" = I wrote (and finished).'
+  },
+  {
+    id: 'gram_189',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the imperfective verb (ongoing action):',
+    sentence: 'Codziennie ___ książki (Every day I read books - ongoing)',
+    hint: 'Imperfective = ongoing/repeated action',
+    options: ['przeczytam', 'przeczytałem', 'czytam', 'przeczytać'],
+    correctIndex: 2,
+    explanation: 'Rule: Imperfective verbs show ongoing/repeated actions. Czytam (I read, regularly). Przeczytam = I will read (and finish).'
+  },
+  {
+    id: 'gram_190',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the perfective verb for future completed action:',
+    sentence: 'Jutro ___ ten film (Tomorrow I will watch this movie - will finish)',
+    hint: 'Perfective future = will complete the action',
+    options: ['oglądam', 'oglądałem', 'obejrzę', 'oglądać'],
+    correctIndex: 2,
+    explanation: 'Rule: Perfective future shows action will be completed. Oglądać (imperf.) → obejrzeć (perf.). "Obejrzę" = I will watch (to completion).'
+  },
+  {
+    id: 'gram_191',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the imperfective past (ongoing past action):',
+    sentence: 'Gdy byłem mały, ___ na rowerze (When I was small, I used to ride a bike)',
+    hint: 'Imperfective past = habitual/repeated past action',
+    options: ['pojechałem', 'jeździłem', 'pojadę', 'jeżdżę'],
+    correctIndex: 1,
+    explanation: 'Rule: Imperfective past shows habitual actions. Jeździłem = I used to ride. Pojechałem = I rode (once, completed).'
+  },
+  // Complex verb forms
+  {
+    id: 'gram_192',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the correct reflexive verb form:',
+    sentence: 'Dzieci ___ się w ogrodzie (Children are playing in the garden)',
+    hint: 'Reflexive verb "bawić się" (to play)',
+    options: ['bawię', 'bawisz', 'bawi', 'bawią'],
+    correctIndex: 3,
+    explanation: 'Rule: "Bawić się" (to play): oni/one bawią się. Dzieci (children) takes 3rd person plural. "Bawią się" = they play.'
+  },
+  {
+    id: 'gram_193',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the correct form:',
+    sentence: 'Musisz ___ się uczyć (You must learn)',
+    hint: '"Musieć" (must) + infinitive',
+    options: ['się uczyć', 'uczysz', 'uczyć', 'nauczyć'],
+    correctIndex: 0,
+    explanation: 'Rule: Modal verbs (musieć, móc, chcieć) are followed by infinitives. "Musisz się uczyć" = You must learn (oneself).'
+  },
+  {
+    id: 'gram_194',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete the impersonal construction:',
+    sentence: '___ tu wchodzić (It is forbidden to enter here)',
+    hint: 'Impersonal prohibition',
+    options: ['Nie wolno', 'Nie chcę', 'Nie mogę', 'Nie lubię'],
+    correctIndex: 0,
+    explanation: 'Rule: "Nie wolno" + infinitive = it is forbidden to. Impersonal construction, no subject needed. "Nie wolno tu wchodzić."'
+  },
+  // Pronoun declension
+  {
+    id: 'gram_195',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct pronoun form (accusative):',
+    sentence: 'Widzę ___ (I see you)',
+    hint: 'Accusative form of "ty" (you)',
+    options: ['ty', 'cię', 'tobie', 'tobą'],
+    correctIndex: 1,
+    explanation: 'Rule: Pronoun "ty" in accusative = cię (or ciebie for emphasis). "Widzę cię" = I see you.'
+  },
+  {
+    id: 'gram_196',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct pronoun form (dative):',
+    sentence: 'Daję ___ prezent (I give you a gift)',
+    hint: 'Dative form of "ty" (you)',
+    options: ['ty', 'cię', 'ci', 'tobą'],
+    correctIndex: 2,
+    explanation: 'Rule: Pronoun "ty" in dative = ci (or tobie for emphasis). "Daję ci prezent" = I give you a gift.'
+  },
+  {
+    id: 'gram_197',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct pronoun form (genitive):',
+    sentence: 'Nie ma ___ w domu (He is not at home)',
+    hint: 'Genitive form of "on" (he)',
+    options: ['on', 'go', 'jemu', 'nim'],
+    correctIndex: 1,
+    explanation: 'Rule: Pronoun "on" in genitive = go (or jego for emphasis). "Nie ma go" = He is not here.'
+  },
+  {
+    id: 'gram_198',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct pronoun form (instrumental):',
+    sentence: 'Idę z ___ (I go with her)',
+    hint: 'Instrumental form of "ona" (she)',
+    options: ['ona', 'jej', 'ją', 'nią'],
+    correctIndex: 3,
+    explanation: 'Rule: Pronoun "ona" in instrumental = nią. After prepositions, use "n-" forms: z nią, o niej, do niej.'
+  },
+  {
+    id: 'gram_199',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct pronoun form (locative):',
+    sentence: 'Myślę o ___ (I think about them)',
+    hint: 'Locative form of "oni" (they)',
+    options: ['oni', 'ich', 'im', 'nich'],
+    correctIndex: 3,
+    explanation: 'Rule: Pronoun "oni" in locative = nich. After prepositions: o nich, z nimi, do nich. "Myślę o nich" = I think about them.'
+  },
+  // Relative clauses
+  {
+    id: 'gram_200',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct relative pronoun:',
+    sentence: 'To jest kot, ___ mieszka tutaj (This is the cat that lives here)',
+    hint: 'Relative pronoun "who/that" for masculine',
+    options: ['który', 'która', 'które', 'którzy'],
+    correctIndex: 0,
+    explanation: 'Rule: "Który" is the masculine relative pronoun (who/that/which). Kot is masculine → który. "Kot, który mieszka tutaj."'
+  },
+  {
+    id: 'gram_201',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct relative pronoun:',
+    sentence: 'To jest sowa, ___ lata w nocy (This is the owl that flies at night)',
+    hint: 'Relative pronoun "who/that" for feminine',
+    options: ['który', 'która', 'które', 'którzy'],
+    correctIndex: 1,
+    explanation: 'Rule: "Która" is the feminine relative pronoun. Sowa is feminine → która. "Sowa, która lata w nocy."'
+  },
+  {
+    id: 'gram_202',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct relative pronoun:',
+    sentence: 'To jest dziecko, ___ się bawi (This is the child that is playing)',
+    hint: 'Relative pronoun "who/that" for neuter',
+    options: ['który', 'która', 'które', 'którzy'],
+    correctIndex: 2,
+    explanation: 'Rule: "Które" is the neuter relative pronoun. Dziecko is neuter → które. "Dziecko, które się bawi."'
+  },
+  {
+    id: 'gram_203',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct relative pronoun:',
+    sentence: 'To są rycerze, ___ walczą ze smokiem (These are knights who fight the dragon)',
+    hint: 'Relative pronoun for masculine personal plural',
+    options: ['który', 'która', 'które', 'którzy'],
+    correctIndex: 3,
+    explanation: 'Rule: "Którzy" is the masculine personal plural relative pronoun. Rycerze → którzy. "Rycerze, którzy walczą."'
+  },
+  // Numbers with cases
+  {
+    id: 'gram_204',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct form after the number:',
+    sentence: 'Mam dwa ___ (I have two cats)',
+    hint: 'After 2-4, masculine animate nouns use special form',
+    options: ['koty', 'kot', 'kotów', 'kotem'],
+    correctIndex: 0,
+    explanation: 'Rule: After numbers 2-4, nouns take nominative plural. Dwa koty (two cats). But after 5+, genitive plural: pięć kotów.'
+  },
+  {
+    id: 'gram_205',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct form after the number:',
+    sentence: 'Mam pięć ___ (I have five books)',
+    hint: 'After 5+, nouns take genitive plural',
+    options: ['książki', 'książka', 'książek', 'książką'],
+    correctIndex: 2,
+    explanation: 'Rule: After numbers 5 and above, nouns take genitive plural. Pięć książek (five books). Książka → książek (gen. pl.).'
+  },
+  {
+    id: 'gram_206',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct form after the number:',
+    sentence: 'Widzę trzy ___ (I see three dogs)',
+    hint: 'After 2-4, use nominative plural',
+    options: ['pies', 'psy', 'psów', 'psem'],
+    correctIndex: 1,
+    explanation: 'Rule: After numbers 2-4, nouns take nominative plural. Trzy psy (three dogs). After 5+: pięć psów (genitive plural).'
+  },
+  {
+    id: 'gram_207',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct form after the number:',
+    sentence: 'Jest siedem ___ (There are seven windows)',
+    hint: 'After 5+, neuter nouns take genitive plural',
+    options: ['okno', 'okna', 'okien', 'oknem'],
+    correctIndex: 2,
+    explanation: 'Rule: After 5+, nouns take genitive plural. Okno → okien (gen. pl.). "Siedem okien" = seven windows.'
+  },
+  // More complex cases
+  {
+    id: 'gram_208',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the genitive plural:',
+    sentence: 'Nie mam ___ (I don\'t have friends)',
+    hint: 'Negation of "mieć" requires genitive',
+    options: ['przyjaciele', 'przyjaciół', 'przyjaciółmi', 'przyjaciołom'],
+    correctIndex: 1,
+    explanation: 'Rule: Negation + "mieć" requires genitive. Przyjaciel → przyjaciół (gen. pl.). "Nie mam przyjaciół" = I have no friends.'
+  },
+  {
+    id: 'gram_209',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the correct preposition and case:',
+    sentence: 'Idę ___ sklep (I am going to the shop)',
+    hint: 'Direction toward a place',
+    options: ['do sklepu', 'w sklepie', 'na sklep', 'ze sklepem'],
+    correctIndex: 0,
+    explanation: 'Rule: "Do" + genitive expresses direction toward. Sklep → sklepu (gen.). "Idę do sklepu" = I go to the shop.'
+  },
+  // More imperatives
+  {
+    id: 'gram_210',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the imperative (command form):',
+    sentence: '___ cicho! (Be quiet!)',
+    hint: 'Command form of "być cicho"',
+    options: ['Jestem', 'Jesteś', 'Bądź', 'Będziesz'],
+    correctIndex: 2,
+    explanation: 'Rule: "Bądź" is the imperative of "być". "Bądź cicho!" = Be quiet! Used for commands and requests.'
+  },
+  {
+    id: 'gram_211',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the imperative (command form):',
+    sentence: '___ mi pomóc! (Help me!)',
+    hint: 'Polite command using "proszę"',
+    options: ['Chcesz', 'Proszę', 'Musisz', 'Możesz'],
+    correctIndex: 1,
+    explanation: 'Rule: "Proszę" + infinitive is a polite command. "Proszę mi pomóc" = Please help me. More formal than bare imperative.'
+  },
+  // More conditional
+  {
+    id: 'gram_212',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete with the conditional form:',
+    sentence: 'Gdyby padał deszcz, ___ w domu (If it rained, I would stay at home)',
+    hint: 'Conditional of "zostać" (masculine)',
+    options: ['zostanę', 'zostałem', 'zostałbym', 'zostając'],
+    correctIndex: 2,
+    explanation: 'Rule: Conditional: zostałbym = I would stay (masc.). "Gdyby" introduces the condition. Past stem + by + personal ending.'
+  },
+  // More complex verb forms
+  {
+    id: 'gram_213',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct aspect for the context:',
+    sentence: 'Właśnie ___ obiad (I am just cooking dinner - in progress)',
+    hint: 'Imperfective for ongoing action',
+    options: ['gotuję', 'ugotuję', 'ugotowałem', 'gotować'],
+    correctIndex: 0,
+    explanation: 'Rule: Use imperfective for actions in progress. Gotuję (I am cooking, ongoing). Ugotuję = I will cook (and finish).'
+  },
+  {
+    id: 'gram_214',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Choose the correct perfective future:',
+    sentence: 'Jutro ___ ten list (Tomorrow I will write this letter - complete it)',
+    hint: 'Perfective future of "pisać"',
+    options: ['piszę', 'pisałem', 'napiszę', 'napisałem'],
+    correctIndex: 2,
+    explanation: 'Rule: Perfective future = completion. Pisać (imperf.) → napisać (perf.). "Napiszę" = I will write (and finish).'
+  },
+  // Instrumental as predicate
+  {
+    id: 'gram_215',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case (with "być"):',
+    sentence: 'Chcę być ___ (I want to be a doctor)',
+    hint: 'Professions after "być" use instrumental',
+    options: ['lekarz', 'lekarza', 'lekarzem', 'lekarzu'],
+    correctIndex: 2,
+    explanation: 'Rule: After "być" (to be), professions/roles take instrumental. Lekarz → lekarzem. "Chcę być lekarzem" = I want to be a doctor.'
+  },
+  {
+    id: 'gram_216',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete using the instrumental case (with "zostać"):',
+    sentence: 'Ona chce zostać ___ (She wants to become a teacher)',
+    hint: '"Zostać" (to become) requires instrumental',
+    options: ['nauczycielka', 'nauczycielkę', 'nauczycielką', 'nauczycielce'],
+    correctIndex: 2,
+    explanation: 'Rule: "Zostać" (to become) takes instrumental. Nauczycielka → nauczycielką. "Zostać nauczycielką" = to become a teacher.'
+  },
+  {
+    id: 'gram_217',
+    difficulty: 3,
+    category: 'grammar',
+    prompt: 'Complete the sentence with the correct form:',
+    sentence: 'Im więcej czytam, ___ więcej wiem (The more I read, the more I know)',
+    hint: 'Correlative construction "im... tym..."',
+    options: ['to', 'tym', 'ten', 'tych'],
+    correctIndex: 1,
+    explanation: 'Rule: "Im... tym..." is a correlative construction meaning "the more... the more...". "Im więcej czytam, tym więcej wiem."'
   }
 ];
 

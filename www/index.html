@@ -38,6 +38,28 @@
         </div>
       </div>
 
+      <div id="profile-stats" class="profile-stats hidden">
+        <h3>Your Learning Progress / Twoje Postępy</h3>
+        <div class="profile-stats-grid">
+          <div class="profile-stat">
+            <span class="profile-stat-value" id="profile-runs">0</span>
+            <span class="profile-stat-label">Runs / Przejścia</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat-value" id="profile-mastered">0</span>
+            <span class="profile-stat-label">Mastered / Opanowane</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat-value" id="profile-seen">0</span>
+            <span class="profile-stat-label">Seen / Widziane</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat-value" id="profile-accuracy">0%</span>
+            <span class="profile-stat-label">Accuracy / Dokładność</span>
+          </div>
+        </div>
+      </div>
+
       <div class="saved-games">
         <h3>Saved Adventures</h3>
         <div id="saved-games-list">
@@ -141,6 +163,31 @@
       </div>
     </div>
 
+    <!-- Matching Modal -->
+    <div id="matching-modal" class="modal hidden">
+      <div class="modal-content matching-content">
+        <div class="monster-display">
+          <img id="matching-monster-image" src="assets/placeholder.svg" alt="Monster">
+          <h2 id="matching-monster-name">Monster</h2>
+          <p id="matching-monster-description" class="monster-description">Description</p>
+        </div>
+
+        <p id="matching-instruction" class="matching-instruction">
+          <span class="label-en">Match the pairs!</span>
+          <span class="label-pl">Dopasuj pary!</span>
+        </p>
+
+        <div class="matching-columns">
+          <div id="matching-left" class="matching-column">
+            <!-- Left column items -->
+          </div>
+          <div id="matching-right" class="matching-column">
+            <!-- Right column items -->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Result Modal -->
     <div id="result-modal" class="modal hidden">
       <div class="modal-content result-content">
@@ -206,6 +253,8 @@
   <script src="js/data/vocabulary.js"></script>
   <script src="js/data/vocabulary-reverse.js"></script>
   <script src="js/data/grammar.js"></script>
+  <script src="js/data/matching.js"></script>
+  <script src="js/data/pronoun-matching.js"></script>
   <script src="js/data/monsters.js"></script>
 
   <!-- Load maze generator library -->
@@ -230,7 +279,9 @@
   <script src="js/platform-init.js"></script>
 
   <!-- Load modules -->
+  <script src="js/modules/profile.js"></script>
   <script src="js/modules/questions.js"></script>
+  <script src="js/modules/matching.js"></script>
   <script src="js/modules/player.js"></script>
   <script src="js/modules/save.js"></script>
   <script src="js/modules/descriptions.js"></script>
