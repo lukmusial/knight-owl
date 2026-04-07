@@ -963,10 +963,10 @@ const MATCHING_QUESTIONS = [
   {
     id: 'match_092', difficulty: 2, category: 'matching',
     pairs: [
-      { left: 'dentist', right: 'dentysta' },
-      { left: 'scientist', right: 'naukowiec' },
-      { left: 'lawyer', right: 'prawnik' },
-      { left: 'journalist', right: 'dziennikarz' }
+      { left: 'firefighter', right: 'strażak' },
+      { left: 'vet', right: 'weterynarz' },
+      { left: 'bus driver', right: 'kierowca' },
+      { left: 'postman', right: 'listonosz' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1319,10 +1319,10 @@ const MATCHING_QUESTIONS = [
   {
     id: 'match_126', difficulty: 2, category: 'matching',
     pairs: [
-      { left: 'recipe', right: 'przepis' },
-      { left: 'ingredient', right: 'składnik' },
-      { left: 'flavor', right: 'smak' },
-      { left: 'portion', right: 'porcja' }
+      { left: 'plate', right: 'talerz' },
+      { left: 'cup', right: 'filiżanka' },
+      { left: 'bowl', right: 'miska' },
+      { left: 'tray', right: 'taca' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1341,10 +1341,10 @@ const MATCHING_QUESTIONS = [
   {
     id: 'match_128', difficulty: 2, category: 'matching',
     pairs: [
-      { left: 'pliers', right: 'szczypce' },
-      { left: 'drill', right: 'wiertarka' },
-      { left: 'wrench', right: 'klucz' },
-      { left: 'screw', right: 'śruba' }
+      { left: 'watering can', right: 'konewka' },
+      { left: 'rake', right: 'grabie' },
+      { left: 'wheelbarrow', right: 'taczka' },
+      { left: 'broom', right: 'miotła' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1503,60 +1503,60 @@ const MATCHING_QUESTIONS = [
   {
     id: 'match_143', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'freedom', right: 'wolność' },
-      { left: 'justice', right: 'sprawiedliwość' },
-      { left: 'truth', right: 'prawda' },
-      { left: 'wisdom', right: 'mądrość' }
+      { left: 'magic', right: 'magia' },
+      { left: 'treasure', right: 'skarb' },
+      { left: 'adventure', right: 'przygoda' },
+      { left: 'secret', right: 'sekret' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_144', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'courage', right: 'odwaga' },
-      { left: 'patience', right: 'cierpliwość' },
-      { left: 'kindness', right: 'życzliwość' },
-      { left: 'honesty', right: 'uczciwość' }
+      { left: 'swing', right: 'huśtawka' },
+      { left: 'slide', right: 'zjeżdżalnia' },
+      { left: 'merry-go-round', right: 'karuzela' },
+      { left: 'sandbox', right: 'piaskownica' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_145', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'knowledge', right: 'wiedza' },
-      { left: 'experience', right: 'doświadczenie' },
-      { left: 'imagination', right: 'wyobraźnia' },
-      { left: 'memory', right: 'pamięć' }
+      { left: 'tent', right: 'namiot' },
+      { left: 'campfire', right: 'ognisko' },
+      { left: 'backpack', right: 'plecak' },
+      { left: 'compass', right: 'kompas' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_146', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'success', right: 'sukces' },
-      { left: 'failure', right: 'porażka' },
-      { left: 'responsibility', right: 'odpowiedzialność' },
-      { left: 'opportunity', right: 'okazja' }
+      { left: 'rocket', right: 'rakieta' },
+      { left: 'astronaut', right: 'astronauta' },
+      { left: 'planet', right: 'planeta' },
+      { left: 'alien', right: 'kosmita' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_147', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'tradition', right: 'tradycja' },
-      { left: 'culture', right: 'kultura' },
-      { left: 'heritage', right: 'dziedzictwo' },
-      { left: 'identity', right: 'tożsamość' }
+      { left: 'barn', right: 'stodoła' },
+      { left: 'tractor', right: 'traktor' },
+      { left: 'hay', right: 'siano' },
+      { left: 'fence', right: 'płot' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_148', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'democracy', right: 'demokracja' },
-      { left: 'government', right: 'rząd' },
-      { left: 'law', right: 'prawo' },
-      { left: 'citizen', right: 'obywatel' }
+      { left: 'wave', right: 'fala' },
+      { left: 'shell', right: 'muszelka' },
+      { left: 'sandcastle', right: 'zamek z piasku' },
+      { left: 'seagull', right: 'mewa' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1565,50 +1565,50 @@ const MATCHING_QUESTIONS = [
   {
     id: 'match_149', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'gravity', right: 'grawitacja' },
-      { left: 'energy', right: 'energia' },
-      { left: 'temperature', right: 'temperatura' },
-      { left: 'pressure', right: 'ciśnienie' }
+      { left: 'magnet', right: 'magnes' },
+      { left: 'rainbow', right: 'tęcza' },
+      { left: 'shadow', right: 'cień' },
+      { left: 'mirror', right: 'lustro' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_150', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'experiment', right: 'eksperyment' },
-      { left: 'discovery', right: 'odkrycie' },
-      { left: 'research', right: 'badanie' },
-      { left: 'hypothesis', right: 'hipoteza' }
+      { left: 'dinosaur', right: 'dinozaur' },
+      { left: 'fossil', right: 'skamieniałość' },
+      { left: 'skeleton', right: 'szkielet' },
+      { left: 'volcano', right: 'wulkan' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_151', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'atom', right: 'atom' },
-      { left: 'molecule', right: 'cząsteczka' },
-      { left: 'cell', right: 'komórka' },
-      { left: 'organism', right: 'organizm' }
+      { left: 'ladybug', right: 'biedronka' },
+      { left: 'caterpillar', right: 'gąsienica' },
+      { left: 'dragonfly', right: 'ważka' },
+      { left: 'snail', right: 'ślimak' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_152', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'planet', right: 'planeta' },
-      { left: 'orbit', right: 'orbita' },
-      { left: 'galaxy', right: 'galaktyka' },
-      { left: 'universe', right: 'wszechświat' }
+      { left: 'spaceship', right: 'statek kosmiczny' },
+      { left: 'comet', right: 'kometa' },
+      { left: 'telescope', right: 'teleskop' },
+      { left: 'crater', right: 'krater' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_153', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'evolution', right: 'ewolucja' },
-      { left: 'species', right: 'gatunek' },
-      { left: 'ecosystem', right: 'ekosystem' },
-      { left: 'habitat', right: 'siedlisko' }
+      { left: 'leash', right: 'smycz' },
+      { left: 'collar', right: 'obroża' },
+      { left: 'paw', right: 'łapa' },
+      { left: 'tail', right: 'ogon' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1627,30 +1627,30 @@ const MATCHING_QUESTIONS = [
   {
     id: 'match_155', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'volcano', right: 'wulkan' },
-      { left: 'earthquake', right: 'trzęsienie ziemi' },
-      { left: 'peninsula', right: 'półwysep' },
-      { left: 'archipelago', right: 'archipelag' }
+      { left: 'beach', right: 'plaża' },
+      { left: 'cliff', right: 'klif' },
+      { left: 'cave', right: 'jaskinia' },
+      { left: 'waterfall', right: 'wodospad' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_156', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'border', right: 'granica' },
-      { left: 'capital', right: 'stolica' },
-      { left: 'population', right: 'ludność' },
-      { left: 'region', right: 'region' }
+      { left: 'country', right: 'kraj' },
+      { left: 'city', right: 'miasto' },
+      { left: 'village', right: 'wieś' },
+      { left: 'flag', right: 'flaga' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_157', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'equator', right: 'równik' },
-      { left: 'latitude', right: 'szerokość geograficzna' },
-      { left: 'longitude', right: 'długość geograficzna' },
-      { left: 'hemisphere', right: 'półkula' }
+      { left: 'pirate', right: 'pirat' },
+      { left: 'map', right: 'mapa' },
+      { left: 'parrot', right: 'papuga' },
+      { left: 'ship', right: 'statek' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1711,19 +1711,19 @@ const MATCHING_QUESTIONS = [
   {
     id: 'match_163', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'fairy tale', right: 'baśń' },
-      { left: 'legend', right: 'legenda' },
-      { left: 'myth', right: 'mit' },
-      { left: 'proverb', right: 'przysłowie' }
+      { left: 'fairy tale', right: 'bajka' },
+      { left: 'story', right: 'opowiadanie' },
+      { left: 'hero', right: 'bohater' },
+      { left: 'dragon', right: 'smok' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_164', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'folk music', right: 'muzyka ludowa' },
+      { left: 'dance', right: 'taniec' },
+      { left: 'parade', right: 'parada' },
       { left: 'costume', right: 'kostium' },
-      { left: 'ceremony', right: 'ceremonia' },
       { left: 'feast', right: 'uczta' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
@@ -1745,18 +1745,18 @@ const MATCHING_QUESTIONS = [
     pairs: [
       { left: 'medicine', right: 'lekarstwo' },
       { left: 'bandage', right: 'bandaż' },
-      { left: 'injection', right: 'zastrzyk' },
-      { left: 'prescription', right: 'recepta' }
+      { left: 'plaster', right: 'plaster' },
+      { left: 'thermometer', right: 'termometr' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_167', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'allergy', right: 'alergia' },
-      { left: 'infection', right: 'infekcja' },
-      { left: 'symptom', right: 'objaw' },
-      { left: 'diagnosis', right: 'diagnoza' }
+      { left: 'cold', right: 'przeziębienie' },
+      { left: 'cough', right: 'kaszel' },
+      { left: 'sneeze', right: 'kichanie' },
+      { left: 'fever', right: 'gorączka' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1786,9 +1786,9 @@ const MATCHING_QUESTIONS = [
     id: 'match_170', difficulty: 3, category: 'matching',
     pairs: [
       { left: 'internet', right: 'internet' },
-      { left: 'website', right: 'strona internetowa' },
+      { left: 'tablet', right: 'tablet' },
       { left: 'password', right: 'hasło' },
-      { left: 'software', right: 'oprogramowanie' }
+      { left: 'game', right: 'gra' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1809,8 +1809,8 @@ const MATCHING_QUESTIONS = [
     pairs: [
       { left: 'invisible', right: 'niewidzialny' },
       { left: 'enormous', right: 'ogromny' },
-      { left: 'fragile', right: 'kruchy' },
-      { left: 'ancient', right: 'starożytny' }
+      { left: 'magical', right: 'magiczny' },
+      { left: 'scary', right: 'straszny' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
@@ -1818,19 +1818,19 @@ const MATCHING_QUESTIONS = [
     id: 'match_173', difficulty: 3, category: 'matching',
     pairs: [
       { left: 'mysterious', right: 'tajemniczy' },
-      { left: 'magnificent', right: 'wspaniały' },
+      { left: 'wonderful', right: 'cudowny' },
       { left: 'ordinary', right: 'zwyczajny' },
-      { left: 'extraordinary', right: 'niezwykły' }
+      { left: 'strange', right: 'dziwny' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },
   {
     id: 'match_174', difficulty: 3, category: 'matching',
     pairs: [
-      { left: 'permanent', right: 'trwały' },
-      { left: 'temporary', right: 'tymczasowy' },
-      { left: 'independent', right: 'niezależny' },
-      { left: 'essential', right: 'niezbędny' }
+      { left: 'shiny', right: 'błyszczący' },
+      { left: 'fluffy', right: 'puszysty' },
+      { left: 'sticky', right: 'lepki' },
+      { left: 'smelly', right: 'śmierdzący' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   }
