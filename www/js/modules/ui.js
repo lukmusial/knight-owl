@@ -123,6 +123,8 @@ const UI = (function() {
     // Don't handle if a modal is open or input is focused
     if (elements.quizModal && !elements.quizModal.classList.contains('hidden')) return;
     if (elements.resultModal && !elements.resultModal.classList.contains('hidden')) return;
+    if (elements.matchingModal && !elements.matchingModal.classList.contains('hidden')) return;
+    if (elements.treasureModal && !elements.treasureModal.classList.contains('hidden')) return;
     if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
 
     // Map arrow keys to directions

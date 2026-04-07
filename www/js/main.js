@@ -7,6 +7,7 @@ const Game = (function() {
   // Game state
   let initialized = false;
   let gameInProgress = false;
+  let navigating = false;
 
   // Current navigation options (for swipe/keyboard direction mapping)
   let currentNavOptions = [];
@@ -296,6 +297,10 @@ const Game = (function() {
    * @param {string} roomId - Room to enter
    */
   function enterRoom(roomId) {
+    // Lock navigation while processing room entry
+    navigating = true;
+    currentNavOptions = [];
+
     // Update player location
     if (roomId !== Player.getCurrentRoom()) {
       Player.moveTo(roomId);
@@ -394,6 +399,9 @@ const Game = (function() {
     // Store current options for swipe/keyboard direction mapping
     currentNavOptions = options;
 
+    // Unlock navigation now that options are ready
+    navigating = false;
+
     UI.renderNavigation(options, handleNavigation);
   }
 
@@ -402,8 +410,8 @@ const Game = (function() {
    * @param {string} direction - Direction to navigate (North, South, East, West)
    */
   function handleDirectionNavigation(direction) {
-    // Don't navigate if game is not in progress or we're in combat
-    if (!gameInProgress) return;
+    // Don't navigate if game is not in progress, in combat, or already navigating
+    if (!gameInProgress || navigating) return;
 
     // Find navigation option matching this direction
     const option = currentNavOptions.find(opt =>
