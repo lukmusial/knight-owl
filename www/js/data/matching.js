@@ -1112,7 +1112,7 @@ const MATCHING_QUESTIONS = [
       { left: 'leaf', right: 'liść' },
       { left: 'branch', right: 'gałąź' },
       { left: 'root', right: 'korzeń' },
-      { left: 'seed', right: 'nasiono' }
+      { left: 'seeds', right: 'nasiona' }
     ],
     leftLabel: 'English', rightLabel: 'Polski'
   },

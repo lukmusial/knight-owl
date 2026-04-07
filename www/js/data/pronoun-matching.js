@@ -186,7 +186,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'talerz' },
       { left: 'ta', right: 'łyżka' },
-      { left: 'to', right: 'widelec' },
+      { left: 'to', right: 'naczynie' },
       { left: 'te', right: 'talerze' }
     ]
   },
@@ -306,7 +306,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'plecak' },
       { left: 'ta', right: 'czapka' },
-      { left: 'to', right: 'okularki' },
+      { left: 'to', right: 'lusterko' },
       { left: 'te', right: 'plecaki' }
     ]
   },
@@ -336,7 +336,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'miś' },
       { left: 'ta', right: 'lalka' },
-      { left: 'to', right: 'klocki' },
+      { left: 'to', right: 'autko' },
       { left: 'te', right: 'misie' }
     ]
   },
@@ -366,7 +366,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'garnek' },
       { left: 'ta', right: 'patelnia' },
-      { left: 'to', right: 'garnuszek' },
+      { left: 'to', right: 'nakrycie' },
       { left: 'te', right: 'garnki' }
     ]
   },
@@ -386,7 +386,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'telewizor' },
       { left: 'ta', right: 'kanapa' },
-      { left: 'to', right: 'fotele' },
+      { left: 'to', right: 'krzesło' },
       { left: 'te', right: 'telewizory' }
     ]
   },
@@ -416,7 +416,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'motyl' },
       { left: 'ta', right: 'biedronka' },
-      { left: 'to', right: 'leśne' },
+      { left: 'to', right: 'gniazdo' },
       { left: 'te', right: 'motyle' }
     ]
   },
@@ -934,7 +934,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'chirurg' },
       { left: 'ta', right: 'pielęgniarka' },
-      { left: 'to', right: 'szpital' },
+      { left: 'to', right: 'pogotowie' },
       { left: 'ci', right: 'lekarze' }
     ]
   },
@@ -963,7 +963,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'demonstrative',
     pairs: [
       { left: 'ten', right: 'eksperyment' },
-      { left: 'ta', right: 'próbówka' },
+      { left: 'ta', right: 'probówka' },
       { left: 'to', right: 'laboratorium' },
       { left: 'te', right: 'probówki' }
     ]
@@ -1034,7 +1034,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'turniej' },
       { left: 'ta', right: 'drużyna' },
-      { left: 'to', right: 'stadion' },
+      { left: 'to', right: 'boisko' },
       { left: 'ci', right: 'sportowcy' }
     ]
   },
@@ -1074,7 +1074,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'fortepian' },
       { left: 'ta', right: 'gitara' },
-      { left: 'to', right: 'skrzypce' },
+      { left: 'to', right: 'pianino' },
       { left: 'ci', right: 'muzycy' }
     ]
   },
@@ -1104,7 +1104,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'pociąg' },
       { left: 'ta', right: 'lokomotywa' },
-      { left: 'to', right: 'perón' },
+      { left: 'to', right: 'przejście' },
       { left: 'te', right: 'tory' }
     ]
   },
@@ -1206,7 +1206,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jeden', right: 'żołnierz' },
       { left: 'dwa', right: 'żołnierze' },
-      { left: 'cztery', right: 'generały' },
+      { left: 'cztery', right: 'mundury' },
       { left: 'pięć', right: 'oficerów' }
     ]
   },
@@ -1257,7 +1257,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
       { left: 'jeden', right: 'budynek' },
       { left: 'dwa', right: 'budynki' },
       { left: 'trzy', right: 'wieżowce' },
-      { left: 'pięć', right: 'drapaczy' }
+      { left: 'pięć', right: 'wieżowców' }
     ]
   },
   {
@@ -1582,7 +1582,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'ten', right: 'znawca' },
       { left: 'ta', right: 'miłość' },
-      { left: 'to', right: 'lwie' },
+      { left: 'to', right: 'lwię' },
       { left: 'ci', right: 'znawcy' }
     ]
   },
@@ -1674,7 +1674,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jeden', right: 'książę' },
       { left: 'dwa', right: 'książęta' },
-      { left: 'trzy', right: 'hrabiowie' },
+      { left: 'trzy', right: 'zamki' },
       { left: 'pięć', right: 'książąt' }
     ]
   },
@@ -1703,7 +1703,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'sędzia' },
-      { left: 'dwa', right: 'sędziowie' },
+      { left: 'dwa', right: 'wyroki' },
       { left: 'cztery', right: 'poeci' },
       { left: 'pięć', right: 'sędziów' }
     ]
