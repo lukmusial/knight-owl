@@ -155,6 +155,8 @@ console.log(`${colors.cyan}Loading modules...${colors.reset}`);
 loadScript('www/js/data/vocabulary.js');
 loadScript('www/js/data/vocabulary-reverse.js');
 loadScript('www/js/data/grammar.js');
+loadScript('www/js/data/matching.js');
+loadScript('www/js/data/pronoun-matching.js');
 loadScript('www/js/data/monsters.js');
 
 // Maze generator library
@@ -179,7 +181,9 @@ loadScript('www/js/platforms/capacitor/CapacitorHaptics.js');
 loadScript('www/js/platform-init.js');
 
 // Core modules
+loadScript('www/js/modules/profile.js');
 loadScript('www/js/modules/questions.js');
+loadScript('www/js/modules/matching.js');
 loadScript('www/js/modules/player.js');
 loadScript('www/js/modules/save.js');
 loadScript('www/js/modules/descriptions.js');
@@ -196,6 +200,8 @@ console.log('='.repeat(50));
 loadScript('tests/bdd-extensions.js');
 
 // Load original test files
+loadScript('tests/profile.test.js');
+loadScript('tests/matching.test.js');
 loadScript('tests/questions.test.js');
 loadScript('tests/player.test.js');
 loadScript('tests/save.test.js');

@@ -7,6 +7,7 @@ const Game = (function() {
   // Game state
   let initialized = false;
   let gameInProgress = false;
+  let navigating = false;
 
   // Current navigation options (for swipe/keyboard direction mapping)
   let currentNavOptions = [];
@@ -86,8 +87,11 @@ const Game = (function() {
     // Initialize UI
     UI.init();
 
-    // Initialize Questions with data
+    // Initialize Questions and Matching with data
     Questions.init();
+    if (typeof Matching !== 'undefined') {
+      Matching.init();
+    }
 
     // Bind UI event handlers
     UI.bindHandlers({
@@ -161,12 +165,19 @@ const Game = (function() {
   function autoSave() {
     if (!gameInProgress) return;
 
+    var matchingUsedIds = (typeof Matching !== 'undefined') ? Matching.getUsedIds() : [];
     Save.saveGame(
       Player.exportState(),
       Dungeon.getState(),
       Questions.getUsedIds(),
-      DungeonMap.getState()
+      DungeonMap.getState(),
+      matchingUsedIds
     );
+
+    // Also save profile progress
+    if (typeof UserProfile !== 'undefined') {
+      UserProfile.save();
+    }
   }
 
   /**
@@ -197,8 +208,20 @@ const Game = (function() {
   function startNewGame(playerName) {
     // Reset modules
     Questions.resetUsed();
+    if (typeof Matching !== 'undefined') {
+      Matching.init();
+      Matching.resetUsed();
+    }
     Player.create(playerName);
     DungeonMap.init();
+
+    // Load user profile for spaced repetition
+    if (typeof UserProfile !== 'undefined') {
+      UserProfile.load(playerName);
+      Questions.setWeightFunction(function(qId) {
+        return UserProfile.getQuestionWeight(qId);
+      });
+    }
 
     // Generate new dungeon
     Dungeon.generate();
@@ -231,11 +254,25 @@ const Game = (function() {
       return;
     }
 
+    // Load user profile for spaced repetition
+    if (typeof UserProfile !== 'undefined') {
+      UserProfile.load(playerName);
+      Questions.setWeightFunction(function(qId) {
+        return UserProfile.getQuestionWeight(qId);
+      });
+    }
+
     // Restore state
     Player.loadState(saveData.player);
     Dungeon.loadState(saveData.dungeon);
     if (saveData.usedQuestions) {
       Questions.setUsedIds(saveData.usedQuestions);
+    }
+    if (typeof Matching !== 'undefined') {
+      Matching.init();
+      if (saveData.usedMatchingQuestions) {
+        Matching.setUsedIds(saveData.usedMatchingQuestions);
+      }
     }
     if (saveData.mapState) {
       DungeonMap.loadState(saveData.mapState);
@@ -260,6 +297,10 @@ const Game = (function() {
    * @param {string} roomId - Room to enter
    */
   function enterRoom(roomId) {
+    // Lock navigation while processing room entry
+    navigating = true;
+    currentNavOptions = [];
+
     // Update player location
     if (roomId !== Player.getCurrentRoom()) {
       Player.moveTo(roomId);
@@ -283,7 +324,11 @@ const Game = (function() {
 
     // Check for monster encounter
     if (Dungeon.hasMonsterEncounter(roomId)) {
-      startCombat(room.monster, room.depth);
+      if (room.encounterType === 'matching' && typeof Matching !== 'undefined') {
+        startMatchingEncounter(room.monster, room.depth, room.matchingCategory);
+      } else {
+        startCombat(room.monster, room.depth);
+      }
     } else if (room.type === 'treasure' && !room.cleared) {
       // Treasure room encounter
       startTreasureEncounter(roomId);
@@ -354,6 +399,9 @@ const Game = (function() {
     // Store current options for swipe/keyboard direction mapping
     currentNavOptions = options;
 
+    // Unlock navigation now that options are ready
+    navigating = false;
+
     UI.renderNavigation(options, handleNavigation);
   }
 
@@ -362,8 +410,8 @@ const Game = (function() {
    * @param {string} direction - Direction to navigate (North, South, East, West)
    */
   function handleDirectionNavigation(direction) {
-    // Don't navigate if game is not in progress or we're in combat
-    if (!gameInProgress) return;
+    // Don't navigate if game is not in progress, in combat, or already navigating
+    if (!gameInProgress || navigating) return;
 
     // Find navigation option matching this direction
     const option = currentNavOptions.find(opt =>
@@ -449,6 +497,81 @@ const Game = (function() {
   }
 
   /**
+   * Start a matching encounter with a monster
+   * @param {Object} monster - Monster object
+   * @param {number} depth - Room depth for difficulty
+   * @param {string} category - 'matching' or 'pronoun_matching'
+   */
+  function startMatchingEncounter(monster, depth, category) {
+    var difficulty = Dungeon.getDepthDifficulty(depth);
+    var set = Matching.getMatchingSet(difficulty, category);
+
+    if (!set) {
+      // Fallback to regular quiz if no matching sets available
+      startCombat(monster, depth);
+      return;
+    }
+
+    UI.showMatchingModal({ monster: monster, set: set }, function(success) {
+      handleMatchingComplete(success, monster, set);
+    });
+  }
+
+  /**
+   * Handle matching encounter result
+   * @param {boolean} success - Whether all pairs were matched
+   * @param {Object} monster - Monster object
+   * @param {Object} set - The matching set used
+   */
+  function handleMatchingComplete(success, monster, set) {
+    UI.hideMatchingModal();
+
+    // Record to profile
+    if (typeof UserProfile !== 'undefined' && UserProfile.recordAttempt) {
+      UserProfile.recordAttempt(set.id, success);
+    }
+
+    if (success) {
+      // Defeat monster, collect loot
+      var loot = monster.loot || [];
+      Player.addLoot(loot);
+      Player.defeatMonster();
+      Player.recordQuestion(true);
+
+      var currentRoom = Player.getCurrentRoom();
+      Dungeon.clearRoom(currentRoom);
+
+      var result = {
+        success: true,
+        defeated: true,
+        loot: loot,
+        message: typeof Descriptions !== 'undefined'
+          ? Descriptions.generateVictoryMessage(monster)
+          : { en: 'You matched all pairs and defeated the monster!', pl: 'Dopasowałeś wszystkie pary i pokonałeś potwora!' },
+        explanation: ''
+      };
+
+      UI.showResultModal(result, handleResultContinue);
+    } else {
+      // Failed - push player back
+      Player.pushBack();
+      Player.recordQuestion(false);
+
+      var result = {
+        success: false,
+        defeated: false,
+        pushedBack: true,
+        message: typeof Descriptions !== 'undefined'
+          ? Descriptions.generateDefeatMessage(monster)
+          : { en: 'Wrong match! The monster pushes you back!', pl: 'Złe dopasowanie! Potwór odpycha cię!' },
+        explanation: ''
+      };
+
+      UI.showResultModal(result, handleResultContinue);
+    }
+  }
+
+  /**
    * Handle continuing after result modal
    * @param {Object} result - The combat result
    */
@@ -477,6 +600,12 @@ const Game = (function() {
     // Clear room
     Dungeon.clearRoom(Dungeon.getBossId());
 
+    // Update and save user profile before deleting game save
+    if (typeof UserProfile !== 'undefined') {
+      UserProfile.completeRun();
+      UserProfile.save();
+    }
+
     // Delete save (game completed)
     Save.deleteSave(Player.getName());
 
@@ -492,6 +621,13 @@ const Game = (function() {
     // Reset and return to start screen
     Player.reset();
     Questions.resetUsed();
+    Questions.setWeightFunction(null);
+    if (typeof Matching !== 'undefined') {
+      Matching.resetUsed();
+    }
+    if (typeof UserProfile !== 'undefined') {
+      UserProfile.reset();
+    }
     gameInProgress = false;
 
     refreshStartScreen();
