@@ -972,7 +972,7 @@ const PRONOUN_MATCHING_QUESTIONS = [
     id: 'pronoun_096', difficulty: 2, category: 'pronoun_matching',
     subtype: 'demonstrative',
     pairs: [
-      { left: 'ten', right: 'recept' },
+      { left: 'ten', right: 'lek' },
       { left: 'ta', right: 'apteka' },
       { left: 'to', right: 'lekarstwo' },
       { left: 'ci', right: 'farmaceuci' }
