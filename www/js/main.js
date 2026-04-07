@@ -548,7 +548,7 @@ const Game = (function() {
         message: typeof Descriptions !== 'undefined'
           ? Descriptions.generateVictoryMessage(monster)
           : { en: 'You matched all pairs and defeated the monster!', pl: 'Dopasowałeś wszystkie pary i pokonałeś potwora!' },
-        explanation: ''
+        explanation: set.explanation || ''
       };
 
       UI.showResultModal(result, handleResultContinue);
@@ -564,7 +564,7 @@ const Game = (function() {
         message: typeof Descriptions !== 'undefined'
           ? Descriptions.generateDefeatMessage(monster)
           : { en: 'Wrong match! The monster pushes you back!', pl: 'Złe dopasowanie! Potwór odpycha cię!' },
-        explanation: ''
+        explanation: set.explanation || ''
       };
 
       UI.showResultModal(result, handleResultContinue);
