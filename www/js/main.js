@@ -18,8 +18,8 @@ const Game = (function() {
   function init() {
     if (initialized) return;
 
-    // On iOS, show splash video before anything else
-    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    // On native platforms, show splash video before anything else
+    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
       showSplashVideo(function() {
         initGame();
       });
