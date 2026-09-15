@@ -30,9 +30,13 @@ When you enter a room with a monster, a quiz appears. Questions cover Polish voc
   <img src="docs/screenshots/03-combat-quiz.png" alt="Combat quiz screen" width="600">
 </p>
 
+### Launch Screen and Views
+
+The launch screen lets you pick how the dungeon is shown: **Classic**, **Isometric** or **3D** (first-person). Picking a card only remembers the choice; the run starts with "New Adventure" or "Continue Adventure". Saves are shared between views, so a run started in one view can be continued in another.
+
 ### Sound and Effects
 
-Encounters have synthesized sound effects (Web Audio, no audio files), answer and monster animations, and haptic feedback on phones. The speaker button in the top-right corner mutes sounds; the choice is remembered. Animations respect the system "reduce motion" setting.
+Encounters have synthesized sound effects (Web Audio, no audio files), answer and monster animations, and haptic feedback on phones. After each answer the result screen reads the completed sentence or the Polish word aloud. The launch screen plays a looping theme (`www/assets/music/start-theme.mp3`; see [docs/music-generation.md](docs/music-generation.md) for how it was produced and which generators allow commercial use). The speaker button mutes sounds and music; the choice is remembered. Animations respect the system "reduce motion" setting.
 
 ### Mobile
 
@@ -73,7 +77,7 @@ npm run ios:run
 
 ## Prototype Views
 
-Two experimental presentations of the same dungeon live under `www/proto/` and are linked from the start screen ("Experimental views"). They reuse the game modules and modals but keep their own in-memory game (no saves).
+Two experimental presentations of the same dungeon live under `www/proto/` and are launched from the view selector on the start screen. They reuse the game modules, modals and saves (autosave after every room), so runs move freely between views.
 
 | Page | Engine | What it shows |
 |------|--------|---------------|
