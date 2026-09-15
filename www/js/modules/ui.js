@@ -407,6 +407,7 @@ const UI = (function() {
   function showScreen(screenName) {
     if (typeof document !== 'undefined' && document.body) {
       document.body.classList.toggle('on-start', screenName === 'start');
+      document.body.classList.toggle('on-game', screenName === 'game' || screenName === 'victory');
     }
     if (elements.startScreen) elements.startScreen.classList.add('hidden');
     if (elements.gameScreen) elements.gameScreen.classList.add('hidden');
