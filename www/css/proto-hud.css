@@ -470,21 +470,14 @@ body.proto .modal-content {
     0 12px 40px rgba(0, 0, 0, 0.8);
 }
 
+/* Encounter illustrations keep their painted scene, framed in gold */
 body.proto .monster-display img {
   max-height: 32vh;
   max-width: 100%;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.8));
-  background: transparent;
+  border: 3px solid var(--hud-gold);
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--hud-bronze), 0 8px 18px rgba(0, 0, 0, 0.8);
   object-fit: contain;
-}
-
-/* When the cutout sprite is shown, give it a dark lair backdrop */
-body.proto .monster-display.has-sprite {
-  background: radial-gradient(ellipse at 50% 70%, rgba(255, 170, 60, 0.18), rgba(0, 0, 0, 0) 60%);
-  border-radius: 8px;
 }
 
 body.proto .monster-display h2 {
@@ -508,6 +501,22 @@ body.proto .result-explanation {
 }
 
 body.proto .question-text { color: var(--hud-ink); font-weight: bold; font-size: 1.15rem; }
+
+/* Bilingual labels inside parchment panels must be dark ink, not the gold/light theme colours */
+body.proto .question-section .label-en,
+body.proto .matching-instruction .label-en,
+body.proto .result-explanation .label-en,
+body.proto .question-section .label-pl,
+body.proto .matching-instruction .label-pl,
+body.proto .result-explanation .label-pl,
+body.proto .result-explanation .explanation-text {
+  color: var(--hud-ink);
+  text-shadow: none;
+}
+body.proto .matching-instruction .label-pl,
+body.proto .question-section .label-pl,
+body.proto .result-explanation .label-pl { color: #6b4a1a; }
+body.proto .matching-instruction { font-weight: bold; }
 body.proto .hint-text, body.proto .sentence-text { color: #5a4420; }
 body.proto .result-explanation .correct-answer { color: #7a1f1f; }
 body.proto .result-explanation .sentence-listen { background: rgba(0, 0, 0, 0.08); }
