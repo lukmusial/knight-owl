@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="proto">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -7,42 +7,14 @@
   <title>Mr Owl's Dungeon - Isometric Prototype</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/fx.css">
+  <link rel="stylesheet" href="css/proto-hud.css">
   <link rel="stylesheet" href="css/proto-iso.css">
 </head>
-<body>
-  <div id="iso-root">
-    <div id="iso-hud-top">
-      <a class="iso-link" href="index.html">&larr; Classic</a>
-      <h1>Isometric prototype</h1>
-      <a class="iso-link" id="iso-new-game">New game / Nowa gra</a>
-      <div id="stats-panel" class="panel stats-panel"></div>
-    </div>
-
-    <div id="iso-stage">
-      <div id="iso-canvas"></div>
-      <div id="iso-loading">Loading... / Ładowanie...</div>
-
-      <div id="map-panel" class="panel map-panel">
-        <h3 class="map-toggle">
-          <span class="label-en">Dungeon Map</span>
-          <span class="label-pl">Mapa Lochów</span>
-        </h3>
-        <div id="dungeon-map" class="dungeon-map-container"></div>
-      </div>
-
-      <div id="room-description" class="room-description panel"></div>
-    </div>
-
-    <div id="direction-bar" class="direction-bar hidden">
-      <button class="dir-btn dir-west" data-direction="West" disabled>&#x2190;</button>
-      <button class="dir-btn dir-north" data-direction="North" disabled>&#x2191;</button>
-      <button class="dir-btn dir-south" data-direction="South" disabled>&#x2193;</button>
-      <button class="dir-btn dir-east" data-direction="East" disabled>&#x2192;</button>
-    </div>
-
-    <div id="inventory-panel" class="panel inventory-panel"></div>
+<body class="proto proto-iso">
+  <div class="hud-stage">
+    <div id="iso-canvas"></div>
   </div>
-
+  <div id="iso-loading" class="hud-loading">Entering the dungeon... / Wchodzisz do lochu...</div>
   <div id="iso-modals"></div>
 
   <script src="js/data/vocabulary.js"></script>
@@ -78,6 +50,7 @@
   <!-- Isometric prototype -->
   <script src="js/lib/phaser.min.js"></script>
   <script src="js/proto/shared-dom.js"></script>
+  <script src="js/proto/hud.js"></script>
   <script src="js/proto/iso-model.js"></script>
   <script src="js/proto/iso-textures.js"></script>
   <script src="js/proto/iso-scenes.js"></script>

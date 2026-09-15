@@ -1,61 +1,4 @@
-/* Isometric prototype page layout (loaded after styles.css and fx.css) */
-
-html, body {
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-}
-
-#iso-root {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
-#iso-hud-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 56px 8px 12px;
-  background: var(--color-bg-light);
-  border-bottom: 2px solid var(--color-primary);
-  flex-wrap: wrap;
-}
-
-#iso-hud-top h1 {
-  font-size: 1.1rem;
-  margin: 0;
-  color: var(--color-primary);
-}
-
-#iso-hud-top .iso-link {
-  color: var(--color-text);
-  font-size: 0.85rem;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-#iso-hud-top #stats-panel {
-  margin-left: auto;
-  padding: 0;
-  background: none;
-  border: none;
-  box-shadow: none;
-  font-size: 0.8rem;
-}
-
-#iso-hud-top #stats-panel h3 {
-  display: none;
-}
-
-#iso-stage {
-  position: relative;
-  flex: 1;
-  min-height: 240px;
-}
+/* Isometric prototype page (loaded after styles.css, fx.css and proto-hud.css) */
 
 #iso-canvas {
   position: absolute;
@@ -68,137 +11,25 @@ html, body {
   display: block;
 }
 
-body.modal-open #iso-canvas {
+body.modal-open .hud-stage {
   pointer-events: none;
 }
 
-#iso-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(26, 26, 46, 0.9);
-  font-size: 1.2rem;
-  z-index: 5;
+/* ui.js toggles .hidden on the compass while walking / in encounters;
+   keep the dock layout stable and just hide the buttons */
+body.proto #direction-bar.hidden {
+  display: grid !important;
+  visibility: hidden;
 }
 
-#iso-loading.hidden {
-  display: none;
-}
-
-/* Minimap floats over the stage */
-#iso-stage #map-panel {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 200px;
-  min-height: 0;
-  padding: 6px;
-  z-index: 4;
-  background: rgba(26, 26, 46, 0.85);
-}
-
-#iso-stage #map-panel .map-toggle {
-  font-size: 0.8rem;
-  margin: 0 0 4px 0;
-  cursor: pointer;
-}
-
-#iso-stage .dungeon-map-container {
-  min-height: 0;
-}
-
-#iso-stage .dungeon-map-svg {
-  max-height: 160px;
-}
-
-#iso-stage .map-legend-html {
-  display: none;
-}
-
-/* Room caption bottom-left */
-#iso-stage #room-description {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  max-width: 55%;
-  padding: 6px 10px;
-  background: rgba(26, 26, 46, 0.85);
-  z-index: 4;
-  font-size: 0.85rem;
-}
-
-#iso-stage #room-description .room-title {
-  font-size: 1rem;
-  margin: 0 0 2px 0;
-}
-
-#iso-stage #room-description .room-desc {
-  display: none;
-}
-
-/* Direction bar always visible, docked under the stage */
-#iso-root .direction-bar {
+/* The classic direction-bar rules from styles.css must not apply here */
+body.proto .direction-bar {
   position: static;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 12px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  background: var(--color-bg-light);
-  border-top: 2px solid var(--color-primary);
+  background: none;
+  border: 0;
+  padding: 0;
 }
 
-#iso-root .direction-bar.hidden {
-  visibility: hidden;
-}
-
-#iso-root .dir-btn {
-  width: 56px;
-  height: 56px;
-  font-size: 1.5rem;
-  border-radius: var(--border-radius);
-  background: var(--color-bg);
-  color: var(--color-text);
-  border: 2px solid var(--color-bg-lighter);
-  cursor: pointer;
-}
-
-#iso-root .dir-btn[disabled] {
-  visibility: hidden;
-}
-
-#iso-root .dir-btn.unexplored {
-  border-color: var(--color-primary);
-}
-
-#iso-root .dir-btn.boss-btn {
-  border-color: #9c27b0;
-}
-
-#inventory-panel {
-  display: none;
-}
-
-/* Reused screens must overlay the stage */
-#victory-screen {
-  position: fixed;
-  inset: 0;
-  overflow: auto;
-  z-index: 1001;
-  background: var(--color-bg);
-}
-
-@media (max-width: 600px) {
-  #iso-stage #map-panel {
-    width: 150px;
-  }
-  #iso-stage #room-description {
-    max-width: 50%;
-    font-size: 0.75rem;
-  }
-  #iso-hud-top #stats-panel {
-    display: none;
-  }
+.toast {
+  z-index: 1200;
 }
