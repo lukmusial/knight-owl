@@ -410,6 +410,18 @@ body.proto .sfx-toggle {
   overflow: hidden;
 }
 
+/* Narrow phones: the top bar must not overflow */
+@media (max-width: 420px) {
+  .hud-top { gap: 6px; padding-left: 6px; padding-right: 6px; }
+  .hud-name { display: none; }
+  .hud-stats { gap: 6px; }
+  .hud-stat { font-size: 0.85rem; }
+  .hud-stat .hud-icon { width: 18px; height: 18px; }
+  .hud-iconbtns { gap: 4px; }
+  .hud-iconbtns .hud-btn, body.proto .sfx-toggle { width: 36px; height: 36px; font-size: 1rem; }
+  .hud-portrait { width: 38px; height: 38px; }
+}
+
 /* Short portrait phones: drop the hint text */
 @media (max-height: 700px) {
   .hud-dock-note { display: none; }
