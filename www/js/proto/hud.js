@@ -46,16 +46,20 @@ var ProtoHud = (function() {
 
     var hud = el('div');
     hud.id = 'hud-root';
+    if (opts.view) document.body.classList.add('view-' + opts.view);
 
     // --- top bar
     var top = el('div', 'hud-top hud-frame');
     top.appendChild(el('span', 'hud-rivet-tr'));
     top.appendChild(el('span', 'hud-rivet-bl'));
+    var identity = el('div', 'hud-identity');
     var portrait = el('div', 'hud-portrait', '<img alt="Mr Owl" src="assets/knight_owl.png">');
-    top.appendChild(portrait);
+    identity.appendChild(portrait);
     els.portraitImg = portrait.querySelector('img');
     els.name = el('div', 'hud-name', opts.name || 'Mr Owl');
-    top.appendChild(els.name);
+    els.name.title = opts.name || 'Mr Owl';
+    identity.appendChild(els.name);
+    top.appendChild(identity);
     var stats = el('div', 'hud-stats');
     stats.innerHTML =
       '<span class="hud-stat" title="Monsters defeated / Pokonane potwory">' + ICONS.skull + '<b data-stat="monsters">0</b></span>' +
@@ -149,7 +153,10 @@ var ProtoHud = (function() {
   }
 
   function setName(name) {
-    if (els.name) els.name.textContent = name;
+    if (els.name) {
+      els.name.textContent = name;
+      els.name.title = name;
+    }
   }
 
   /**
