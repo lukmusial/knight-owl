@@ -647,23 +647,60 @@ var IsoTextures = (function() {
   }
 
   function drawStairs(ctx, palette) {
-    // 110x90 stairway leading up and back (into the entrance arch)
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath(); ctx.ellipse(55, 80, 46, 10, 0, 0, Math.PI * 2); ctx.fill();
-    for (var i = 0; i < 5; i++) {
-      var y = 74 - i * 13, w = 76 - i * 10, x = 55 - w / 2;
-      ctx.fillStyle = i % 2 ? palette.wall : palette.wallDark;
+    // 128x110 isometric stairway: treads run parallel to the north wall and
+    // climb toward it (up-right on screen), risers face the viewer.
+    // Local axes: u along the wall edge (screen (1, .5)), v toward the wall
+    // (screen (1, -.5)), z straight up.
+    var cx = 52, cy = 84;
+    function loc(u, v, z) { return [cx + u + v, cy + 0.5 * u - 0.5 * v - z]; }
+    function poly(pts) {
       ctx.beginPath();
-      ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w - 6, y - 8); ctx.lineTo(x + 6, y - 8); ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = palette.floorLight;
-      ctx.fillRect(x + 6, y - 8, w - 12, 3);
-      ctx.strokeStyle = palette.edge; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y - 8.5, w - 1, 8);
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
     }
-    // dark opening at the top
+    // floor shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    poly([loc(-34, -6, 0), loc(34, -6, 0), loc(34, 50, 0), loc(-34, 50, 0)]);
+    ctx.fill();
+
+    var steps = 5, depth = 9, rise = 7, halfW = 26;
+    for (var i = 0; i < steps; i++) {
+      var v0 = i * depth, v1 = v0 + depth, z = (i + 1) * rise;
+      // riser (faces down-left, toward the viewer)
+      poly([loc(-halfW, v0, z), loc(halfW, v0, z), loc(halfW, v0, z - rise), loc(-halfW, v0, z - rise)]);
+      ctx.fillStyle = palette.wallDark;
+      ctx.fill();
+      ctx.strokeStyle = palette.edge; ctx.lineWidth = 1; ctx.stroke();
+      // side face (faces down-right)
+      poly([loc(halfW, v0, z), loc(halfW, v1, z), loc(halfW, v1, z - rise), loc(halfW, v0, z - rise)]);
+      ctx.fillStyle = palette.wall;
+      ctx.fill();
+      ctx.stroke();
+      // tread
+      poly([loc(-halfW, v0, z), loc(halfW, v0, z), loc(halfW, v1, z), loc(-halfW, v1, z)]);
+      ctx.fillStyle = i % 2 ? palette.floorLight : palette.floor;
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // dark arched opening in the wall at the top of the stairs, sheared like
+    // the wall face it sits in (north wall: slope +0.5)
+    var top = loc(0, steps * depth, steps * rise);
+    ctx.save();
+    ctx.setTransform(1, 0.5, 0, 1, top[0], top[1]);
+    var w = 15, h = 36;
+    ctx.beginPath();
+    ctx.moveTo(-w, 0);
+    ctx.lineTo(-w, -(h - w));
+    ctx.arc(0, -(h - w), w, Math.PI, 0);
+    ctx.lineTo(w, 0);
+    ctx.closePath();
     ctx.fillStyle = '#0a0a12';
-    ctx.beginPath(); ctx.moveTo(38, 14); ctx.lineTo(38, 2); ctx.arc(55, 2, 17, Math.PI, 0); ctx.lineTo(72, 14); ctx.closePath(); ctx.fill();
+    ctx.fill();
     ctx.strokeStyle = palette.wall; ctx.lineWidth = 4; ctx.stroke();
+    ctx.strokeStyle = palette.edge; ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
   }
 
   function drawChest(ctx, open) {
@@ -760,8 +797,9 @@ var IsoTextures = (function() {
     canvasTexture(scene, 'rubble', 60, 34, function(ctx) { drawRubble(ctx, palette); });
     canvasTexture(scene, 'gold_pile', 80, 44, function(ctx) { drawGoldPile(ctx); });
     canvasTexture(scene, 'crystal', 44, 70, function(ctx) { drawCrystal(ctx); });
-    canvasTexture(scene, 'banner', 36, 80, function(ctx) { drawBanner(ctx); });
-    canvasTexture(scene, 'entrance', 110, 90, function(ctx) { drawStairs(ctx, palette); });
+    // banner hangs on a north wall: shear it along the wall's 2:1 slope
+    canvasTexture(scene, 'banner', 36, 98, function(ctx) { ctx.setTransform(1, 0.5, 0, 1, 0, 0); drawBanner(ctx); ctx.setTransform(1, 0, 0, 1, 0, 0); });
+    canvasTexture(scene, 'entrance', 128, 110, function(ctx) { drawStairs(ctx, palette); });
     canvasTexture(scene, 'treasure_chest', 64, 56, function(ctx) { drawChest(ctx, false); });
     canvasTexture(scene, 'treasure_open', 64, 56, function(ctx) { drawChest(ctx, true); });
     canvasTexture(scene, 'highlight_ring', TILE_W, TILE_H, function(ctx) { drawRing(ctx, '#ffd97a', false); });
