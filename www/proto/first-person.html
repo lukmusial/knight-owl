@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Mr Owl's Dungeon Adventure - First-person prototype</title>
+  <base href="../">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/fx.css">
+  <link rel="stylesheet" href="css/proto-fp.css">
+</head>
+<body class="proto-fp">
+  <div id="fp-app">
+    <header class="fp-header">
+      <a class="fp-back" href="index.html">&larr; Back</a>
+      <h1>First-person prototype</h1>
+    </header>
+
+    <div id="fp-view">
+      <div id="fp-hud">
+        <div id="dungeon-map" class="fp-minimap"></div>
+        <div id="fp-compass">N</div>
+      </div>
+      <div id="fp-fade"></div>
+      <div id="fp-nogl" class="hidden">
+        WebGL is not available on this device.
+        <a href="index.html">Back to the classic view</a>
+      </div>
+    </div>
+
+    <div id="room-description" class="panel fp-caption"></div>
+
+    <div id="fp-controls">
+      <button type="button" class="fp-btn" data-cmd="turnLeft" aria-label="Turn left">&#x21B6;</button>
+      <button type="button" class="fp-btn fp-btn-forward" data-cmd="forward" aria-label="Forward">&#x25B2;</button>
+      <button type="button" class="fp-btn" data-cmd="turnRight" aria-label="Turn right">&#x21B7;</button>
+      <button type="button" class="fp-btn fp-btn-back" data-cmd="back" aria-label="Back">&#x25BC;</button>
+    </div>
+
+    <div class="fp-panels">
+      <div id="stats-panel" class="panel"></div>
+      <div id="inventory-panel" class="panel"></div>
+    </div>
+
+    <button id="fp-new-game" class="btn btn-secondary">New game / Nowa gra</button>
+
+    <div id="fp-modals"></div>
+  </div>
+
+  <!-- Data -->
+  <script src="js/data/vocabulary.js"></script>
+  <script src="js/data/vocabulary-reverse.js"></script>
+  <script src="js/data/grammar.js"></script>
+  <script src="js/data/matching.js"></script>
+  <script src="js/data/pronoun-matching.js"></script>
+  <script src="js/data/monsters.js"></script>
+
+  <!-- Libraries -->
+  <script src="js/lib/maze.js"></script>
+  <script src="js/lib/three.bundle.js"></script>
+
+  <!-- Platform adapters -->
+  <script src="js/adapters/StorageAdapter.js"></script>
+  <script src="js/adapters/AudioAdapter.js"></script>
+  <script src="js/adapters/InputAdapter.js"></script>
+  <script src="js/platforms/browser/BrowserStorage.js"></script>
+  <script src="js/platforms/browser/BrowserAudio.js"></script>
+  <script src="js/platforms/browser/BrowserInput.js"></script>
+  <script src="js/platforms/capacitor/CapacitorStorage.js"></script>
+  <script src="js/platforms/capacitor/CapacitorAudio.js"></script>
+  <script src="js/platforms/capacitor/CapacitorHaptics.js"></script>
+  <script src="js/platform-init.js"></script>
+
+  <!-- Game modules -->
+  <script src="js/modules/profile.js"></script>
+  <script src="js/modules/questions.js"></script>
+  <script src="js/modules/matching.js"></script>
+  <script src="js/modules/player.js"></script>
+  <script src="js/modules/save.js"></script>
+  <script src="js/modules/descriptions.js"></script>
+  <script src="js/modules/dungeon.js"></script>
+  <script src="js/modules/combat.js"></script>
+  <script src="js/modules/map.js"></script>
+  <script src="js/modules/sfx.js"></script>
+  <script src="js/modules/fx.js"></script>
+  <script src="js/modules/ui.js"></script>
+
+  <!-- Prototype -->
+  <script src="js/proto/shared-dom.js"></script>
+  <script src="js/proto/fp-world.js"></script>
+  <script src="js/proto/fp-textures.js"></script>
+  <script src="js/proto/fp-renderer.js"></script>
+  <script src="js/proto/fp-main.js"></script>
+</body>
+</html>
