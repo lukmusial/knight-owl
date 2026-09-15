@@ -356,13 +356,17 @@ var IsoScenes = (function() {
       });
     },
 
-    fogPolygon: function(gx0, gy0, gx1, gy1) {
-      var m = 0.4;
+    /**
+     * Silhouette of a tile block: floor diamond hull plus the back walls
+     * (n/w faces rise by `up`). Corridor tiles have no walls, so they pass 0.
+     */
+    fogPolygon: function(gx0, gy0, gx1, gy1, up, margin) {
+      var m = margin === undefined ? 0.3 : margin;
       var n = IsoModel.gridToIso(gx0 - m, gy0 - m);
       var e = IsoModel.gridToIso(gx1 + m, gy0 - m);
       var s = IsoModel.gridToIso(gx1 + m, gy1 + m);
       var w = IsoModel.gridToIso(gx0 - m, gy1 + m);
-      var up = WALL_H + 70;
+      if (up === undefined) up = WALL_H + 16;
       return [
         new Phaser.Geom.Point(n.x, n.y - up),
         new Phaser.Geom.Point(e.x, e.y - up),
@@ -388,7 +392,7 @@ var IsoScenes = (function() {
         var t = link.tile;
         var g = self.add.graphics().setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.fx) + 1);
         g.fillStyle(0x05060a, 1);
-        g.fillPoints(self.fogPolygon(t.gx, t.gy, t.gx, t.gy), true);
+        g.fillPoints(self.fogPolygon(t.gx, t.gy, t.gx, t.gy, 4, 0.2), true);
         self.fogOverlays[link.id] = g;
       });
     },
