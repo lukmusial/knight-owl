@@ -4,7 +4,7 @@
   "description": "Mr Owl's Dungeon Adventure - Learn Polish while exploring!",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild js/lib/maze-bundle.js --bundle --outfile=js/lib/maze.js --format=iife --global-name=MazeGenerator",
+    "build": "esbuild www/js/lib/maze-bundle.js --bundle --format=iife --global-name=MazeGenerator --outfile=www/js/lib/maze.js",
     "test": "node tests/run-tests.js",
     "start": "open index.html",
     "web:build": "echo 'www/ is the source directory, no build needed'",
@@ -17,7 +17,11 @@
     "test:e2e": "maestro test .maestro/flows/",
     "test:e2e:android": "maestro test .maestro/flows/",
     "test:e2e:ios": "maestro test .maestro/flows/ --platform ios",
-    "test:e2e:record": "maestro record .maestro/flows/03-complete-game-automated.yaml"
+    "test:e2e:record": "maestro record .maestro/flows/03-complete-game-automated.yaml",
+    "vendor:three": "esbuild www/js/lib/three-entry.js --bundle --format=iife --global-name=THREE --target=es2017 --minify --legal-comments=none --outfile=www/js/lib/three.bundle.js",
+    "vendor:phaser": "esbuild node_modules/phaser/dist/phaser.js --minify --target=es2017 --legal-comments=inline --outfile=www/js/lib/phaser.min.js",
+    "vendor": "npm run vendor:three && npm run vendor:phaser",
+    "proto": "python3 -m http.server 8080 -d www"
   },
   "keywords": [
     "game",
@@ -38,6 +42,8 @@
     "generate-maze": "^1.1.0"
   },
   "devDependencies": {
-    "esbuild": "^0.27.2"
+    "esbuild": "^0.27.2",
+    "phaser": "^3.90.0",
+    "three": "^0.162.0"
   }
 }
