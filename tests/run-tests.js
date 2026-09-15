@@ -22,6 +22,7 @@ const colors = {
 // Test Framework (mirrors browser version)
 const TestRunner = {
   results: [],
+  pending: [],
   currentSuite: '',
 
   suite(name, tests) {
@@ -31,21 +32,47 @@ const TestRunner = {
   },
 
   test(description, fn) {
+    const self = this;
+    const suite = this.currentSuite;
     try {
-      fn();
-      this.pass(description);
+      const result = fn();
+      if (result && typeof result.then === 'function') {
+        // Async test: record result when it settles, summary waits for it
+        this.pending.push(result.then(
+          () => self.pass(description, suite),
+          (e) => self.fail(description, e && e.message ? e.message : String(e), suite)
+        ));
+      } else {
+        this.pass(description);
+      }
     } catch (e) {
       this.fail(description, e.message);
     }
   },
 
-  pass(description) {
-    this.results.push({ suite: this.currentSuite, description, passed: true });
+  /**
+   * Async test: fn returns a promise. Async tests run one after another
+   * (not interleaved), and the summary waits for all of them.
+   */
+  testAsync(description, fn) {
+    const self = this;
+    const suite = this.currentSuite;
+    this.chain = (this.chain || Promise.resolve()).then(() => {
+      return Promise.resolve().then(fn).then(
+        () => self.pass(description, suite),
+        (e) => self.fail(description, e && e.message ? e.message : String(e), suite)
+      );
+    });
+    this.pending.push(this.chain);
+  },
+
+  pass(description, suite) {
+    this.results.push({ suite: suite || this.currentSuite, description, passed: true });
     console.log(`  ${colors.green}✓${colors.reset} ${description}`);
   },
 
-  fail(description, error) {
-    this.results.push({ suite: this.currentSuite, description, passed: false, error });
+  fail(description, error, suite) {
+    this.results.push({ suite: suite || this.currentSuite, description, passed: false, error });
     console.log(`  ${colors.red}✗${colors.reset} ${description}`);
     console.log(`    ${colors.dim}${error}${colors.reset}`);
   },
@@ -74,7 +101,8 @@ const TestRunner = {
     }
   },
 
-  showSummary() {
+  async showSummary() {
+    await Promise.all(this.pending);
     const passed = this.results.filter(r => r.passed).length;
     const failed = this.results.filter(r => !r.passed).length;
     const total = this.results.length;
@@ -202,6 +230,7 @@ loadScript('tests/bdd-extensions.js');
 // Load original test files
 loadScript('tests/profile.test.js');
 loadScript('tests/matching.test.js');
+loadScript('tests/matching-data.test.js');
 loadScript('tests/questions.test.js');
 loadScript('tests/player.test.js');
 loadScript('tests/save.test.js');

@@ -52,26 +52,85 @@ const UI = (function() {
     return typeof AudioAdapter !== 'undefined' && AudioAdapter.hasImplementation();
   }
 
+  // True while a TTS request is in flight; all speak buttons are disabled meanwhile
+  let speechInProgress = false;
+  let speechLockTimer = null;
+  // Safety net: never leave the buttons locked longer than this
+  const SPEECH_LOCK_MAX_MS = 25000;
+
   /**
-   * Speak a Polish word using AudioAdapter (with Web Speech API fallback)
+   * Whether a TTS request is currently in flight
+   * @returns {boolean}
+   */
+  function isSpeechInProgress() {
+    return speechInProgress;
+  }
+
+  /**
+   * Enable/disable every speak button on the page
+   * @param {boolean} disabled - Whether buttons should be disabled
+   */
+  function setSpeakButtonsDisabled(disabled) {
+    if (typeof document === 'undefined') return;
+    var buttons = document.querySelectorAll('.btn-speak, .btn-speak-answer, .btn-speak-sentence');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].disabled = disabled;
+      if (disabled) {
+        buttons[i].classList.add('speaking');
+      } else {
+        buttons[i].classList.remove('speaking');
+      }
+    }
+  }
+
+  /**
+   * Lock speak buttons until the given promise settles (or safety timeout)
+   * @param {Promise} promise - Speech promise
+   */
+  function lockSpeakButtonsUntil(promise) {
+    speechInProgress = true;
+    setSpeakButtonsDisabled(true);
+
+    var released = false;
+    function release() {
+      if (released) return;
+      released = true;
+      if (speechLockTimer) {
+        clearTimeout(speechLockTimer);
+        speechLockTimer = null;
+      }
+      speechInProgress = false;
+      setSpeakButtonsDisabled(false);
+    }
+
+    speechLockTimer = setTimeout(release, SPEECH_LOCK_MAX_MS);
+    Promise.resolve(promise).then(release, release);
+  }
+
+  /**
+   * Speak a Polish word using AudioAdapter (with Web Speech API fallback).
+   * Ignored while a previous request is still being processed.
    * @param {string} word - Polish word to speak
+   * @returns {boolean} Whether the request was accepted
    */
   function speakPolishWord(word) {
-    if (!word) return;
+    if (!word) return false;
+    if (speechInProgress) return false;
 
     // Use AudioAdapter if available
     if (hasAudioAdapter()) {
-      AudioAdapter.speak(word, {
+      var promise = AudioAdapter.speak(word, {
         language: 'pl-PL',
         rate: 0.9,
         pitch: 1.2,
         volume: 1.0
       });
-      return;
+      lockSpeakButtonsUntil(promise);
+      return true;
     }
 
     // Fallback to direct Web Speech API
-    if (!window.speechSynthesis) return;
+    if (!window.speechSynthesis) return false;
 
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();
@@ -94,7 +153,12 @@ const UI = (function() {
       utterance.voice = preferredVoice;
     }
 
+    lockSpeakButtonsUntil(new Promise(function(resolve) {
+      utterance.onend = resolve;
+      utterance.onerror = resolve;
+    }));
     window.speechSynthesis.speak(utterance);
+    return true;
   }
 
   // Track whether answer buttons have been disabled (to prevent double-tap)
@@ -695,6 +759,8 @@ const UI = (function() {
           speakPolishWord(btn.dataset.word);
         });
       });
+      // Freshly rendered buttons must respect an in-flight TTS request
+      if (speechInProgress) setSpeakButtonsDisabled(true);
     }
 
     hideDirectionBar();
@@ -776,6 +842,8 @@ const UI = (function() {
           speakPolishWord(btn.dataset.word);
         });
       });
+      // Freshly rendered buttons must respect an in-flight TTS request
+      if (speechInProgress) setSpeakButtonsDisabled(true);
     }
   }
 
@@ -858,6 +926,7 @@ const UI = (function() {
           sentence = sentence.replace(/\s*\([^)]*\)/g, '').replace(/→/g, '').replace(/\s+/g, ' ').trim();
           speakPolishWord(sentence);
         });
+        if (speechInProgress) setSpeakButtonsDisabled(true);
       }
     }
 
@@ -1293,7 +1362,9 @@ const UI = (function() {
     hideMatchingModal,
     bindHandlers,
     renderDirectionBar,
-    hideDirectionBar
+    hideDirectionBar,
+    speakPolishWord,
+    isSpeechInProgress
   };
 })();
 
