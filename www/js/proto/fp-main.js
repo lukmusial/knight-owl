@@ -72,7 +72,7 @@ var ProtoFp = (function() {
 
     bindControls();
     if (typeof InputAdapter !== 'undefined') {
-      InputAdapter.on('navigate', function(data) { onNavigate(data.direction); });
+      InputAdapter.on('navigate', function(data) { onNavigate(data.direction, data.source); });
     }
 
     ProtoHud.loadSprites().then(function() {
@@ -92,8 +92,16 @@ var ProtoFp = (function() {
     }
   }
 
-  function onNavigate(direction) {
+  /**
+   * Keyboard arrows turn the way they point. Swipes drag the view instead:
+   * swiping left pulls the scene left, i.e. you turn right (and vice versa).
+   */
+  function onNavigate(direction, source) {
     var map = { North: 'forward', South: 'back', West: 'turnLeft', East: 'turnRight' };
+    if (source === 'touch' || source === 'swipe') {
+      map.West = 'turnRight';
+      map.East = 'turnLeft';
+    }
     if (map[direction]) runCommand(map[direction]);
   }
 
