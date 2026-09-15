@@ -384,10 +384,17 @@ var IsoTextures = (function() {
     ctx.arc(cu, -(h - w), w, Math.PI, 0);
     ctx.lineTo(cu + w, 0);
     ctx.closePath();
-    // dark interior with a faint glow near the floor of the passage
+    // The opening is a real hole: whatever stands beyond the doorway (the
+    // corridor floor, the owl walking through) shows through it.
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.restore();
+    // faint shade inside the passage for depth
     var g = ctx.createLinearGradient(0, -h, 0, 0);
-    g.addColorStop(0, '#0b0b12');
-    g.addColorStop(1, '#221c24');
+    g.addColorStop(0, 'rgba(5,5,12,0.55)');
+    g.addColorStop(1, 'rgba(5,5,12,0.15)');
     ctx.fillStyle = g;
     ctx.fill();
     // stone frame around the opening
@@ -437,6 +444,33 @@ var IsoTextures = (function() {
     if (side === 's') { ctx.moveTo(2, 1); ctx.lineTo(62, 31); } else { ctx.moveTo(66, 31); ctx.lineTo(126, 1); }
     ctx.stroke();
     ctx.globalAlpha = 1;
+  }
+
+  function drawRimBack(ctx, palette, side) {
+    // Canvas 128x44 placed at (p.y - 14): low parapet along a back edge of the
+    // diamond. 'n' runs top corner (64,4) -> right corner (128,36); 'w' mirrors it.
+    var top = side === 'n'
+      ? [[64, 4], [128, 36], [128, 27], [64, -5]]
+      : [[64, 4], [0, 36], [0, 27], [64, -5]];
+    var face = side === 'n'
+      ? [[64, 4], [128, 36], [128, 44], [64, 12]]
+      : [[64, 4], [0, 36], [0, 44], [64, 12]];
+    function poly(pts) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
+    }
+    poly(face);
+    ctx.fillStyle = side === 'n' ? palette.wallDark : palette.wall;
+    ctx.fill();
+    ctx.strokeStyle = palette.edge;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    poly(top);
+    ctx.fillStyle = palette.floorLight;
+    ctx.fill();
+    ctx.stroke();
   }
 
   function drawPost(ctx, palette) {
@@ -714,6 +748,8 @@ var IsoTextures = (function() {
     canvasTexture(scene, 'rim_s', TILE_W, 44, function(ctx) { drawRim(ctx, palette, 's'); });
     canvasTexture(scene, 'rim_e', TILE_W, 44, function(ctx) { drawRim(ctx, palette, 'e'); });
     canvasTexture(scene, 'post', 16, 44, function(ctx) { drawPost(ctx, palette); });
+    canvasTexture(scene, 'rim_n', TILE_W, 44, function(ctx) { drawRimBack(ctx, palette, 'n'); });
+    canvasTexture(scene, 'rim_w', TILE_W, 44, function(ctx) { drawRimBack(ctx, palette, 'w'); });
     canvasTexture(scene, 'torch_bracket', 16, 30, function(ctx) { drawTorchBracket(ctx); });
     canvasTexture(scene, 'glow_warm', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(255,170,60,0.55)'); });
     canvasTexture(scene, 'glow_lava', 200, 200, function(ctx) { drawGlow(ctx, 200, 'rgba(255,90,20,0.45)'); });

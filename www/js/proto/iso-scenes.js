@@ -138,6 +138,7 @@ var IsoScenes = (function() {
       this.roomLights = {};    // roomId -> [gameObjects] (only in explored rooms)
       this.linkSprites = {};   // linkId -> [gameObjects]
       this.fogOverlays = {};   // roomId|linkId -> Graphics
+      this.archByTile = {};    // 'gx,gy' of the room tile -> arch image (ghosted while the owl is behind it)
       this.lastVis = {};
       this.tokens = {};        // roomId -> sprite
       this.reachRings = [];
@@ -249,23 +250,39 @@ var IsoScenes = (function() {
           if (!REDUCED_MOTION) lava.play({ key: 'lava', startFrame: (dx + dy) % 3 });
           bucket.push(lava);
         } else {
-          var floorKey = t.kind === 'corridor' ? 'corridor' : 'floor_' + t.variant;
+          var floorKey = 'floor_' + t.variant;
           bucket.push(self.add.image(p.x, p.y, floorKey).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.floor)));
         }
 
         var v = Math.floor(hash(t.gx, t.gy, 3) * 3);
         var wallDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.wall);
 
+        if (t.kind === 'corridor') {
+          // Passage between chambers: low parapets on both flanks, no tall walls
+          t.walls.forEach(function(side) {
+            if (side === 'n' || side === 'w') {
+              bucket.push(self.add.image(p.x, p.y - 14, 'rim_' + side).setDepth(wallDepth));
+            } else {
+              bucket.push(self.add.image(p.x, p.y + 14, 'rim_' + side).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.fx) - 0.5));
+            }
+          });
+          return;
+        }
+
         // Back walls (n / w): arch when the neighbour is a corridor, wall otherwise
         if (t.walls.indexOf('n') !== -1) {
           bucket.push(self.add.image(p.x, p.y, 'wall_n_' + v).setOrigin(0.5, 1).setDepth(wallDepth));
         } else if (t.kind === 'floor' && self.opensTo(t, 'n')) {
-          bucket.push(self.add.image(p.x, p.y, 'arch_n').setOrigin(0.5, 1).setDepth(wallDepth));
+          var archN = self.add.image(p.x, p.y, 'arch_n').setOrigin(0.5, 1).setDepth(wallDepth);
+          bucket.push(archN);
+          self.archByTile[t.gx + ',' + t.gy + ':n'] = archN;
         }
         if (t.walls.indexOf('w') !== -1) {
           bucket.push(self.add.image(p.x, p.y, 'wall_w_' + v).setOrigin(0.5, 1).setDepth(wallDepth));
         } else if (t.kind === 'floor' && self.opensTo(t, 'w')) {
-          bucket.push(self.add.image(p.x, p.y, 'arch_w').setOrigin(0.5, 1).setDepth(wallDepth));
+          var archW = self.add.image(p.x, p.y, 'arch_w').setOrigin(0.5, 1).setDepth(wallDepth);
+          bucket.push(archW);
+          self.archByTile[t.gx + ',' + t.gy + ':w'] = archW;
         }
 
         // Front rims (s / e): low parapet; openings toward a corridor stay clear
@@ -550,6 +567,25 @@ var IsoScenes = (function() {
     },
 
     /**
+     * While the owl stands on a corridor tile it is behind the doorway wall of
+     * the room ahead (n/w faces are back walls); ghost that wall so the owl
+     * reads through the arch. Pass null to restore every arch.
+     */
+    ghostArchesFor: function(points) {
+      var self = this;
+      Object.keys(this.archByTile).forEach(function(k) { self.archByTile[k].setAlpha(1); });
+      if (!points) return;
+      points.forEach(function(g) {
+        var t = self.tileAt(g.gx, g.gy);
+        if (!t || t.kind !== 'corridor') return;
+        var east = self.archByTile[(g.gx + 1) + ',' + g.gy + ':w'];
+        var south = self.archByTile[g.gx + ',' + (g.gy + 1) + ':n'];
+        if (east) east.setAlpha(0.45);
+        if (south) south.setAlpha(0.45);
+      });
+    },
+
+    /**
      * Walk the owl along the corridor to another room, then callback
      */
     movePlayer: function(toId, onArrive) {
@@ -576,6 +612,7 @@ var IsoScenes = (function() {
       function segment() {
         if (idx >= segments.length) {
           self.moving = false;
+          self.ghostArchesFor(null);
           if (self.playerHasWalk) { self.player.stop(); self.player.setFrame('idle'); }
           self.startIdle();
           if (onArrive) onArrive();
@@ -585,6 +622,7 @@ var IsoScenes = (function() {
         var to = segments[idx++];
         var g = IsoModel.isoToGrid(to.x, to.y - 12);
         self.player.setDepth(IsoModel.depthKey(g.gx, g.gy, LAYERS.token) + 1);
+        self.ghostArchesFor([IsoModel.isoToGrid(from.x, from.y - 12), g]);
         if (Math.abs(to.x - from.x) > 2) self.player.setFlipX(to.x < from.x);
         var dist = Phaser.Math.Distance.Between(from.x, from.y, to.x, to.y);
         var dur = Math.max(180, dist / WALK_SPEED);
