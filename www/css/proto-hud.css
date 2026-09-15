@@ -330,8 +330,10 @@ body.proto .sfx-toggle {
 .hud-ribbon::before { left: -10px; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 40% 50%); }
 .hud-ribbon::after { right: -10px; clip-path: polygon(0 0, 100% 0, 60% 50%, 100% 100%, 0 100%); }
 
-.hud-ribbon .title-en { font-weight: bold; font-size: 1rem; }
-.hud-ribbon .title-pl { font-style: italic; font-size: 0.85rem; margin-left: 8px; opacity: 0.85; }
+/* Dark ink on parchment: the theme's .title-* rules set light colours, override them */
+.hud-ribbon .room-title { margin: 0; font-size: inherit; }
+.hud-ribbon .title-en { font-weight: bold; font-size: 1rem; color: var(--hud-ink) !important; text-shadow: none; }
+.hud-ribbon .title-pl { font-style: italic; font-size: 0.85rem; margin-left: 8px; color: #6b4a1a !important; text-shadow: none; }
 .hud-ribbon .room-desc { display: none; }
 
 /* Control dock at the bottom ------------------------------------------------- */
