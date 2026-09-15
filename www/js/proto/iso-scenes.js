@@ -13,7 +13,7 @@ var IsoScenes = (function() {
 
   var TILE_W = 128, TILE_H = 64, WALL_H = 64;
   var LAYERS = { floor: 0, wall: 1, token: 2, fx: 3 };
-  var FOG_ALPHA = { hidden: 1, fogged: 0.6, visible: 0 };
+  var FOG_ALPHA = { hidden: 1, fogged: 0.72, visible: 0 };
   var SPRITE_DIR = 'assets/proto/monsters/';
   var OWL_H = 104;          // player sprite height in px (~1.1 tile widths tall on a 96px basis)
   var MONSTER_H = 116;      // regular monster sprite height
@@ -206,7 +206,7 @@ var IsoScenes = (function() {
       var depth = IsoModel.depthKey(t.gx, t.gy, LAYERS.wall) + 0.5;
       var bracket = this.add.image(pt.x, pt.y + 14, 'torch_bracket').setDepth(depth);
       this.bucketFor(t).push(bracket);
-      var glow = this.add.image(pt.x, pt.y - 6, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.75);
+      var glow = this.add.image(pt.x, pt.y - 6, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(0.8);
       var flame = this.add.sprite(pt.x, pt.y - 10, 'flame_0').setOrigin(0.5, 1).setDepth(depth + 0.2);
       if (!REDUCED_MOTION) {
         flame.play({ key: 'flame', startFrame: Math.floor(hash(t.gx, t.gy) * 3) });
@@ -388,9 +388,9 @@ var IsoScenes = (function() {
       return [
         new Phaser.Geom.Point(n.x, n.y - up),
         new Phaser.Geom.Point(e.x, e.y - up),
-        new Phaser.Geom.Point(e.x, e.y + 10),
-        new Phaser.Geom.Point(s.x, s.y + 24),
-        new Phaser.Geom.Point(w.x, w.y + 10),
+        new Phaser.Geom.Point(e.x, e.y + 22),
+        new Phaser.Geom.Point(s.x, s.y + 40),
+        new Phaser.Geom.Point(w.x, w.y + 22),
         new Phaser.Geom.Point(w.x, w.y - up)
       ];
     },
