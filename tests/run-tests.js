@@ -218,6 +218,8 @@ loadScript('www/js/modules/descriptions.js');
 loadScript('www/js/modules/dungeon.js');
 loadScript('www/js/modules/combat.js');
 loadScript('www/js/modules/map.js');
+loadScript('www/js/modules/sfx.js');
+loadScript('www/js/modules/fx.js');
 
 console.log(`${colors.green}Modules loaded successfully${colors.reset}`);
 console.log(`\n${'='.repeat(50)}`);
@@ -238,6 +240,7 @@ loadScript('tests/descriptions.test.js');
 loadScript('tests/dungeon.test.js');
 loadScript('tests/combat.test.js');
 loadScript('tests/map.test.js');
+loadScript('tests/fx.test.js');
 loadScript('tests/integration.test.js');
 
 // Load adapter and E2E tests

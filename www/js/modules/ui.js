@@ -90,6 +90,7 @@ const UI = (function() {
   function lockSpeakButtonsUntil(promise) {
     speechInProgress = true;
     setSpeakButtonsDisabled(true);
+    if (typeof SFX !== 'undefined') SFX.duck(true);
 
     var released = false;
     function release() {
@@ -101,6 +102,7 @@ const UI = (function() {
       }
       speechInProgress = false;
       setSpeakButtonsDisabled(false);
+      if (typeof SFX !== 'undefined') SFX.duck(false);
     }
 
     speechLockTimer = setTimeout(release, SPEECH_LOCK_MAX_MS);
@@ -259,6 +261,7 @@ const UI = (function() {
 
       // Treasure modal elements
       treasureModal: document.getElementById('treasure-modal'),
+      treasureImage: document.getElementById('treasure-image'),
       treasureLootContainer: document.getElementById('treasure-loot-container'),
       treasureContinueBtn: document.getElementById('treasure-continue-btn'),
 
@@ -286,11 +289,23 @@ const UI = (function() {
       matchingMonsterDescription: document.getElementById('matching-monster-description'),
       matchingInstruction: document.getElementById('matching-instruction'),
       matchingLeft: document.getElementById('matching-left'),
-      matchingRight: document.getElementById('matching-right')
+      matchingRight: document.getElementById('matching-right'),
+
+      // Sound toggle
+      sfxToggle: document.getElementById('sfx-toggle')
     };
 
     // Add keyboard navigation listener
     document.addEventListener('keydown', handleKeyboardNavigation);
+
+    // Sound effects mute toggle
+    if (elements.sfxToggle) {
+      elements.sfxToggle.addEventListener('click', function() {
+        if (typeof SFX !== 'undefined') SFX.toggleMuted();
+        setSfxToggleState();
+      });
+      setSfxToggleState();
+    }
 
     // Map toggle for collapsible map (mobile only)
     if (elements.mapPanel) {
@@ -307,6 +322,81 @@ const UI = (function() {
         });
       }
     }
+  }
+
+  /**
+   * Reflect the persisted mute state on the sound toggle button
+   */
+  function setSfxToggleState() {
+    if (!elements.sfxToggle) return;
+    var muted = typeof SFX !== 'undefined' && SFX.isMuted();
+    elements.sfxToggle.innerHTML = muted ? '&#x1f507;' : '&#x1f50a;';
+    elements.sfxToggle.setAttribute('aria-pressed', muted ? 'true' : 'false');
+  }
+
+  function hasFx() {
+    return typeof FX !== 'undefined';
+  }
+
+  function playSfx(name, opts) {
+    if (typeof SFX !== 'undefined') SFX.play(name, opts);
+  }
+
+  // Question currently shown in the quiz modal (for answer feedback)
+  var currentQuizQuestion = null;
+
+  // Pending timers of the result modal (cleared on re-show)
+  var resultTimers = [];
+
+  // Continue button gates (ms). Failure keeps a longer gate so the explanation gets read.
+  var RESULT_DELAY_SUCCESS_MS = 5000;
+  var RESULT_DELAY_FAILURE_MS = 8000;
+  var RESULT_LOOT_DELAY_MS = 1200;
+
+  /**
+   * Play the answer feedback sequence (button flash, monster reaction, sounds, haptics)
+   * @param {number} index - Tapped answer index
+   * @param {Object} result - Result from Combat.submitAnswer
+   * @returns {Promise} Resolves when the sequence is done
+   */
+  function playAnswerFx(index, result) {
+    if (!hasFx() || !elements.answersContainer) return Promise.resolve();
+
+    var btn = elements.answersContainer.querySelector('.answer-btn[data-index="' + index + '"]');
+    var correctIdx = currentQuizQuestion ? currentQuizQuestion.correctIndex : -1;
+    var correctBtn = elements.answersContainer.querySelector('.answer-btn[data-index="' + correctIdx + '"]');
+    var img = elements.monsterImage;
+    var content = elements.quizModal ? elements.quizModal.querySelector('.modal-content') : null;
+
+    if (result.success) {
+      FX.play('correct');
+      FX.haptic('onCorrectAnswer');
+      return FX.answerFeedback(btn, true).then(function() {
+        if (result.dragonDefeated) {
+          FX.play('dragon-roar');
+          FX.haptic('onDragonDefeated');
+          return FX.monsterDefeat(img);
+        }
+        if (result.defeated) {
+          FX.play('hit');
+          return FX.monsterHit(img).then(function() {
+            FX.play('defeat-monster');
+            FX.haptic('onMonsterDefeated');
+            return FX.monsterDefeat(img);
+          });
+        }
+        // Dragon fight continues
+        FX.play('hit');
+        return FX.monsterHit(img);
+      });
+    }
+
+    FX.play('wrong');
+    FX.haptic('onWrongAnswer');
+    return FX.answerFeedback(btn, false, correctBtn).then(function() {
+      FX.play('attack');
+      return FX.monsterAttack(img, content);
+    });
   }
 
   /**
@@ -658,6 +748,9 @@ const UI = (function() {
 
     const { monster, question, isDragon, dragonStreak } = encounter;
     const labels = getLabels();
+    currentQuizQuestion = question;
+
+    if (hasFx()) FX.resetMonster(elements.monsterImage);
 
     if (elements.monsterName) {
       elements.monsterName.innerHTML = `
@@ -747,6 +840,7 @@ const UI = (function() {
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           if (answerSubmitted) return;
+          playSfx('tap');
           disableAnswerButtons();
           const index = parseInt(btn.dataset.index);
           if (onAnswer) onAnswer(index);
@@ -765,6 +859,7 @@ const UI = (function() {
 
     hideDirectionBar();
     elements.quizModal.classList.remove('hidden');
+    playSfx('reveal');
   }
 
   /**
@@ -784,6 +879,9 @@ const UI = (function() {
    */
   function updateQuizQuestion(question, streak, onAnswer) {
     const labels = getLabels();
+    currentQuizQuestion = question;
+
+    if (hasFx()) FX.resetMonster(elements.monsterImage);
 
     if (elements.questionText) {
       elements.questionText.textContent = question.prompt;
@@ -816,6 +914,16 @@ const UI = (function() {
           `).join('')}
         </div>
       `;
+      if (hasFx() && streak > 0) {
+        var dots = elements.dragonProgress.querySelectorAll('.streak-dot');
+        FX.streakPulse(dots[streak - 1]);
+        playSfx('streak');
+      }
+    }
+
+    if (hasFx() && elements.quizModal) {
+      FX.animate(elements.quizModal.querySelector('.question-section'), 'fx-question-swap', 500);
+      FX.animate(elements.answersContainer, 'fx-question-swap', 500);
     }
 
     if (elements.answersContainer) {
@@ -830,6 +938,7 @@ const UI = (function() {
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           if (answerSubmitted) return;
+          playSfx('tap');
           disableAnswerButtons();
           const index = parseInt(btn.dataset.index);
           if (onAnswer) onAnswer(index);
@@ -856,6 +965,10 @@ const UI = (function() {
     if (!elements.resultModal) return;
 
     const labels = getLabels();
+
+    // Cancel timers from a previous result modal
+    resultTimers.forEach(function(t) { clearTimeout(t); });
+    resultTimers = [];
 
     if (elements.resultTitle) {
       if (result.dragonDefeated) {
@@ -946,23 +1059,29 @@ const UI = (function() {
       elements.continueBtn.disabled = true;
       elements.continueBtn.onclick = null;
 
+      // Single source of truth for the gate: JS timer and CSS progress bar share it
+      var gateMs = result.success ? RESULT_DELAY_SUCCESS_MS : RESULT_DELAY_FAILURE_MS;
+      elements.continueBtn.style.setProperty('--continue-delay', gateMs + 'ms');
+
       // Force reflow to restart CSS animation
       void elements.continueBtn.offsetWidth;
 
       // Start progress animation
       elements.continueBtn.classList.add('btn-progress');
 
-      // Enable button after 8 seconds and show loot
-      setTimeout(() => {
+      // Enable button once the gate elapses
+      resultTimers.push(setTimeout(() => {
         elements.continueBtn.classList.add('ready');
         elements.continueBtn.disabled = false;
         elements.continueBtn.onclick = () => {
           hideResultModal();
           if (onContinue) onContinue(result);
         };
+      }, gateMs));
 
-        // Show loot when button becomes enabled
-        if (elements.lootContainer && result.loot && result.loot.length > 0) {
+      // Reveal loot shortly after the modal opens
+      if (elements.lootContainer && result.loot && result.loot.length > 0) {
+        resultTimers.push(setTimeout(() => {
           elements.lootContainer.innerHTML = `
             <h4>
               <span class="label-en">${getLabel(labels, 'lootObtained', 'en', 'Loot obtained:')}</span>
@@ -979,12 +1098,27 @@ const UI = (function() {
             </ul>
           `;
           elements.lootContainer.classList.remove('hidden');
-        }
-      }, 8000);
+          if (hasFx()) {
+            FX.lootReveal(elements.lootContainer);
+            for (var i = 0; i < Math.min(result.loot.length, 4); i++) {
+              FX.play('coin', { delay: i * 0.12 });
+            }
+          }
+        }, RESULT_LOOT_DELAY_MS));
+      }
     }
 
     hideDirectionBar();
     elements.resultModal.classList.remove('hidden');
+
+    if (result.dragonDefeated) {
+      playSfx('victory');
+    } else if (result.success) {
+      playSfx('reveal');
+    } else {
+      playSfx('defeat-sting');
+      if (hasFx()) FX.defeatShake(elements.resultModal.querySelector('.modal-content'));
+    }
   }
 
   /**
@@ -1028,12 +1162,25 @@ const UI = (function() {
     // Bind continue button
     if (elements.treasureContinueBtn) {
       elements.treasureContinueBtn.onclick = () => {
+        playSfx('coins');
+        if (hasFx()) FX.haptic('onSelection');
         hideTreasureModal();
         if (onCollect) onCollect(loot);
       };
     }
 
     elements.treasureModal.classList.remove('hidden');
+    playSfx('reveal');
+
+    if (hasFx()) {
+      FX.animate(elements.treasureImage, 'fx-treasure-pop', 700);
+      setTimeout(function() {
+        FX.lootReveal(elements.treasureLootContainer);
+        for (var i = 0; i < Math.min(loot.length, 4); i++) {
+          FX.play('coin', { delay: i * 0.12 });
+        }
+      }, 300);
+    }
   }
 
   /**
@@ -1051,6 +1198,7 @@ const UI = (function() {
    * @param {Function} onPlayAgain - Callback for play again
    */
   function showVictoryScreen(summary, onPlayAgain) {
+    summary = summary || {};
     showScreen('victory');
 
     const labels = getLabels();
@@ -1120,6 +1268,12 @@ const UI = (function() {
       `;
       elements.playAgainBtn.onclick = onPlayAgain;
     }
+
+    if (hasFx()) {
+      FX.play('victory');
+      FX.haptic('onDragonDefeated');
+      FX.victoryCelebration(elements.victoryScreen);
+    }
   }
 
   /**
@@ -1155,6 +1309,7 @@ const UI = (function() {
 
     // Set monster info
     if (elements.matchingMonsterImage) {
+      if (hasFx()) FX.resetMonster(elements.matchingMonsterImage);
       elements.matchingMonsterImage.src = 'assets/' + (monster.id || 'placeholder') + '.png';
       elements.matchingMonsterImage.onerror = function() {
         elements.matchingMonsterImage.src = 'assets/placeholder.svg';
@@ -1180,6 +1335,7 @@ const UI = (function() {
 
     hideDirectionBar();
     elements.matchingModal.classList.remove('hidden');
+    playSfx('reveal');
   }
 
   /**
@@ -1222,6 +1378,8 @@ const UI = (function() {
       var result = Matching.selectItem(side, pairIndex);
 
       if (result.type === 'selected') {
+        playSfx('tap');
+        if (hasFx()) FX.haptic('onSelection');
         // Highlight selected item, clear others
         var allActive = elements.matchingModal.querySelectorAll('.matching-item:not(.matched)');
         allActive.forEach(function(btn) { btn.classList.remove('selected'); });
@@ -1232,6 +1390,7 @@ const UI = (function() {
         if (clicked) clicked.classList.add('selected');
 
       } else if (result.type === 'match') {
+        playSfx('correct', { volume: 0.6 });
         // Correct match — animate matched pair
         var matchedButtons = elements.matchingModal.querySelectorAll(
           '[data-pair-index="' + result.pairIndex + '"]'
@@ -1257,9 +1416,13 @@ const UI = (function() {
           btn.disabled = true;
         });
 
-        setTimeout(function() {
+        playSfx('defeat-monster');
+        if (hasFx()) FX.haptic('onMonsterDefeated');
+        var defeatFx = hasFx() ? FX.monsterDefeat(elements.matchingMonsterImage) : Promise.resolve();
+        var minDelay = new Promise(function(resolve) { setTimeout(resolve, 400); });
+        Promise.all([defeatFx, minDelay]).then(function() {
           if (onComplete) onComplete(true);
-        }, 400);
+        });
 
       } else if (result.type === 'mismatch') {
         // Wrong match — flash red and fail
@@ -1274,9 +1437,15 @@ const UI = (function() {
           }
         });
 
-        setTimeout(function() {
+        playSfx('wrong');
+        if (hasFx()) FX.haptic('onWrongAnswer');
+        var attackFx = hasFx()
+          ? FX.monsterAttack(elements.matchingMonsterImage, elements.matchingModal.querySelector('.modal-content'))
+          : Promise.resolve();
+        var minWrongDelay = new Promise(function(resolve) { setTimeout(resolve, 800); });
+        Promise.all([attackFx, minWrongDelay]).then(function() {
           if (onComplete) onComplete(false);
-        }, 800);
+        });
       }
     }
 
@@ -1364,7 +1533,9 @@ const UI = (function() {
     renderDirectionBar,
     hideDirectionBar,
     speakPolishWord,
-    isSpeechInProgress
+    isSpeechInProgress,
+    playAnswerFx,
+    setSfxToggleState
   };
 })();
 

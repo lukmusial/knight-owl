@@ -18,6 +18,9 @@ const Game = (function() {
   function init() {
     if (initialized) return;
 
+    // Arm sound effects (unlocked by the first tap, e.g. the splash prompt)
+    if (typeof SFX !== 'undefined') SFX.init();
+
     // On native platforms, show splash video before anything else
     if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
       showSplashVideo(function() {
@@ -304,6 +307,10 @@ const Game = (function() {
     // Update player location
     if (roomId !== Player.getCurrentRoom()) {
       Player.moveTo(roomId);
+      if (typeof FX !== 'undefined') {
+        FX.play('step');
+        FX.haptic('onNavigation');
+      }
     }
 
     const room = Dungeon.getRoom(roomId);
@@ -469,31 +476,29 @@ const Game = (function() {
       return;
     }
 
-    // Hide quiz modal
-    UI.hideQuizModal();
+    // Let the answer feedback (button flash, monster reaction, sounds) play first
+    var fxDone = (typeof UI.playAnswerFx === 'function')
+      ? UI.playAnswerFx(answerIndex, result)
+      : Promise.resolve();
 
-    // Check for dragon victory
-    if (result.dragonDefeated) {
-      handleDragonVictory();
-      return;
-    }
+    fxDone.then(function() {
+      // Dragon defeated: commit state now, celebrate, then victory screen
+      if (result.dragonDefeated) {
+        finalizeDragonVictory();
+        UI.hideQuizModal();
+        UI.showResultModal(result, showVictory);
+        return;
+      }
 
-    // Check if dragon fight continues
-    if (result.success && !result.defeated && result.nextQuestion) {
-      // Dragon fight continues - show next question
-      setTimeout(() => {
-        UI.showQuizModal({
-          monster: Combat.getCurrentEncounter().monster,
-          question: result.nextQuestion,
-          isDragon: true,
-          dragonStreak: result.streak
-        }, handleAnswer);
-      }, 500);
-      return;
-    }
+      // Dragon fight continues - swap the question in place
+      if (result.success && !result.defeated && result.nextQuestion) {
+        UI.updateQuizQuestion(result.nextQuestion, result.streak, handleAnswer);
+        return;
+      }
 
-    // Show result modal
-    UI.showResultModal(result, handleResultContinue);
+      UI.hideQuizModal();
+      UI.showResultModal(result, handleResultContinue);
+    });
   }
 
   /**
@@ -594,7 +599,7 @@ const Game = (function() {
   /**
    * Handle dragon defeat (game victory)
    */
-  function handleDragonVictory() {
+  function finalizeDragonVictory() {
     gameInProgress = false;
 
     // Clear room
@@ -608,8 +613,12 @@ const Game = (function() {
 
     // Delete save (game completed)
     Save.deleteSave(Player.getName());
+  }
 
-    // Show victory screen
+  /**
+   * Show the victory screen (after the dragon result modal)
+   */
+  function showVictory() {
     const summary = Player.getGameSummary();
     UI.showVictoryScreen(summary, handlePlayAgain);
   }
