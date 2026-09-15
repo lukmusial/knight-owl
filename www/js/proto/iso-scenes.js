@@ -332,8 +332,11 @@ var IsoScenes = (function() {
         // Torches on back walls (middle tile if solid, else the corner tile)
         var nTile = self.tileAt(g + 1, h), nCorner = self.tileAt(g + 2, h);
         var wTile = self.tileAt(g, h + 1), wCorner = self.tileAt(g, h + 2);
-        if (nTile && nTile.walls.indexOf('n') !== -1) self.addTorch(rid, nTile, 'n');
-        else if (nCorner && nCorner.walls.indexOf('n') !== -1) self.addTorch(rid, nCorner, 'n');
+        // The entrance stairs occupy the middle north tile, so its torch goes to a corner
+        var nFirst = type === 'entrance' ? nCorner : nTile;
+        var nSecond = type === 'entrance' ? self.tileAt(g, h) : nCorner;
+        if (nFirst && nFirst.walls.indexOf('n') !== -1) self.addTorch(rid, nFirst, 'n');
+        else if (nSecond && nSecond.walls.indexOf('n') !== -1) self.addTorch(rid, nSecond, 'n');
         if (wTile && wTile.walls.indexOf('w') !== -1) self.addTorch(rid, wTile, 'w');
         else if (wCorner && wCorner.walls.indexOf('w') !== -1) self.addTorch(rid, wCorner, 'w');
 
@@ -344,11 +347,7 @@ var IsoScenes = (function() {
             var bp = self.wallPoint(bt, 'n', 0.5, 62);
             self.roomSprites[rid].push(self.add.image(bp.x, bp.y, 'banner').setOrigin(0.5, 0).setDepth(IsoModel.depthKey(bt.gx, bt.gy, LAYERS.wall) + 0.5));
           }
-          var bt2 = self.tileAt(g + 2, h);
-          if (bt2 && bt2.walls.indexOf('n') !== -1) {
-            var bp2 = self.wallPoint(bt2, 'n', 0.5, 62);
-            self.roomSprites[rid].push(self.add.image(bp2.x, bp2.y, 'banner').setOrigin(0.5, 0).setDepth(IsoModel.depthKey(bt2.gx, bt2.gy, LAYERS.wall) + 0.5));
-          }
+          // (the corner tile g+2 carries the torch; a second banner would sit on top of it)
         } else if (type === 'monster') {
           // bones or rubble near the front, a second pile now and then
           self.addProp(rid, seed > 0.5 ? g + 2 : g, h + 2, seed > 0.33 ? 'bones' : 'rubble', { dy: 8, dz: -0.5 });
@@ -378,7 +377,9 @@ var IsoScenes = (function() {
      * (n/w faces rise by `up`). Corridor tiles have no walls, so they pass 0.
      */
     fogPolygon: function(gx0, gy0, gx1, gy1, up, margin) {
-      var m = margin === undefined ? 0.3 : margin;
+      // gridToIso gives tile centres; the diamond corners lie 0.5 tile out, so
+      // the margin must exceed 0.5 to cover the block's outer edges
+      var m = margin === undefined ? 0.68 : margin;
       var n = IsoModel.gridToIso(gx0 - m, gy0 - m);
       var e = IsoModel.gridToIso(gx1 + m, gy0 - m);
       var s = IsoModel.gridToIso(gx1 + m, gy1 + m);
@@ -409,7 +410,7 @@ var IsoScenes = (function() {
         var t = link.tile;
         var g = self.add.graphics().setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.fx) + 1);
         g.fillStyle(0x05060a, 1);
-        g.fillPoints(self.fogPolygon(t.gx, t.gy, t.gx, t.gy, 4, 0.2), true);
+        g.fillPoints(self.fogPolygon(t.gx, t.gy, t.gx, t.gy, 6, 0.58), true);
         self.fogOverlays[link.id] = g;
       });
     },
