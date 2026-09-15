@@ -141,8 +141,6 @@ body.on-start #game-container {
 .start-form {
   padding: 14px 14px 12px;
   border-radius: 8px;
-  background: none;
-  box-shadow: none;
   margin: 0;
 }
 
