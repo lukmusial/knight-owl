@@ -221,37 +221,12 @@ var ProtoHud = (function() {
     return hasSprite(id) ? spriteIndex[id] : null;
   }
 
-  function swapImage(imgId, monsterId) {
-    var img = document.getElementById(imgId);
-    if (!img) return;
-    var url = spriteUrl(monsterId);
-    var display = img.parentNode;
-    if (url) {
-      img.src = url;
-      if (display) display.classList.add('has-sprite');
-    } else if (display) {
-      display.classList.remove('has-sprite');
-    }
-  }
-
   /**
-   * Wrap UI.showQuizModal / showMatchingModal so the modal shows the cutout
-   * sprite instead of the full illustration (ui.js stays untouched).
+   * Apply sprites where the HUD wants them. The encounter modals keep the
+   * full illustrations (the painted scenes are part of the combat look);
+   * only the HUD portrait uses the cutout.
    */
   function useSpritesInModals() {
-    if (typeof UI === 'undefined') return;
-    if (UI.__spritesPatched) return;
-    UI.__spritesPatched = true;
-    var origQuiz = UI.showQuizModal;
-    UI.showQuizModal = function(encounter, onAnswer) {
-      origQuiz(encounter, onAnswer);
-      if (encounter && encounter.monster) swapImage('monster-image', encounter.monster.id);
-    };
-    var origMatch = UI.showMatchingModal;
-    UI.showMatchingModal = function(encounter, onComplete) {
-      origMatch(encounter, onComplete);
-      if (encounter && encounter.monster) swapImage('matching-monster-image', encounter.monster.id);
-    };
     if (els.portraitImg && hasSprite('knight_owl')) {
       els.portraitImg.src = spriteUrl('knight_owl');
       els.portraitImg.style.objectPosition = '50% 0%';

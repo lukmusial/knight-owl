@@ -80,7 +80,7 @@ Two experimental presentations of the same dungeon live under `www/proto/` and a
 | `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style vaulted chambers with arched doorways, torches and lava rivers: turn left/right, step forward/back; monsters stay hidden in the fog until you enter their chamber. |
 | `proto/isometric.html` | Phaser 3.90 (WebGL, Canvas fallback) | Isometric dungeon with fog of war and dressed chambers (torches, banners, bones, gold, lava): unexplored rooms are dark, neighbours dimmed with a "?" marker; tap an adjacent room and Mr Owl walks there. |
 
-Both pages are built for phones: the engine canvas fills the screen and a 1990s-style HUD (stone-and-gold top bar with portrait and stats, framed minimap, parchment room ribbon, control dock) floats above it. Monster art is shown as extracted sprites (`www/assets/proto/monsters/`, produced by `tools/extract-sprites.py`).
+Both pages are built for phones: the engine canvas fills the screen and a 1990s-style HUD (stone-and-gold top bar with portrait and stats, framed minimap, parchment room ribbon, control dock) floats above it. Inside the 3D and isometric scenes monsters appear as extracted sprites (`www/assets/proto/monsters/`, produced by `tools/extract-sprites.py`); the encounter screens keep the full painted illustrations.
 
 <p align="center">
   <img src="docs/screenshots/proto-fp-01-corridor.png" alt="First-person corridor" width="420">
