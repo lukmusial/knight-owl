@@ -302,6 +302,7 @@ const UI = (function() {
     if (elements.sfxToggle) {
       elements.sfxToggle.addEventListener('click', function() {
         if (typeof SFX !== 'undefined') SFX.toggleMuted();
+        if (typeof Music !== 'undefined' && typeof SFX !== 'undefined') Music.setMuted(SFX.isMuted());
         setSfxToggleState();
       });
       setSfxToggleState();
@@ -404,6 +405,9 @@ const UI = (function() {
    * @param {string} screenName - 'start', 'game', or 'victory'
    */
   function showScreen(screenName) {
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.toggle('on-start', screenName === 'start');
+    }
     if (elements.startScreen) elements.startScreen.classList.add('hidden');
     if (elements.gameScreen) elements.gameScreen.classList.add('hidden');
     if (elements.victoryScreen) elements.victoryScreen.classList.add('hidden');
@@ -1119,6 +1123,33 @@ const UI = (function() {
       playSfx('defeat-sting');
       if (hasFx()) FX.defeatShake(elements.resultModal.querySelector('.modal-content'));
     }
+
+    // Read the correct answer (or the completed sentence) aloud once the
+    // result sound has played, so the learner hears the Polish either way
+    var toSpeak = textToSpeakForResult(result);
+    if (toSpeak) {
+      resultTimers.push(setTimeout(function() { speakPolishWord(toSpeak); }, result.success ? 700 : 1200));
+    }
+  }
+
+  /**
+   * Polish text worth reading aloud for a quiz result
+   * @param {Object} result - Combat result
+   * @returns {string|null}
+   */
+  function textToSpeakForResult(result) {
+    if (!result || !result.correctAnswer) return null;
+    if (result.sentence) {
+      return result.sentence.replace('___', result.correctAnswer)
+        .replace(/\s*\([^)]*\)/g, '').replace(/→/g, '').replace(/\s+/g, ' ').trim();
+    }
+    // Plain vocabulary asks for the English meaning of a Polish word: read that word,
+    // not the English answer. Reverse vocabulary and grammar answers are Polish already.
+    if (result.category === 'vocabulary') {
+      var prompt = currentQuizQuestion ? currentQuizQuestion.prompt : '';
+      return extractPolishWord(prompt) || null;
+    }
+    return result.correctAnswer;
   }
 
   /**
@@ -1535,7 +1566,8 @@ const UI = (function() {
     speakPolishWord,
     isSpeechInProgress,
     playAnswerFx,
-    setSfxToggleState
+    setSfxToggleState,
+    textToSpeakForResult
   };
 })();
 

@@ -59,7 +59,7 @@ var ProtoFp = (function() {
       ng.title = 'New game / Nowa gra';
       ng.innerHTML = '&#x27F3;';
       side.appendChild(ng);
-      ng.addEventListener('click', newGame);
+      ng.addEventListener('click', function() { newGame(true); });
     }
 
     Questions.init();
@@ -77,7 +77,7 @@ var ProtoFp = (function() {
 
     ProtoHud.loadSprites().then(function() {
       ProtoHud.useSpritesInModals();
-      newGame();
+      newGame(false);
       var veil = document.getElementById('fp-loading');
       if (veil) veil.classList.add('hidden');
     });
@@ -110,27 +110,36 @@ var ProtoFp = (function() {
   // ---------------------------------------------------------------------------
   // Game setup
   // ---------------------------------------------------------------------------
-  function newGame() {
+  /**
+   * Start or restore a run. First boot honours the launch parameters
+   * (?name=&action=new|continue); the restart button starts over for the
+   * same player.
+   * @param {boolean} restart - Force a fresh dungeon for the current player
+   */
+  function newGame(restart) {
     var victory = document.getElementById('victory-screen');
     if (victory) victory.classList.add('hidden');
 
-    Questions.resetUsed();
-    if (typeof Matching !== 'undefined') Matching.resetUsed();
-    Player.reset();
-    Player.create('Mr Owl');
-    DungeonMap.init();
-    Dungeon.generate();
-    DungeonMap.calculateLayout(Dungeon.getEntranceId());
+    var session = restart
+      ? ProtoSession.startNew(Player.getName() || 'Mr Owl')
+      : ProtoSession.begin('Mr Owl');
+    ProtoHud.setName(session.name);
 
     world = FpWorld.fromDungeon();
-    var entrance = Dungeon.getEntranceId();
-    var entranceCell = world.cells[entrance];
-    var facing = 'S';
-    for (var i = 0; i < FpWorld.DIRS.length; i++) {
-      if (entranceCell.exits[FpWorld.DIRS[i]]) { facing = FpWorld.DIRS[i]; break; }
+    var entrance = session.loaded ? Player.getCurrentRoom() : Dungeon.getEntranceId();
+    var facing = null;
+    if (session.loaded && Player.getPreviousRoom() && Player.getPreviousRoom() !== entrance) {
+      facing = FpWorld.facingBetween(Player.getPreviousRoom(), entrance);
+    }
+    if (!facing) {
+      var cell = world.cells[entrance];
+      facing = 'S';
+      for (var i = 0; i < FpWorld.DIRS.length; i++) {
+        if (cell && cell.exits[FpWorld.DIRS[i]]) { facing = FpWorld.DIRS[i]; break; }
+      }
     }
     FpWorld.init(world, entrance, facing);
-    Player.moveTo(entrance);
+    if (!session.loaded) Player.moveTo(entrance);
 
     if (!textures) textures = FpTextures.procedural();
     FpRenderer.buildScene(world, textures);
@@ -368,6 +377,7 @@ var ProtoFp = (function() {
       Dungeon.clearRoom(roomId);
       FpRenderer.removeEntity(roomId);
       updateHud();
+      ProtoSession.autoSave();
       FpRenderer.resume();
       busy = false;
     });
@@ -389,10 +399,12 @@ var ProtoFp = (function() {
         refreshVisibility();
         updateHud();
         ProtoHud.setCompass(FpWorld.getFacing());
+        ProtoSession.autoSave();
         busy = false;
       });
       return;
     }
+    ProtoSession.autoSave();
 
     FpRenderer.removeEntity(Player.getCurrentRoom());
     busy = false;
@@ -400,7 +412,8 @@ var ProtoFp = (function() {
 
   function showVictory() {
     FpRenderer.stop();
-    UI.showVictoryScreen(Player.getGameSummary(), newGame);
+    ProtoSession.finishRun();
+    UI.showVictoryScreen(Player.getGameSummary(), function() { window.location.href = 'index.html'; });
   }
 
   /**

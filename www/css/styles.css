@@ -886,23 +886,6 @@ body {
   display: none;
 }
 
-/* Links to the experimental prototype pages (start screen) */
-.proto-links {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 0.85rem;
-  opacity: 0.75;
-}
-
-.proto-links-label {
-  margin-right: 8px;
-}
-
-.proto-link {
-  color: var(--color-primary);
-  margin: 0 6px;
-  text-decoration: underline;
-}
 
 /* Speak buttons are disabled while a TTS request is in flight */
 .btn-speak:disabled,

@@ -6,6 +6,7 @@
  */
 
 var ProtoIso = (function() {
+  var session = null;
   var game = null;
   var scene = null;
   var busy = false;
@@ -71,19 +72,12 @@ var ProtoIso = (function() {
       restart.innerHTML = '&#x21bb;';
       iconBtns.insertBefore(restart, iconBtns.lastElementChild);
     }
-    ProtoHud.setName('Explorer');
     ProtoHud.loadSprites().then(function() { ProtoHud.useSpritesInModals(); });
 
+    // New run or restored save from the launch parameters (?name=&action=)
     Questions.init();
-    Questions.resetUsed();
-    if (typeof Matching !== 'undefined') {
-      Matching.init();
-      Matching.resetUsed();
-    }
-    Player.create('Explorer');
-    DungeonMap.init();
-    Dungeon.generate();
-    DungeonMap.calculateLayout(Dungeon.getEntranceId());
+    session = ProtoSession.begin('Explorer');
+    ProtoHud.setName(session.name);
 
     // Canvas drag must not be interpreted as a swipe by the document-level input
     if (typeof InputAdapter !== 'undefined') {
@@ -94,7 +88,11 @@ var ProtoIso = (function() {
     }
 
     var restartBtn = document.getElementById('iso-new-game');
-    if (restartBtn) restartBtn.addEventListener('click', function() { location.reload(); });
+    if (restartBtn) {
+      restartBtn.addEventListener('click', function() {
+        location.href = location.pathname + '?name=' + encodeURIComponent(Player.getName() || 'Explorer') + '&action=new';
+      });
+    }
 
     showLoading(true);
 
@@ -120,7 +118,7 @@ var ProtoIso = (function() {
         showLoading(false);
         gameInProgress = true;
         console.log('ProtoIso: renderer ' + (game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas'));
-        enterRoom(Dungeon.getEntranceId());
+        enterRoom(session.loaded ? Player.getCurrentRoom() : Dungeon.getEntranceId());
       },
       onRoomTap: tapRoom,
       onFarTap: function() {
@@ -149,6 +147,7 @@ var ProtoIso = (function() {
   }
 
   function showNavigation() {
+    ProtoSession.autoSave();
     var current = Player.getCurrentRoom();
     var connections = Dungeon.getConnectedRooms(current);
     currentNavOptions = Descriptions.generateNavigationOptions(connections, current);
@@ -334,7 +333,8 @@ var ProtoIso = (function() {
   }
 
   function showVictory() {
-    UI.showVictoryScreen(Player.getGameSummary(), function() { location.reload(); });
+    ProtoSession.finishRun();
+    UI.showVictoryScreen(Player.getGameSummary(), function() { location.href = 'index.html'; });
   }
 
   // ---------------------------------------------------------------------------
