@@ -571,6 +571,8 @@ var IsoScenes = (function() {
       }
 
       this.moving = true;
+      this.followOffsetY = this.hudOffsetY();
+      this.cameras.main.panEffect.reset();  // the camera follows the owl while walking
       this.stopIdle();
       if (this.playerHasWalk) this.player.play('owl_walk');
       var segments = path.slice(1).map(function(g) { var q = IsoModel.gridToIso(g.gx, g.gy); return { x: q.x, y: q.y + 12 }; });
@@ -671,9 +673,18 @@ var IsoScenes = (function() {
       this.setPinch = function(v) { pinch = v; };
     },
 
-    update: function() {
+    update: function(time, delta) {
       var p1 = this.input.pointer1, p2 = this.input.pointer2;
       var cam = this.cameras.main;
+
+      // Follow the owl while it walks between rooms (smoothed)
+      if (this.moving && this.player) {
+        var tx = this.player.x;
+        var ty = this.player.y + this.followOffsetY / cam.zoom;
+        var k = 1 - Math.pow(0.002, Math.min(delta || 16, 100) / 1000);
+        var mx = cam.midPoint.x, my = cam.midPoint.y;
+        cam.centerOn(mx + (tx - mx) * k, my + (ty - my) * k);
+      }
       if (p1 && p2 && p1.isDown && p2.isDown) {
         var d = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
         var pinch = this.pinchState();
