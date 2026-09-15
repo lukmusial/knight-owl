@@ -268,19 +268,13 @@ var IsoScenes = (function() {
           bucket.push(self.add.image(p.x, p.y, 'arch_w').setOrigin(0.5, 1).setDepth(wallDepth));
         }
 
-        // Front rims (s / e): low parapet, or doorway posts at an opening
+        // Front rims (s / e): low parapet; openings toward a corridor stay clear
         var frontDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.fx) - 0.5;
         if (t.walls.indexOf('s') !== -1) {
           bucket.push(self.add.image(p.x, p.y + 14, 'rim_s').setDepth(frontDepth));
-        } else if (t.kind === 'floor' && self.opensTo(t, 's')) {
-          bucket.push(self.add.image(p.x - 56, p.y + 6, 'post').setOrigin(0.5, 1).setDepth(frontDepth));
-          bucket.push(self.add.image(p.x - 6, p.y + 30, 'post').setOrigin(0.5, 1).setDepth(frontDepth));
         }
         if (t.walls.indexOf('e') !== -1) {
           bucket.push(self.add.image(p.x, p.y + 14, 'rim_e').setDepth(frontDepth));
-        } else if (t.kind === 'floor' && self.opensTo(t, 'e')) {
-          bucket.push(self.add.image(p.x + 56, p.y + 6, 'post').setOrigin(0.5, 1).setDepth(frontDepth));
-          bucket.push(self.add.image(p.x + 6, p.y + 30, 'post').setOrigin(0.5, 1).setDepth(frontDepth));
         }
       });
 

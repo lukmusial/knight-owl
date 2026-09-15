@@ -24,6 +24,43 @@ SRC = ROOT / 'www' / 'assets'
 DST = SRC / 'proto' / 'monsters'
 SKIP = {'placeholder', 'start', 'victory'}
 
+# Per-sprite overrides where the default model (isnet-general-use) fails:
+# - giant_snake: isnet drops the coils crossing the dark background; u2net keeps them
+# - bat_swarm: every model keeps the dark cave centre as "subject"; a hue filter
+#   that rejects the teal/blue cave colours and keeps the purple/pink bats works
+MODEL_OVERRIDE = {'giant_snake': 'u2net'}
+FILTER_OVERRIDE = {'bat_swarm': 'hue_purple'}
+
+
+def hue_purple_cutout(img):
+    """Keep purple/pink/grey-pink pixels (bats), drop teal/blue and near-black (cave)."""
+    import numpy as np
+    from scipy import ndimage
+    rgb = np.asarray(img.convert('RGBA')).astype(np.float32) / 255.0
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    mx = rgb[..., :3].max(-1)
+    mn = rgb[..., :3].min(-1)
+    d = mx - mn + 1e-6
+    h = np.zeros_like(mx)
+    h = np.where(mx == r, ((g - b) / d) % 6, h)
+    h = np.where(mx == g, (b - r) / d + 2, h)
+    h = np.where(mx == b, (r - g) / d + 4, h)
+    h = (h * 60) % 360
+    sat = np.where(mx > 0, d / (mx + 1e-6), 0)
+    cave = ((h > 150) & (h < 245)) | (mx < 0.16) | ((sat < 0.12) & (mx < 0.45))
+    keep = ~cave
+    keep = ndimage.binary_opening(keep, iterations=1)
+    keep = ndimage.binary_closing(keep, iterations=2)
+    labels, n = ndimage.label(keep)
+    sizes = ndimage.sum(keep, labels, range(1, n + 1))
+    big = [i + 1 for i, sz in enumerate(sizes) if sz > 350]
+    keep = np.isin(labels, big)
+    alpha = ndimage.binary_dilation(keep, iterations=2).astype(np.float32)
+    alpha = ndimage.gaussian_filter(alpha, 1.0)
+    out = np.dstack([rgb[..., :3], alpha])
+    return Image.fromarray((out * 255).astype(np.uint8), 'RGBA')
+
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -33,7 +70,12 @@ def main():
     args = ap.parse_args()
 
     from rembg import remove, new_session
-    session = new_session(args.model)
+    sessions = {}
+
+    def session_for(model):
+        if model not in sessions:
+            sessions[model] = new_session(model)
+        return sessions[model]
 
     only = set(filter(None, args.only.split(',')))
     files = sorted(p for p in SRC.glob('*.png') if p.stem not in SKIP)
@@ -48,7 +90,11 @@ def main():
             index = json.load(f)   # merge so --only runs keep the other entries
     for path in files:
         img = Image.open(path).convert('RGBA')
-        cut = remove(img, session=session, post_process_mask=True)
+        if FILTER_OVERRIDE.get(path.stem) == 'hue_purple':
+            cut = hue_purple_cutout(img)
+        else:
+            model = MODEL_OVERRIDE.get(path.stem, args.model)
+            cut = remove(img, session=session_for(model), post_process_mask=True)
         bbox = cut.getbbox()
         if not bbox:
             print('no subject found:', path.name, file=sys.stderr)
