@@ -30,6 +30,10 @@ When you enter a room with a monster, a quiz appears. Questions cover Polish voc
   <img src="docs/screenshots/03-combat-quiz.png" alt="Combat quiz screen" width="600">
 </p>
 
+### Sound and Effects
+
+Encounters have synthesized sound effects (Web Audio, no audio files), answer and monster animations, and haptic feedback on phones. The speaker button in the top-right corner mutes sounds; the choice is remembered. Animations respect the system "reduce motion" setting.
+
 ### Mobile
 
 The game is fully responsive and runs as a native app on Android and iOS via Capacitor, with touch navigation, swipe gestures, haptic feedback, and native text-to-speech for Polish pronunciation.
@@ -67,19 +71,40 @@ npm run android:run
 npm run ios:run
 ```
 
+## Prototype Views
+
+Two experimental presentations of the same dungeon live under `www/proto/` and are linked from the start screen ("Experimental views"). They reuse the game modules and modals but keep their own in-memory game (no saves).
+
+| Page | Engine | What it shows |
+|------|--------|---------------|
+| `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style first-person corridors: turn left/right, step forward/back, monsters appear ahead as billboards. |
+| `proto/isometric.html` | Phaser 3.90 (WebGL, Canvas fallback) | Isometric map with fog of war: unexplored rooms are dark, neighbours are dimmed with a "?" marker, tap an adjacent room to walk there. |
+
+Run them from an http server (canvas image processing is blocked on `file://`):
+
+```bash
+npm run proto        # serves www/ on http://localhost:8080
+# open http://localhost:8080/proto/first-person.html or /proto/isometric.html
+```
+
+Wall textures, tiles and tokens are derived at runtime from the existing artwork. Real art files can be dropped into `www/assets/proto/` (see [docs/art-prompts.md](docs/art-prompts.md) for the file list and generation prompts). The engine bundles are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
+
 ## Running Tests
 
 ```bash
 npm test
 ```
 
-170+ unit tests covering dungeon generation, combat mechanics, question selection, save/load, and more.
+270+ unit tests covering dungeon generation, combat mechanics, question selection, save/load, and more.
 
 ## Project Structure
 
 ```
 www/               Game source (HTML, CSS, vanilla JS)
-├── js/modules/    Core game logic (dungeon, combat, player, UI, ...)
+├── js/modules/    Core game logic (dungeon, combat, player, UI, sfx, fx, ...)
+├── js/proto/      Prototype view modules (first-person, isometric)
+├── proto/         Standalone prototype pages
+├── js/lib/        Vendored libraries (maze generator, three.js, Phaser)
 ├── js/adapters/   Platform abstraction (storage, audio, input)
 ├── js/data/       Polish vocabulary & grammar question banks
 └── assets/        Character and monster artwork

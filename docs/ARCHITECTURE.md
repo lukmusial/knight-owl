@@ -51,13 +51,27 @@ Game (main.js) ── orchestrator
 | **DungeonMap** | `js/modules/map.js` | Renders an SVG dungeon map with fog-of-war. Explored rooms are color-coded by type. Unexplored rooms adjacent to explored ones appear as dark nodes. Current room pulses. |
 | **Descriptions** | `js/modules/descriptions.js` | Generates bilingual (English/Polish) narrative text for rooms, monsters, navigation directions, and combat outcomes. Multiple variants per room type. |
 | **Save** | `js/modules/save.js` | Serializes game state to storage. Supports multiple save slots keyed by player name. Uses StorageAdapter for cross-platform persistence. |
+| **SFX** | `js/modules/sfx.js` | Synthesized sound effects (Web Audio oscillators/noise, no files). Gesture unlock, persistent mute, ducking while TTS speaks. |
+| **FX** | `js/modules/fx.js` | Promise-based encounter animations (answer feedback, monster hit/attack/defeat, loot reveal, victory confetti) driven by `css/fx.css`; proxies sounds and haptics. |
+
+### Prototype Views (`js/proto/`, `proto/`)
+
+Standalone pages that reuse the modules above with their own bootstrap (no `main.js`, no saves). `ProtoSharedDom` (`js/proto/shared-dom.js`) injects the shared modal markup so `UI` works unchanged.
+
+| Module | File | Role |
+|--------|------|------|
+| **FpWorld** | `js/proto/fp-world.js` | Pure grid model for the first-person view: walls/exits per cell, facing, step/turn, boss portal. Unit tested. |
+| **FpTextures / FpRenderer / ProtoFp** | `js/proto/fp-*.js` | three.js scene (merged wall/floor/ceiling geometry, fog, torch light, monster billboards), camera tweens, and the game-flow bootstrap for `proto/first-person.html`. |
+| **IsoModel** | `js/proto/iso-model.js` | Pure isometric tile model: rooms as 3x3 diamond blocks, corridors, walls, depth sort, fog state from `DungeonMap`. Unit tested. |
+| **IsoTextures / scenes / ProtoIso** | `js/proto/iso-*.js` | Phaser 3 boot + dungeon scenes (procedural tiles, tokens cropped from monster art, fog overlays, tap-to-move, pan/zoom) and the bootstrap for `proto/isometric.html`. |
 
 ### Dependencies
 
 ```
 Combat ────→ Questions, Player, Dungeon, Descriptions
 Game ──────→ all modules (orchestrator)
-UI ────────→ Descriptions, AudioAdapter, DungeonMap
+UI ────────→ Descriptions, AudioAdapter, DungeonMap, FX, SFX (optional)
+FX ────────→ SFX, CapacitorHaptics (optional)
 DungeonMap → Dungeon
 Dungeon ───→ Descriptions
 Save ──────→ Player, Dungeon, Questions, DungeonMap (reads state)
@@ -216,9 +230,13 @@ All user-facing text is displayed in both English and Polish:
 ```
 www/
 ├── index.html                    Single-page app shell
+├── proto/                        Standalone prototype pages (first-person, isometric)
 ├── css/styles.css                All styles (responsive, dark medieval theme)
+├── css/fx.css                    Encounter animation keyframes
+├── css/proto-*.css               Prototype page layouts
 ├── assets/                       Character + monster artwork (PNG)
-│   └── directions/               Direction arrow icons
+│   ├── directions/               Direction arrow icons
+│   └── proto/                    Optional real art for the prototypes (see docs/art-prompts.md)
 ├── js/
 │   ├── main.js                   Game controller
 │   ├── platform-init.js          Platform detection
@@ -237,14 +255,22 @@ www/
 │   │   ├── ui.js
 │   │   ├── map.js
 │   │   ├── descriptions.js
-│   │   └── save.js
+│   │   ├── save.js
+│   │   ├── sfx.js
+│   │   └── fx.js
+│   ├── proto/                    Prototype view modules
+│   │   ├── shared-dom.js
+│   │   ├── fp-*.js               First-person (three.js)
+│   │   └── iso-*.js              Isometric (Phaser 3)
 │   ├── data/                     Content databases
 │   │   ├── vocabulary.js
 │   │   ├── vocabulary-reverse.js
 │   │   ├── grammar.js
 │   │   └── monsters.js
 │   └── lib/
-│       └── maze.js               Bundled maze generator
+│       ├── maze.js               Bundled maze generator
+│       ├── three.bundle.js       Vendored three.js (npm run vendor)
+│       └── phaser.min.js         Vendored Phaser 3 (npm run vendor)
 ├── android/                      Capacitor Android project
 ├── ios/                          Capacitor iOS project
 └── tests/                        Unit + E2E tests
@@ -252,6 +278,6 @@ www/
 
 ## Testing
 
-- **Unit tests**: 170+ tests using a custom `TestRunner` (runs in browser and Node.js)
+- **Unit tests**: 270+ tests using a custom `TestRunner` (runs in browser and Node.js)
 - **E2E tests**: Maestro YAML flows for mobile automation
 - **WebView compatibility**: No ES2020+ syntax (`?.`, `??`) to support Android API 28

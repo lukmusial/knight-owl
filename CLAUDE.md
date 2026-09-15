@@ -27,6 +27,8 @@ npm run ios:run
 
 **Build maze library** (only needed if modifying dungeon generation): `npm run build`
 
+**Prototype views**: `npm run proto` serves `www/` on http://localhost:8080; open `/proto/first-person.html` (three.js) or `/proto/isometric.html` (Phaser 3). Rebuild the vendored engine bundles with `npm run vendor` after upgrading `three` or `phaser` in devDependencies.
+
 No build system for game code - vanilla JavaScript with direct browser execution.
 
 ## Architecture
@@ -54,6 +56,11 @@ const ModuleName = (function() {
 | Save | `js/modules/save.js` | localStorage persistence |
 | DungeonMap | `js/modules/map.js` | SVG dungeon visualization |
 | Descriptions | `js/modules/descriptions.js` | Bilingual room/monster text |
+| SFX | `js/modules/sfx.js` | Synthesized Web Audio sound effects, mute, TTS ducking |
+| FX | `js/modules/fx.js` | Promise-based encounter animations (`css/fx.css`), haptic/sound proxies |
+| ProtoSharedDom | `js/proto/shared-dom.js` | Shared modal markup for the standalone prototype pages |
+| FpWorld / FpRenderer | `js/proto/fp-*.js` | First-person prototype (pure grid model + three.js renderer + bootstrap) |
+| IsoModel / scenes | `js/proto/iso-*.js` | Isometric fog-of-war prototype (pure tile model + Phaser scenes + bootstrap) |
 
 ### Platform Abstraction Layer
 
@@ -120,7 +127,7 @@ All user-facing text uses English/Polish pairs:
 
 ## Testing
 
-170+ unit tests using custom HTML test runner with `TestRunner.suite()` and `TestRunner.test()`. Test files mirror module structure in `tests/` directory.
+270+ unit tests using custom HTML test runner with `TestRunner.suite()` and `TestRunner.test()`. Test files mirror module structure in `tests/` directory.
 
 ### Testing Requirements
 
