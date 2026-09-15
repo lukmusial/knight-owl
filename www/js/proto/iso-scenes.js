@@ -333,15 +333,13 @@ var IsoScenes = (function() {
             self.roomSprites[rid].push(self.add.image(bp2.x, bp2.y, 'banner').setOrigin(0.5, 0).setDepth(IsoModel.depthKey(bt2.gx, bt2.gy, LAYERS.wall) + 0.5));
           }
         } else if (type === 'monster') {
-          // pillar in the back corner, bones or rubble near the front
-          self.addProp(rid, g, h, 'pillar', { dy: 14, dz: 0.4 });
-          if (seed > 0.5) self.addProp(rid, g + 2, h, 'pillar', { dy: 14, dz: 0.4 });
+          // bones or rubble near the front, a second pile now and then
           self.addProp(rid, seed > 0.5 ? g + 2 : g, h + 2, seed > 0.33 ? 'bones' : 'rubble', { dy: 8, dz: -0.5 });
+          if (seed > 0.6) self.addProp(rid, g + 2, h, 'rubble', { dy: 8, dz: -0.5, scale: 0.8 });
         } else if (type === 'treasure') {
           self.addProp(rid, g + 1, h + 1, 'glow_gold', { oy: 0.5, dy: 4, layer: LAYERS.floor, dz: 0.5, blend: Phaser.BlendModes.ADD, alpha: 0.7, light: true });
           self.addProp(rid, g + 2, h, 'gold_pile', { dy: 12 });
           self.addProp(rid, g, h + 2, 'gold_pile', { dy: 12, scale: 0.8 });
-          self.addProp(rid, g, h, 'pillar', { dy: 14, dz: 0.4 });
         } else if (type === 'boss') {
           self.addProp(rid, g + 1, h + 1, 'glow_lava', { oy: 0.5, dy: 6, layer: LAYERS.floor, dz: 0.5, blend: Phaser.BlendModes.ADD, alpha: 0.8, light: true });
           self.addProp(rid, g + 2, h, 'crystal', { dy: 10, dz: 0.3 });
@@ -354,7 +352,6 @@ var IsoScenes = (function() {
           // plain chamber: a little set dressing now and then
           if (seed > 0.72) self.addProp(rid, g + 2, h + 2, 'rubble', { dy: 8, dz: -0.5 });
           else if (seed < 0.18) self.addProp(rid, g, h + 2, 'bones', { dy: 8, dz: -0.5 });
-          if (seed > 0.4 && seed < 0.6) self.addProp(rid, g, h, 'pillar', { dy: 14, dz: 0.4 });
         }
       });
     },
