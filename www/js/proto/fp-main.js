@@ -39,6 +39,7 @@ var ProtoFp = (function() {
     ProtoSharedDom.inject(document.getElementById('fp-modals'));
 
     ProtoHud.mount({
+      view: 'fp',
       compass: true,
       name: 'Mr Owl',
       controlsHtml:

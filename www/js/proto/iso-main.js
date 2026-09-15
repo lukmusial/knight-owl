@@ -51,6 +51,7 @@ var ProtoIso = (function() {
     // shared modals + UI.init() so ui.js caches every element
     ProtoHud.mount({
       root: document.body,
+      view: 'iso',
       controlsHtml: CONTROLS_HTML,
       compass: false,
       note: { en: 'Tap a lit chamber or use the compass.', pl: 'Dotknij komnaty lub użyj kompasu.' }

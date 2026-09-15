@@ -129,6 +129,14 @@ body.proto #game-container { display: contents; }
   padding-right: 10px;
 }
 
+.hud-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 .hud-portrait {
   width: 44px;
   height: 44px;
@@ -148,7 +156,6 @@ body.proto #game-container { display: contents; }
 }
 
 .hud-name {
-  flex-shrink: 0;
   font-weight: bold;
   color: var(--hud-gold-bright);
   font-size: 0.95rem;
@@ -164,7 +171,14 @@ body.proto #game-container { display: contents; }
   gap: 10px;
   margin-left: auto;
   margin-right: auto;
+  min-width: 0;
+  flex: 0 1 auto;
 }
+
+.hud-iconbtns { flex-shrink: 0; }
+
+/* The isometric compass cross is three rows tall: give its dock the room */
+body.view-iso { --hud-dock-h: 182px; }
 
 .hud-stat {
   display: flex;
@@ -413,7 +427,10 @@ body.proto .sfx-toggle {
 /* Narrow phones: the top bar must not overflow */
 @media (max-width: 420px) {
   .hud-top { gap: 6px; padding-left: 6px; padding-right: 6px; }
-  .hud-name { display: none; }
+  /* Name becomes a small caption under the portrait so it never widens the bar */
+  .hud-identity { flex-direction: column; gap: 0; width: 56px; flex: 0 0 56px; }
+  .hud-portrait { width: 30px; height: 30px; }
+  .hud-name { font-size: 0.62rem; max-width: 56px; line-height: 1.1; text-align: center; }
   .hud-stats { gap: 6px; }
   .hud-stat { font-size: 0.85rem; }
   .hud-stat .hud-icon { width: 18px; height: 18px; }
