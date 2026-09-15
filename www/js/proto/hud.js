@@ -177,6 +177,7 @@ var ProtoHud = (function() {
    */
   function setLoot(items) {
     if (!els.loot) return;
+    if (els.dock) els.dock.classList.toggle('has-loot', !!(items && items.length));
     if (!items || !items.length) { els.loot.innerHTML = ''; return; }
     var last = items.slice(-3).reverse();
     els.loot.innerHTML = last.map(function(it) {
