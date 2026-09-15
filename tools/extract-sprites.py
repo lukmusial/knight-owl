@@ -22,7 +22,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'www' / 'assets'
 DST = SRC / 'proto' / 'monsters'
-SKIP = {'placeholder', 'start', 'victory', 'treasure'}
+SKIP = {'placeholder', 'start', 'victory'}
 
 
 def main():
@@ -41,7 +41,11 @@ def main():
         files = [p for p in files if p.stem in only]
     DST.mkdir(parents=True, exist_ok=True)
 
+    index_path = DST / 'index.json'
     index = {}
+    if index_path.exists():
+        with open(index_path) as f:
+            index = json.load(f)   # merge so --only runs keep the other entries
     for path in files:
         img = Image.open(path).convert('RGBA')
         cut = remove(img, session=session, post_process_mask=True)
@@ -62,7 +66,7 @@ def main():
         }
         print(f'{path.stem}: {cut.width}x{cut.height} ({out.stat().st_size // 1024} KB)')
 
-    with open(DST / 'index.json', 'w') as f:
+    with open(index_path, 'w') as f:
         json.dump(index, f, indent=1, sort_keys=True)
     print('wrote', len(index), 'sprites to', DST)
 

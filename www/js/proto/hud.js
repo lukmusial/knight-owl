@@ -7,7 +7,8 @@
  *
  * Usage (after ProtoSharedDom.inject):
  *   ProtoHud.mount({ root: document.body, controlsHtml: '<div class="hud-dpad">...</div>',
- *                    note: { en: '...', pl: '...' }, compass: true });
+ *                    note: { en: '...', pl: '...' }, compass: true,
+ *                    extraDockHtml: '<button class="hud-btn" id="new-game">⟳</button>' });
  *   ProtoHud.updateStats({ monstersDefeated, questionsCorrect, questionsTotal, totalLoot });
  *   ProtoHud.setRoom(room);           // bilingual ribbon via Descriptions.getRoomTitle
  *   ProtoHud.setMinimap(svgMarkup);   // DungeonMap.renderSVG output
@@ -121,6 +122,9 @@ var ProtoHud = (function() {
     els.loot = el('div', 'hud-loot');
     els.loot.id = 'inventory-panel';
     side.appendChild(els.loot);
+    if (opts.extraDockHtml) {
+      side.appendChild(el('div', 'hud-dock-extra', opts.extraDockHtml));
+    }
     dock.appendChild(side);
     var controls = el('div', 'hud-dock-controls', opts.controlsHtml || '');
     dock.appendChild(controls);
