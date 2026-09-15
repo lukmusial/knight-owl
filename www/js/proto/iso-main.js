@@ -1,0 +1,335 @@
+/**
+ * ProtoIso
+ * Bootstrap and game flow for the isometric prototype page. Mirrors the
+ * encounter flow of js/main.js (enterRoom, combat, matching, treasure,
+ * dragon victory) without save/profile persistence.
+ */
+
+var ProtoIso = (function() {
+  var game = null;
+  var scene = null;
+  var busy = false;
+  var currentNavOptions = [];
+  var gameInProgress = false;
+
+  function fx(name, opts) {
+    if (typeof FX !== 'undefined' && FX.play) FX.play(name, opts);
+  }
+
+  function connectedIds(roomId) {
+    var room = Dungeon.getRoom(roomId);
+    return room && room.connections ? room.connections : [];
+  }
+
+  function setModalOpen(open) {
+    if (typeof document !== 'undefined') {
+      document.body.classList.toggle('modal-open', !!open);
+    }
+    if (scene) scene.setInputEnabled(!open);
+  }
+
+  function showLoading(show) {
+    var el = document.getElementById('iso-loading');
+    if (el) el.classList.toggle('hidden', !show);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Boot
+  // ---------------------------------------------------------------------------
+
+  function boot() {
+    ProtoSharedDom.inject(document.getElementById('iso-modals'));
+    if (typeof SFX !== 'undefined') SFX.init();
+    if (typeof UI.setSfxToggleState === 'function') UI.setSfxToggleState();
+
+    Questions.init();
+    Questions.resetUsed();
+    if (typeof Matching !== 'undefined') {
+      Matching.init();
+      Matching.resetUsed();
+    }
+    Player.create('Explorer');
+    DungeonMap.init();
+    Dungeon.generate();
+    DungeonMap.calculateLayout(Dungeon.getEntranceId());
+
+    // Canvas drag must not be interpreted as a swipe by the document-level input
+    if (typeof InputAdapter !== 'undefined') {
+      try { InputAdapter.setInputEnabled('touch', false); } catch (e) { /* ignore */ }
+      InputAdapter.on('navigate', function(data) {
+        if (data && data.direction) handleDirectionNavigation(data.direction);
+      });
+    }
+
+    var backLink = document.getElementById('iso-new-game');
+    if (backLink) backLink.addEventListener('click', function() { location.reload(); });
+
+    showLoading(true);
+
+    game = new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: 'iso-canvas',
+      backgroundColor: '#1a1a2e',
+      banner: false,
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: '100%',
+        height: '100%'
+      },
+      render: { antialias: true, pixelArt: false, roundPixels: true },
+      input: { activePointers: 3 },
+      scene: [IsoScenes.BootScene, IsoScenes.DungeonScene]
+    });
+
+    game.registry.set('isoCallbacks', {
+      onReady: function(s) {
+        scene = s;
+        showLoading(false);
+        gameInProgress = true;
+        console.log('ProtoIso: renderer ' + (game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas'));
+        enterRoom(Dungeon.getEntranceId());
+      },
+      onRoomTap: tapRoom,
+      onFarTap: function() {
+        UI.showToast('Too far away / Za daleko', 'info');
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Navigation
+  // ---------------------------------------------------------------------------
+
+  function updateHud() {
+    var stats = Player.getQuestionStats();
+    UI.renderStats({
+      monstersDefeated: Player.getMonstersDefeated(),
+      questionsCorrect: stats.correct,
+      questionsTotal: stats.total,
+      accuracy: stats.percentage,
+      totalLoot: Player.getTotalLootValue()
+    });
+    UI.renderInventory(Player.getInventory());
+    var current = Player.getCurrentRoom();
+    UI.renderMap(DungeonMap.renderSVG(current));
+    var room = Dungeon.getRoom(current);
+    if (room) UI.renderRoom(room);
+  }
+
+  function showNavigation() {
+    var current = Player.getCurrentRoom();
+    var connections = Dungeon.getConnectedRooms(current);
+    currentNavOptions = Descriptions.generateNavigationOptions(connections, current);
+    UI.renderDirectionBar(currentNavOptions, tapRoom);
+    setModalOpen(false);
+    busy = false;
+  }
+
+  function handleDirectionNavigation(direction) {
+    if (!gameInProgress || busy) return;
+    for (var i = 0; i < currentNavOptions.length; i++) {
+      var opt = currentNavOptions[i];
+      if (opt.direction && opt.direction.en === direction) {
+        tapRoom(opt.roomId);
+        return;
+      }
+    }
+  }
+
+  /**
+   * Player tapped/keyed a connected room: animate there, then enter it
+   */
+  function tapRoom(roomId) {
+    if (busy || !scene || !gameInProgress) return;
+    if (connectedIds(Player.getCurrentRoom()).indexOf(roomId) === -1) return;
+    busy = true;
+    UI.hideDirectionBar();
+    if (typeof FX !== 'undefined') FX.haptic('onNavigation');
+    scene.movePlayer(roomId, function() {
+      enterRoom(roomId);
+    });
+  }
+
+  function enterRoom(roomId) {
+    busy = true;
+    currentNavOptions = [];
+
+    if (roomId !== Player.getCurrentRoom()) {
+      Player.moveTo(roomId);
+    }
+
+    var room = Dungeon.getRoom(roomId);
+    if (!room) {
+      console.error('ProtoIso: invalid room', roomId);
+      busy = false;
+      return;
+    }
+
+    DungeonMap.exploreRoom(roomId);
+    scene.refreshFog(false);
+    scene.setCurrentRoom(roomId, true);
+    updateHud();
+
+    if (Dungeon.hasMonsterEncounter(roomId)) {
+      if (room.encounterType === 'matching' && typeof Matching !== 'undefined') {
+        startMatchingEncounter(room.monster, room.depth, room.matchingCategory);
+      } else {
+        startCombat(room.monster, room.depth);
+      }
+    } else if (room.type === 'treasure' && !room.cleared) {
+      startTreasureEncounter(roomId);
+    } else {
+      showNavigation();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Encounters (mirrors js/main.js)
+  // ---------------------------------------------------------------------------
+
+  function startTreasureEncounter(roomId) {
+    var loot = typeof getRandomTreasure !== 'undefined'
+      ? getRandomTreasure()
+      : [{ name: 'Gold Coins', namePL: 'Złote Monety', value: 10 }];
+    setModalOpen(true);
+    UI.showTreasureModal(loot, function(items) {
+      items.forEach(function(item) { Player.addLoot(item); });
+      Dungeon.clearRoom(roomId);
+      scene.refreshTokens();
+      updateHud();
+      showNavigation();
+    });
+  }
+
+  function startCombat(monster, depth) {
+    var difficulty = Dungeon.getDepthDifficulty(depth);
+    var encounter = Combat.startEncounter(monster, difficulty);
+    setModalOpen(true);
+    UI.showQuizModal(encounter, handleAnswer);
+  }
+
+  function handleAnswer(answerIndex) {
+    var result = Combat.submitAnswer(answerIndex);
+    if (result.error) {
+      console.error(result.error);
+      return;
+    }
+    var fxDone = (typeof UI.playAnswerFx === 'function')
+      ? UI.playAnswerFx(answerIndex, result)
+      : Promise.resolve();
+
+    fxDone.then(function() {
+      if (result.dragonDefeated) {
+        finalizeDragonVictory();
+        UI.hideQuizModal();
+        UI.showResultModal(result, showVictory);
+        return;
+      }
+      if (result.success && !result.defeated && result.nextQuestion) {
+        UI.updateQuizQuestion(result.nextQuestion, result.streak, handleAnswer);
+        return;
+      }
+      UI.hideQuizModal();
+      UI.showResultModal(result, handleResultContinue);
+    });
+  }
+
+  function startMatchingEncounter(monster, depth, category) {
+    var difficulty = Dungeon.getDepthDifficulty(depth);
+    var set = Matching.getMatchingSet(difficulty, category);
+    if (!set) {
+      startCombat(monster, depth);
+      return;
+    }
+    setModalOpen(true);
+    UI.showMatchingModal({ monster: monster, set: set }, function(success) {
+      handleMatchingComplete(success, monster, set);
+    });
+  }
+
+  function handleMatchingComplete(success, monster, set) {
+    UI.hideMatchingModal();
+    var result;
+    if (success) {
+      var loot = monster.loot || [];
+      Player.addLoot(loot);
+      Player.defeatMonster();
+      Player.recordQuestion(true);
+      Dungeon.clearRoom(Player.getCurrentRoom());
+      result = {
+        success: true,
+        defeated: true,
+        loot: loot,
+        message: Descriptions.generateVictoryMessage(monster),
+        explanation: set.explanation || ''
+      };
+    } else {
+      Player.pushBack();
+      Player.recordQuestion(false);
+      result = {
+        success: false,
+        defeated: false,
+        pushedBack: true,
+        message: Descriptions.generateDefeatMessage(monster),
+        explanation: set.explanation || ''
+      };
+    }
+    UI.showResultModal(result, handleResultContinue);
+  }
+
+  function handleResultContinue(result) {
+    updateHud();
+    if (result.pushedBack) {
+      // Player state already points at the previous room; animate the retreat
+      var target = Player.getCurrentRoom();
+      fx('pushback');
+      scene.movePlayer(target, function() {
+        scene.refreshFog(false);
+        scene.setCurrentRoom(target, true);
+        updateHud();
+        showNavigation();
+      });
+      return;
+    }
+    scene.refreshTokens();
+    showNavigation();
+  }
+
+  function finalizeDragonVictory() {
+    gameInProgress = false;
+    Dungeon.clearRoom(Dungeon.getBossId());
+    scene.refreshTokens();
+  }
+
+  function showVictory() {
+    UI.showVictoryScreen(Player.getGameSummary(), function() { location.reload(); });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Start
+  // ---------------------------------------------------------------------------
+
+  function start() {
+    var ready = (typeof Platform !== 'undefined' && !Platform.isInitialized())
+      ? Platform.init()
+      : Promise.resolve();
+    Promise.resolve(ready).then(boot, boot);
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', start);
+    } else {
+      start();
+    }
+  }
+
+  return {
+    tapRoom: tapRoom,
+    enterRoom: enterRoom,
+    getScene: function() { return scene; },
+    getGame: function() { return game; },
+    isBusy: function() { return busy; }
+  };
+})();
