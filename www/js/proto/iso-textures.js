@@ -364,37 +364,55 @@ var IsoTextures = (function() {
   }
 
   function drawArch(ctx, palette, side) {
-    // Wall face with an arched opening (doorway to a corridor)
+    // Wall face with an arched opening (doorway to a corridor).
+    // The opening is drawn in wall-local coordinates (u along the wall, v up)
+    // and sheared onto the isometric face, so verticals stay vertical and the
+    // arch top follows the wall's 2:1 slope instead of sitting flat on screen.
     drawWall(ctx, palette, side, 0);
     ctx.save();
     wallPath(ctx, side);
     ctx.clip();
-    // opening: skewed arch centred on the face
-    var cx = side === 'n' ? 96 : 32;
-    var baseY = side === 'n' ? 96 - (128 - cx) / 2 : 96 - cx / 2; // floor line at cx
-    var w = 22, h = 40;
+    // Face runs from the tile's back corner (64,64) outwards: x = 64 +/- u, y = 64 + u/2 + v
+    if (side === 'n') ctx.setTransform(1, 0.5, 0, 1, 64, 64);
+    else ctx.setTransform(-1, 0.5, 0, 1, 64, 64);
+
+    var cu = 32;          // centre of the face along the wall
+    var w = 19, h = 46;   // half-width and total height of the opening (face is 64 tall)
     ctx.beginPath();
-    ctx.moveTo(cx - w, baseY);
-    ctx.lineTo(cx - w, baseY - h + w);
-    ctx.arc(cx, baseY - h + w, w, Math.PI, 0);
-    ctx.lineTo(cx + w, baseY);
+    ctx.moveTo(cu - w, 0);
+    ctx.lineTo(cu - w, -(h - w));
+    ctx.arc(cu, -(h - w), w, Math.PI, 0);
+    ctx.lineTo(cu + w, 0);
     ctx.closePath();
-    // dark interior with faint light at the far end
-    var g = ctx.createLinearGradient(0, baseY - h, 0, baseY);
+    // dark interior with a faint glow near the floor of the passage
+    var g = ctx.createLinearGradient(0, -h, 0, 0);
     g.addColorStop(0, '#0b0b12');
-    g.addColorStop(1, '#1e1a22');
+    g.addColorStop(1, '#221c24');
     ctx.fillStyle = g;
     ctx.fill();
-    // stone frame around the arch
+    // stone frame around the opening
     ctx.strokeStyle = palette.wall;
     ctx.lineWidth = 5;
     ctx.stroke();
     ctx.strokeStyle = palette.edge;
     ctx.lineWidth = 1.5;
     ctx.stroke();
+    // voussoir joints on the arch ring
+    ctx.strokeStyle = palette.edge;
+    ctx.globalAlpha = 0.6;
+    ctx.lineWidth = 1;
+    for (var a = Math.PI * 1.15; a < Math.PI * 1.9; a += Math.PI * 0.18) {
+      ctx.beginPath();
+      ctx.moveTo(cu + Math.cos(a) * (w + 1), -(h - w) + Math.sin(a) * (w + 1));
+      ctx.lineTo(cu + Math.cos(a) * (w + 5), -(h - w) + Math.sin(a) * (w + 5));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
     // keystone
     ctx.fillStyle = palette.floorLight;
-    ctx.fillRect(cx - 4, baseY - h - 3, 8, 8);
+    ctx.fillRect(cu - 4, -h - 4, 8, 8);
+    ctx.strokeStyle = palette.edge;
+    ctx.strokeRect(cu - 4.5, -h - 4.5, 9, 9);
     ctx.restore();
   }
 
