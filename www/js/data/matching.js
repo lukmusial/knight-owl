@@ -230,11 +230,11 @@ const MATCHING_QUESTIONS = [
     pairs: [
       { left: 'son', right: 'syn' },
       { left: 'daughter', right: 'córka' },
-      { left: 'baby', right: 'niemowlę' },
+      { left: 'grandson', right: 'wnuk' },
       { left: 'child', right: 'dziecko' }
     ],
     leftLabel: 'English', rightLabel: 'Polski',
-    explanation: 'son = syn, daughter = córka, baby = niemowlę, child = dziecko. Dziecko się śmieje! (The child is laughing!)'
+    explanation: 'son = syn, daughter = córka, grandson = wnuk, child = dziecko. Dziecko się śmieje! (The child is laughing!)'
   },
   {
     id: 'match_021', difficulty: 1, category: 'matching',
@@ -297,12 +297,12 @@ const MATCHING_QUESTIONS = [
     id: 'match_026', difficulty: 1, category: 'matching',
     pairs: [
       { left: 'arm', right: 'ramię' },
-      { left: 'shoulder', right: 'bark' },
+      { left: 'elbow', right: 'łokieć' },
       { left: 'face', right: 'twarz' },
       { left: 'tongue', right: 'język' }
     ],
     leftLabel: 'English', rightLabel: 'Polski',
-    explanation: 'arm = ramię, shoulder = bark, face = twarz, tongue = język. Mam uśmiech na twarzy! (I have a smile on my face!)'
+    explanation: 'arm = ramię, elbow = łokieć, face = twarz, tongue = język. Mam uśmiech na twarzy! (I have a smile on my face!)'
   },
 
   // --- Basic Food (sets 027-032) ---

@@ -1303,10 +1303,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jeden', right: 'smok' },
       { left: 'dwie', right: 'tarcze' },
-      { left: 'jedno', right: 'kopie' },
+      { left: 'jedno', right: 'zaklęcie' },
       { left: 'pięć', right: 'smoków' }
     ],
-    explanation: 'jeden smok (masc. sg.), dwie tarcze (fem. pl. — dwie for feminine), jedno kopie (neut. sg.), pięć smoków (gen. pl.). Widzę jednego smoka! (I see one dragon!)'
+    explanation: 'jeden smok (masc. sg.), dwie tarcze (fem. pl. — dwie for feminine), jedno zaklęcie (neut. sg.), pięć smoków (gen. pl.). Widzę jednego smoka! (I see one dragon!)'
   },
   {
     id: 'pronoun_118', difficulty: 2, category: 'pronoun_matching',
@@ -1391,10 +1391,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jeden', right: 'fortepian' },
       { left: 'jedna', right: 'gitara' },
-      { left: 'jedno', right: 'skrzypce' },
+      { left: 'jedno', right: 'pianino' },
       { left: 'pięć', right: 'fortepianów' }
     ],
-    explanation: 'jeden fortepian (masc. sg.), jedna gitara (fem. sg.), jedno skrzypce (neut. sg.), pięć fortepianów (gen. pl.). Mam jeden fortepian! (I have one piano!)'
+    explanation: 'jeden fortepian (masc. sg.), jedna gitara (fem. sg.), jedno pianino (neut. sg.), pięć fortepianów (gen. pl.). Mam jeden fortepian! (I have one piano!)'
   },
   {
     id: 'pronoun_126', difficulty: 2, category: 'pronoun_matching',
@@ -1556,10 +1556,10 @@ const PRONOUN_MATCHING_QUESTIONS = [
     pairs: [
       { left: 'jeden', right: 'zegarek' },
       { left: 'jedna', right: 'bransoletka' },
-      { left: 'jedno', right: 'naszyjnik' },
+      { left: 'jedno', right: 'lusterko' },
       { left: 'pięć', right: 'zegarków' }
     ],
-    explanation: 'jeden zegarek (masc. sg.), jedna bransoletka (fem. sg.), jedno naszyjnik (neut. sg.), pięć zegarków (gen. pl.). Mam jeden zegarek! (I have one watch!)'
+    explanation: 'jeden zegarek (masc. sg.), jedna bransoletka (fem. sg.), jedno lusterko (neut. sg.), pięć zegarków (gen. pl.). Mam jeden zegarek! (I have one watch!)'
   },
   {
     id: 'pronoun_141', difficulty: 2, category: 'pronoun_matching',
@@ -1819,9 +1819,9 @@ const PRONOUN_MATCHING_QUESTIONS = [
       { left: 'jedna', right: 'rzecz' },
       { left: 'dwie', right: 'podróże' },
       { left: 'jedno', right: 'źrebię' },
-      { left: 'pięć', right: 'rzeczy' }
+      { left: 'pięć', right: 'wsi' }
     ],
-    explanation: 'jedna rzecz (fem. sg.), dwie podróże (fem. pl. — dwie for feminine), jedno źrebię (neut. sg.), pięć rzeczy (gen. pl.). Mam jedną ważną rzecz! (I have one important thing!)'
+    explanation: 'jedna rzecz (fem. sg.), dwie podróże (fem. pl. — dwie for feminine), jedno źrebię (neut. sg.), pięć wsi (gen. pl.). Mam jedną ważną rzecz! (I have one important thing!)'
   },
   {
     id: 'pronoun_164', difficulty: 3, category: 'pronoun_matching',
@@ -1839,11 +1839,11 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jeden', right: 'koń' },
-      { left: 'dwie', right: 'gęsi' },
+      { left: 'dwie', right: 'krowy' },
       { left: 'jedno', right: 'cielę' },
       { left: 'pięć', right: 'koni' }
     ],
-    explanation: 'jeden koń (masc. sg.), dwie gęsi (fem. pl. — dwie for feminine), jedno cielę (neut. sg.), pięć koni (gen. pl.). Mam jednego konia! (I have one horse!)'
+    explanation: 'jeden koń (masc. sg.), dwie krowy (fem. pl. — dwie for feminine), jedno cielę (neut. sg.), pięć koni (gen. pl.). Mam jednego konia! (I have one horse!)'
   },
   {
     id: 'pronoun_166', difficulty: 3, category: 'pronoun_matching',
@@ -1883,11 +1883,11 @@ const PRONOUN_MATCHING_QUESTIONS = [
     subtype: 'numeral',
     pairs: [
       { left: 'jedna', right: 'kolej' },
-      { left: 'dwa', right: 'bracia' },
+      { left: 'dwa', right: 'pociągi' },
       { left: 'jedno', right: 'zwierzę' },
       { left: 'pięć', right: 'kolei' }
     ],
-    explanation: 'jedna kolej (fem. sg.), dwa bracia (masc./neut. pl.), jedno zwierzę (neut. sg.), pięć kolei (gen. pl.). Mam jedną kolej! (I have one railway!)'
+    explanation: 'jedna kolej (fem. sg.), dwa pociągi (masc./neut. pl.), jedno zwierzę (neut. sg.), pięć kolei (gen. pl.). Mam jedną kolej! (I have one railway!)'
   },
   {
     id: 'pronoun_170', difficulty: 3, category: 'pronoun_matching',

@@ -1,6 +1,12 @@
 /**
  * CapacitorAudio
  * Native TTS implementation using @capacitor-community/text-to-speech plugin
+ *
+ * Concurrency note: the native plugin flushes its queue on every speak() call
+ * and drops the callbacks of any utterance still in progress, so a second
+ * speak() issued while the first is playing leaves the first promise hanging
+ * forever. To avoid that, speak() is serialized here: while a request is in
+ * flight, further requests are ignored and return false.
  */
 
 const CapacitorAudio = (function() {
@@ -10,15 +16,37 @@ const CapacitorAudio = (function() {
   // Default language
   let defaultLanguage = 'pl-PL';
 
-  // Speaking state
+  // Speaking state (true from speak() start until native resolves/rejects/times out)
   let currentlySpeaking = false;
+
+  // Incremented on every speak()/stopSpeaking(); lets a stale request detect
+  // that it was superseded and skip its timeout/fallback side effects.
+  let generation = 0;
 
   // Track consecutive native TTS failures for fallback logic
   let consecutiveFailures = 0;
-  let MAX_FAILURES_BEFORE_FALLBACK = 2;
+  const MAX_FAILURES_BEFORE_FALLBACK = 2;
 
-  // Timeout for native TTS (ms) - iOS AVSpeechSynthesizer can hang
-  let SPEAK_TIMEOUT_MS = 8000;
+  // After MAX_FAILURES_BEFORE_FALLBACK, skip native TTS for this long, then retry it.
+  // Never abandon native permanently: Web Speech API is often non-functional in Android WebView.
+  const FALLBACK_COOLDOWN_MS = 30000;
+  let fallbackUntil = 0;
+
+  // Timeout for native TTS (ms) - AVSpeechSynthesizer on iOS can hang.
+  // Scaled by text length so long sentences are not misreported as hangs.
+  const SPEAK_TIMEOUT_BASE_MS = 8000;
+  const SPEAK_TIMEOUT_PER_CHAR_MS = 100;
+  const SPEAK_TIMEOUT_MAX_MS = 20000;
+
+  /**
+   * Compute timeout for a given text
+   * @param {string} text - Text to speak
+   * @returns {number} Timeout in ms
+   */
+  function timeoutForText(text) {
+    var ms = SPEAK_TIMEOUT_BASE_MS + text.length * SPEAK_TIMEOUT_PER_CHAR_MS;
+    return Math.min(ms, SPEAK_TIMEOUT_MAX_MS);
+  }
 
   /**
    * Initialize the TextToSpeech plugin reference
@@ -47,6 +75,19 @@ const CapacitorAudio = (function() {
 
     console.warn('CapacitorAudio: TextToSpeech plugin not available');
     return false;
+  }
+
+  /**
+   * Inject a plugin implementation (used by tests and for manual wiring).
+   * Passing null clears the reference so initPlugin() re-detects on next use.
+   * @param {Object|null} plugin - Object with speak/stop/getSupportedLanguages/getSupportedVoices
+   */
+  function setPlugin(plugin) {
+    TextToSpeech = plugin || null;
+    generation++;
+    currentlySpeaking = false;
+    consecutiveFailures = 0;
+    fallbackUntil = 0;
   }
 
   /**
@@ -92,7 +133,29 @@ const CapacitorAudio = (function() {
   }
 
   /**
-   * Speak text using native TTS with timeout protection
+   * Record a native failure; enter fallback cooldown after repeated failures
+   */
+  function recordFailure() {
+    consecutiveFailures++;
+    if (consecutiveFailures >= MAX_FAILURES_BEFORE_FALLBACK) {
+      fallbackUntil = Date.now() + FALLBACK_COOLDOWN_MS;
+      consecutiveFailures = 0;
+      console.warn('CapacitorAudio: Native TTS failing, using Web Speech fallback for ' +
+        (FALLBACK_COOLDOWN_MS / 1000) + 's');
+    }
+  }
+
+  /**
+   * Whether native TTS is currently in fallback cooldown
+   * @returns {boolean}
+   */
+  function inFallbackCooldown() {
+    return fallbackUntil > Date.now();
+  }
+
+  /**
+   * Speak text using native TTS with timeout protection.
+   * Ignored (returns false) while a previous request is still in flight.
    * @param {string} text - Text to speak
    * @param {Object} options - Speech options
    * @returns {Promise<boolean>} Success status
@@ -105,8 +168,13 @@ const CapacitorAudio = (function() {
       options = {};
     }
 
-    // If native TTS has failed repeatedly, use Web Speech API directly
-    if (consecutiveFailures >= MAX_FAILURES_BEFORE_FALLBACK) {
+    // Serialize: a second request during playback would orphan the first one's promise
+    if (currentlySpeaking) {
+      return false;
+    }
+
+    // If native TTS has failed repeatedly, use Web Speech API for a while
+    if (inFallbackCooldown()) {
       speakWithFallback(text, options);
       return true;
     }
@@ -116,9 +184,11 @@ const CapacitorAudio = (function() {
       return false;
     }
 
-    try {
-      currentlySpeaking = true;
+    var timeoutId = null;
+    var myGeneration = ++generation;
+    currentlySpeaking = true;
 
+    try {
       // Race the native speak against a timeout.
       // The native plugin handles queue flushing internally (queueStrategy=FLUSH),
       // so we don't need to call stop() separately before speaking.
@@ -132,32 +202,47 @@ const CapacitorAudio = (function() {
       });
 
       var timeoutPromise = new Promise(function(resolve) {
-        setTimeout(function() { resolve('timeout'); }, SPEAK_TIMEOUT_MS);
+        timeoutId = setTimeout(function() { resolve('timeout'); }, timeoutForText(text));
       });
 
       var result = await Promise.race([speakPromise, timeoutPromise]);
 
-      currentlySpeaking = false;
+      if (myGeneration !== generation) {
+        // Superseded by stopSpeaking(); the plugin dropped this utterance
+        return false;
+      }
 
       if (result === 'timeout') {
         console.warn('CapacitorAudio: Native TTS timed out, trying fallback');
-        consecutiveFailures++;
         // Stop the hung native speech
         try { TextToSpeech.stop(); } catch (e) { /* ignore */ }
+        currentlySpeaking = false;
+        recordFailure();
         speakWithFallback(text, options);
         return true;
       }
 
       // Native TTS succeeded, reset failure count
+      currentlySpeaking = false;
       consecutiveFailures = 0;
       return true;
     } catch (e) {
+      if (myGeneration !== generation) {
+        return false;
+      }
       console.error('CapacitorAudio: Failed to speak:', e);
       currentlySpeaking = false;
-      consecutiveFailures++;
+      recordFailure();
       // Try fallback on error
       speakWithFallback(text, options);
       return false;
+    } finally {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+      if (myGeneration === generation) {
+        currentlySpeaking = false;
+      }
     }
   }
 
@@ -178,11 +263,14 @@ const CapacitorAudio = (function() {
 
     try {
       await TextToSpeech.stop();
-      currentlySpeaking = false;
     } catch (e) {
       console.error('CapacitorAudio: Failed to stop speaking:', e);
-      currentlySpeaking = false;
     }
+    // The in-flight speak() promise (if any) may never settle after a native
+    // stop, because the plugin drops its callback. Bump the generation so its
+    // eventual timeout is ignored, and release the busy flag now.
+    generation++;
+    currentlySpeaking = false;
   }
 
   /**
@@ -252,6 +340,14 @@ const CapacitorAudio = (function() {
   }
 
   /**
+   * Synchronous busy check (a speak() request is in flight)
+   * @returns {boolean}
+   */
+  function isBusy() {
+    return currentlySpeaking;
+  }
+
+  /**
    * Get current default language
    * @returns {string} Language code
    */
@@ -286,8 +382,12 @@ const CapacitorAudio = (function() {
     getVoices,
     isAvailable,
     isSpeaking,
+    isBusy,
     getLanguage,
-    isPolishSupported
+    isPolishSupported,
+    setPlugin,
+    inFallbackCooldown,
+    timeoutForText
   };
 })();
 

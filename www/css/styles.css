@@ -886,6 +886,26 @@ body {
   display: none;
 }
 
+/* Speak buttons are disabled while a TTS request is in flight */
+.btn-speak:disabled,
+.btn-speak-answer:disabled,
+.btn-speak-sentence:disabled {
+  opacity: 0.5;
+  cursor: wait;
+  pointer-events: none;
+}
+
+.btn-speak.speaking .speak-icon,
+.btn-speak-answer.speaking,
+.btn-speak-sentence.speaking {
+  animation: speak-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes speak-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 .answer-row {
   display: flex;
   gap: 4px;

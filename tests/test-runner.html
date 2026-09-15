@@ -119,12 +119,40 @@
       },
 
       test(description, fn) {
+        const self = this;
+        const suiteDiv = this.currentSuiteDiv;
         try {
-          fn();
-          this.pass(description);
+          const result = fn();
+          if (result && typeof result.then === 'function') {
+            // Async test: record result when it settles, summary waits for it
+            if (!this.pending) this.pending = [];
+            this.pending.push(result.then(
+              () => { self.currentSuiteDiv = suiteDiv; self.pass(description); },
+              (e) => { self.currentSuiteDiv = suiteDiv; self.fail(description, e && e.message ? e.message : String(e)); }
+            ));
+          } else {
+            this.pass(description);
+          }
         } catch (e) {
           this.fail(description, e.message);
         }
+      },
+
+      /**
+       * Async test: fn returns a promise. Async tests run one after another
+       * (not interleaved), and the summary waits for all of them.
+       */
+      testAsync(description, fn) {
+        const self = this;
+        const suiteDiv = this.currentSuiteDiv;
+        if (!this.pending) this.pending = [];
+        this.chain = (this.chain || Promise.resolve()).then(() => {
+          return Promise.resolve().then(fn).then(
+            () => { self.currentSuiteDiv = suiteDiv; self.pass(description); },
+            (e) => { self.currentSuiteDiv = suiteDiv; self.fail(description, e && e.message ? e.message : String(e)); }
+          );
+        });
+        this.pending.push(this.chain);
       },
 
       pass(description) {
@@ -167,7 +195,8 @@
         }
       },
 
-      showSummary() {
+      async showSummary() {
+        await Promise.all(this.pending || []);
         const passed = this.results.filter(r => r.passed).length;
         const failed = this.results.filter(r => !r.passed).length;
         const total = this.results.length;
@@ -193,6 +222,7 @@
   <!-- Load original test files -->
   <script src="profile.test.js"></script>
   <script src="matching.test.js"></script>
+  <script src="matching-data.test.js"></script>
   <script src="questions.test.js"></script>
   <script src="player.test.js"></script>
   <script src="save.test.js"></script>

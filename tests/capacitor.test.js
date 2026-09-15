@@ -156,3 +156,153 @@ TestRunner.describe('Capacitor Platform Detection', () => {
     TestRunner.assertType(isInit, 'boolean', 'isInitialized should return boolean');
   });
 });
+
+TestRunner.describe('CapacitorAudio concurrency and fallback', () => {
+  /**
+   * Build a mock native plugin whose speak() resolves only when release() is called
+   */
+  function makeMockPlugin() {
+    var mock = {
+      calls: [],
+      stops: 0,
+      pendingResolvers: [],
+      speak: function(opts) {
+        mock.calls.push(opts);
+        return new Promise(function(resolve, reject) {
+          mock.pendingResolvers.push({ resolve: resolve, reject: reject });
+        });
+      },
+      stop: function() { mock.stops++; return Promise.resolve(); },
+      getSupportedLanguages: function() { return Promise.resolve({ languages: ['pl-PL'] }); },
+      getSupportedVoices: function() { return Promise.resolve({ voices: [] }); },
+      release: function(i, ok) {
+        var r = mock.pendingResolvers[i];
+        if (ok) r.resolve(); else r.reject(new Error('Failed to read text.'));
+      }
+    };
+    return mock;
+  }
+
+  function tick() {
+    return new Promise(function(resolve) { setTimeout(resolve, 0); });
+  }
+
+  TestRunner.testAsync('should ignore speak() while a previous request is in flight', () => {
+    if (typeof CapacitorAudio === 'undefined') {
+      TestRunner.assert(true, 'CapacitorAudio not loaded in test context');
+      return;
+    }
+    var mock = makeMockPlugin();
+    CapacitorAudio.setPlugin(mock);
+
+    var first = CapacitorAudio.speak('kot', {});
+    TestRunner.assert(CapacitorAudio.isBusy(), 'Should be busy after first speak');
+    var second = CapacitorAudio.speak('pies', {});
+    TestRunner.assertEqual(mock.calls.length, 1, 'Second speak must not reach native plugin');
+
+    return second.then(function(accepted) {
+      TestRunner.assertEqual(accepted, false, 'Second speak should be rejected as busy');
+      mock.release(0, true);
+      return first;
+    }).then(function(ok) {
+      TestRunner.assertEqual(ok, true, 'First speak should succeed');
+      TestRunner.assert(!CapacitorAudio.isBusy(), 'Should not be busy after completion');
+      return CapacitorAudio.speak('sowa', {});
+    }).then(function() {
+      TestRunner.assertEqual(mock.calls.length, 2, 'Next speak after completion reaches native');
+      TestRunner.assertEqual(mock.calls[1].text, 'sowa', 'Third request is the accepted one');
+      CapacitorAudio.setPlugin(null);
+    });
+  });
+
+  TestRunner.testAsync('should release busy flag when native speak rejects', () => {
+    if (typeof CapacitorAudio === 'undefined') {
+      TestRunner.assert(true, 'CapacitorAudio not loaded in test context');
+      return;
+    }
+    var mock = makeMockPlugin();
+    CapacitorAudio.setPlugin(mock);
+
+    var p = CapacitorAudio.speak('kot', {});
+    mock.release(0, false);
+    return p.then(function(ok) {
+      TestRunner.assertEqual(ok, false, 'Rejected speak returns false');
+      TestRunner.assert(!CapacitorAudio.isBusy(), 'Busy flag released after rejection');
+      TestRunner.assert(!CapacitorAudio.inFallbackCooldown(), 'One failure does not trigger cooldown');
+      CapacitorAudio.setPlugin(null);
+    });
+  });
+
+  TestRunner.testAsync('should enter a temporary fallback cooldown after repeated failures, not abandon native', () => {
+    if (typeof CapacitorAudio === 'undefined') {
+      TestRunner.assert(true, 'CapacitorAudio not loaded in test context');
+      return;
+    }
+    var mock = makeMockPlugin();
+    CapacitorAudio.setPlugin(mock);
+
+    var p1 = CapacitorAudio.speak('kot', {});
+    mock.release(0, false);
+    return p1.then(function() {
+      var p2 = CapacitorAudio.speak('pies', {});
+      mock.release(1, false);
+      return p2;
+    }).then(function() {
+      TestRunner.assert(CapacitorAudio.inFallbackCooldown(), 'Two failures start cooldown');
+      return CapacitorAudio.speak('sowa', {});
+    }).then(function() {
+      TestRunner.assertEqual(mock.calls.length, 2, 'Native plugin skipped during cooldown');
+      TestRunner.assert(!CapacitorAudio.isBusy(), 'Fallback path does not leave busy flag set');
+      // Cooldown must be finite: setPlugin resets it, simulating expiry
+      CapacitorAudio.setPlugin(mock);
+      TestRunner.assert(!CapacitorAudio.inFallbackCooldown(), 'Cooldown cleared');
+      var p3 = CapacitorAudio.speak('lis', {});
+      TestRunner.assertEqual(mock.calls.length, 3, 'Native plugin used again after cooldown');
+      mock.release(2, true);
+      return p3;
+    }).then(function() {
+      CapacitorAudio.setPlugin(null);
+    });
+  });
+
+  TestRunner.testAsync('should ignore stale request after stopSpeaking()', () => {
+    if (typeof CapacitorAudio === 'undefined') {
+      TestRunner.assert(true, 'CapacitorAudio not loaded in test context');
+      return;
+    }
+    var mock = makeMockPlugin();
+    CapacitorAudio.setPlugin(mock);
+
+    var p1 = CapacitorAudio.speak('kot', {});
+    return CapacitorAudio.stopSpeaking().then(function() {
+      TestRunner.assert(!CapacitorAudio.isBusy(), 'stopSpeaking releases busy flag');
+      TestRunner.assertEqual(mock.stops, 1, 'Native stop called');
+      var p2 = CapacitorAudio.speak('pies', {});
+      TestRunner.assertEqual(mock.calls.length, 2, 'New speak accepted after stop');
+      // The orphaned first utterance eventually errors; it must not touch the new one
+      mock.release(0, false);
+      return p1.then(function(ok) {
+        TestRunner.assertEqual(ok, false, 'Stale request reports false');
+        TestRunner.assert(CapacitorAudio.isBusy(), 'Stale request must not clear busy flag of new request');
+        TestRunner.assertEqual(mock.stops, 1, 'Stale request must not stop the new utterance');
+        mock.release(1, true);
+        return p2;
+      });
+    }).then(function(ok) {
+      TestRunner.assertEqual(ok, true, 'New request completes normally');
+      CapacitorAudio.setPlugin(null);
+    });
+  });
+
+  TestRunner.it('should scale timeout with text length and cap it', () => {
+    if (typeof CapacitorAudio === 'undefined') {
+      TestRunner.assert(true, 'CapacitorAudio not loaded in test context');
+      return;
+    }
+    var short = CapacitorAudio.timeoutForText('kot');
+    var long = CapacitorAudio.timeoutForText('Ten kot lubi mleko i śpi cały dzień na kanapie.');
+    var huge = CapacitorAudio.timeoutForText(new Array(1000).join('a'));
+    TestRunner.assert(long > short, 'Longer text gets longer timeout');
+    TestRunner.assertEqual(huge, 20000, 'Timeout capped at 20s');
+  });
+});
