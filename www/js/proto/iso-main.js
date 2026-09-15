@@ -33,14 +33,46 @@ var ProtoIso = (function() {
     if (el) el.classList.toggle('hidden', !show);
   }
 
+  var CONTROLS_HTML =
+    '<div id="direction-bar" class="hud-cross">' +
+      '<button type="button" class="hud-btn dir-btn dir-north" data-direction="North" disabled aria-label="North">&#x2191;</button>' +
+      '<button type="button" class="hud-btn dir-btn dir-west" data-direction="West" disabled aria-label="West">&#x2190;</button>' +
+      '<button type="button" class="hud-btn dir-btn dir-east" data-direction="East" disabled aria-label="East">&#x2192;</button>' +
+      '<button type="button" class="hud-btn dir-btn dir-south" data-direction="South" disabled aria-label="South">&#x2193;</button>' +
+    '</div>';
+
   // ---------------------------------------------------------------------------
   // Boot
   // ---------------------------------------------------------------------------
 
   function boot() {
+    // HUD first (creates #direction-bar, #dungeon-map, #room-description), then the
+    // shared modals + UI.init() so ui.js caches every element
+    ProtoHud.mount({
+      root: document.body,
+      controlsHtml: CONTROLS_HTML,
+      compass: false,
+      note: { en: 'Tap a lit chamber or use the compass.', pl: 'Dotknij komnaty lub użyj kompasu.' }
+    });
     ProtoSharedDom.inject(document.getElementById('iso-modals'));
     if (typeof SFX !== 'undefined') SFX.init();
     if (typeof UI.setSfxToggleState === 'function') UI.setSfxToggleState();
+
+    // Move the shared sound toggle and add a restart button into the top bar
+    var iconBtns = document.querySelector('.hud-iconbtns');
+    var sfxBtn = document.getElementById('sfx-toggle');
+    if (iconBtns && sfxBtn) iconBtns.insertBefore(sfxBtn, iconBtns.lastElementChild);
+    if (iconBtns) {
+      var restart = document.createElement('button');
+      restart.type = 'button';
+      restart.className = 'hud-btn';
+      restart.id = 'iso-new-game';
+      restart.setAttribute('aria-label', 'New game / Nowa gra');
+      restart.innerHTML = '&#x21bb;';
+      iconBtns.insertBefore(restart, iconBtns.lastElementChild);
+    }
+    ProtoHud.setName('Explorer');
+    ProtoHud.loadSprites().then(function() { ProtoHud.useSpritesInModals(); });
 
     Questions.init();
     Questions.resetUsed();
@@ -61,15 +93,15 @@ var ProtoIso = (function() {
       });
     }
 
-    var backLink = document.getElementById('iso-new-game');
-    if (backLink) backLink.addEventListener('click', function() { location.reload(); });
+    var restartBtn = document.getElementById('iso-new-game');
+    if (restartBtn) restartBtn.addEventListener('click', function() { location.reload(); });
 
     showLoading(true);
 
     game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: 'iso-canvas',
-      backgroundColor: '#1a1a2e',
+      backgroundColor: '#05060a',
       banner: false,
       scale: {
         mode: Phaser.Scale.RESIZE,
@@ -103,18 +135,17 @@ var ProtoIso = (function() {
 
   function updateHud() {
     var stats = Player.getQuestionStats();
-    UI.renderStats({
+    ProtoHud.updateStats({
       monstersDefeated: Player.getMonstersDefeated(),
       questionsCorrect: stats.correct,
       questionsTotal: stats.total,
-      accuracy: stats.percentage,
       totalLoot: Player.getTotalLootValue()
     });
-    UI.renderInventory(Player.getInventory());
+    ProtoHud.setLoot(Player.getInventory());
     var current = Player.getCurrentRoom();
-    UI.renderMap(DungeonMap.renderSVG(current));
+    ProtoHud.setMinimap(DungeonMap.renderSVG(current));
     var room = Dungeon.getRoom(current);
-    if (room) UI.renderRoom(room);
+    if (room) ProtoHud.setRoom(room);
   }
 
   function showNavigation() {
