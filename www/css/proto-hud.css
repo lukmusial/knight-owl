@@ -408,17 +408,40 @@ body.proto .sfx-toggle {
   .hud-dock-note { display: none; }
 }
 
-/* Landscape phones: slimmer chrome ------------------------------------------ */
+/* Landscape phones: controls move to a right-hand column, ribbon shrinks ----- */
 
 @media (orientation: landscape) and (max-height: 520px) {
-  :root { --hud-top-h: 44px; --hud-dock-h: 118px; }
-  .hud-dpad { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 4px; }
-  .hud-dpad .hud-btn { width: 44px; height: 44px; font-size: 1.1rem; }
-  .hud-cross { grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); }
-  .hud-cross .hud-btn { width: 38px; height: 38px; font-size: 1rem; }
+  :root { --hud-top-h: 44px; --hud-dock-h: 0px; }
+  .hud-dock {
+    position: absolute;
+    top: calc(var(--hud-top-h) + env(safe-area-inset-top, 0px) + 8px);
+    right: calc(8px + env(safe-area-inset-right, 0px));
+    bottom: 8px;
+    height: auto;
+    width: 176px;
+    padding: 10px 8px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 12px;
+  }
+  .hud-dock-side { flex: 0 0 auto; align-items: center; }
+  .hud-dock-note, .hud-loot { display: none; }
+  .hud-dpad { grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(2, 48px); gap: 4px; }
+  .hud-dpad .hud-btn { width: 48px; height: 48px; font-size: 1.2rem; }
+  .hud-cross { grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(3, 46px); }
+  .hud-cross .hud-btn { width: 44px; height: 44px; font-size: 1.1rem; }
   .hud-minimap { width: 120px; }
-  .hud-ribbon { margin-bottom: 2px; padding: 3px 12px; }
-  .hud-dock-note { display: none; }
+  .hud-compass { right: calc(8px + 176px + 8px + env(safe-area-inset-right, 0px)); }
+  .hud-ribbon {
+    position: absolute;
+    left: 8px;
+    right: calc(8px + 176px + 16px + env(safe-area-inset-right, 0px));
+    bottom: 8px;
+    margin: 0;
+    padding: 3px 12px;
+  }
+  .hud-ribbon .title-pl { display: none; }
 }
 
 /* Modals on prototype pages: stone frame + parchment question ---------------- */
