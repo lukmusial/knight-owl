@@ -148,6 +148,7 @@ body.proto #game-container { display: contents; }
 }
 
 .hud-name {
+  flex-shrink: 0;
   font-weight: bold;
   color: var(--hud-gold-bright);
   font-size: 0.95rem;
@@ -361,6 +362,10 @@ body.proto .sfx-toggle {
 }
 
 .hud-dock-note .label-pl { display: block; font-style: italic; opacity: 0.8; font-size: 0.8rem; }
+
+/* Once loot exists the hint has done its job */
+.hud-dock.has-loot .hud-dock-note { display: none; }
+.hud-dock-side { overflow: hidden; }
 
 .hud-dpad {
   display: grid;

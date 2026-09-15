@@ -77,8 +77,10 @@ Two experimental presentations of the same dungeon live under `www/proto/` and a
 
 | Page | Engine | What it shows |
 |------|--------|---------------|
-| `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style first-person corridors: turn left/right, step forward/back, monsters appear ahead as billboards. |
-| `proto/isometric.html` | Phaser 3.90 (WebGL, Canvas fallback) | Isometric map with fog of war: unexplored rooms are dark, neighbours are dimmed with a "?" marker, tap an adjacent room to walk there. |
+| `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style vaulted chambers with arched doorways, torches and lava rivers: turn left/right, step forward/back; monsters stay hidden in the fog until you enter their chamber. |
+| `proto/isometric.html` | Phaser 3.90 (WebGL, Canvas fallback) | Isometric dungeon with fog of war and dressed chambers (torches, banners, bones, gold, lava): unexplored rooms are dark, neighbours dimmed with a "?" marker; tap an adjacent room and Mr Owl walks there. |
+
+Both pages are built for phones: the engine canvas fills the screen and a 1990s-style HUD (stone-and-gold top bar with portrait and stats, framed minimap, parchment room ribbon, control dock) floats above it. Monster art is shown as extracted sprites (`www/assets/proto/monsters/`, produced by `tools/extract-sprites.py`).
 
 <p align="center">
   <img src="docs/screenshots/proto-fp-01-corridor.png" alt="First-person corridor" width="420">
@@ -100,7 +102,7 @@ npm run proto        # serves www/ on http://localhost:8080
 # open http://localhost:8080/proto/first-person.html or /proto/isometric.html
 ```
 
-Wall textures, tiles and tokens are derived at runtime from the existing artwork. Real art files can be dropped into `www/assets/proto/` (see [docs/art-prompts.md](docs/art-prompts.md) for the file list and generation prompts). The engine bundles are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
+Wall textures, tiles and props are drawn procedurally from the existing artwork's palette. Real art files can be dropped into `www/assets/proto/` (see [docs/art-prompts.md](docs/art-prompts.md) for the file list and generation prompts, and [docs/asset-libraries.md](docs/asset-libraries.md) for a survey of open-source medieval art packs and their licences). The engine bundles are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
 
 ## Running Tests
 
