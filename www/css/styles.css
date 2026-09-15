@@ -187,7 +187,7 @@ body {
   height: 100%;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   z-index: 0;
-  animation: progressFill 8s linear forwards;
+  animation: progressFill var(--continue-delay, 8s) linear forwards;
 }
 
 .btn-progress > * {

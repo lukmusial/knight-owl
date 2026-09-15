@@ -22,9 +22,13 @@ const CapacitorHaptics = (function() {
         return false;
       }
 
-      // Import the Haptics plugin
-      const { Haptics: HapticsPlugin } = await import('@capacitor/haptics');
-      Haptics = HapticsPlugin;
+      // Prefer the plugin registered on the Capacitor global (works without a bundler)
+      if (Capacitor.Plugins && Capacitor.Plugins.Haptics) {
+        Haptics = Capacitor.Plugins.Haptics;
+      } else {
+        const { Haptics: HapticsPlugin } = await import('@capacitor/haptics');
+        Haptics = HapticsPlugin;
+      }
       initialized = true;
       console.log('CapacitorHaptics: Initialized successfully');
       return true;
