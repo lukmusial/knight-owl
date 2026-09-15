@@ -6,6 +6,8 @@
   <title>Mr Owl's Dungeon Adventure - Learn Polish!</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/fx.css">
+  <link rel="stylesheet" href="css/proto-hud.css">
+  <link rel="stylesheet" href="css/start.css">
 </head>
 <body>
   <!-- Splash Video Screen (shown before game container on native platforms) -->
@@ -22,25 +24,43 @@
 
     <!-- Start Screen -->
     <div id="start-screen" class="screen">
-      <div class="title-section">
+      <div class="start-banner hud-ribbon">
         <h1>Mr Owl's Dungeon Adventure</h1>
         <p class="subtitle">Learn Polish while exploring the dungeon!</p>
-        <div class="owl-mascot">
-          <img src="assets/start.png" alt="Mr Owl the Knight" class="start-image">
+      </div>
+
+      <div class="view-select hud-frame">
+        <div class="view-select-label">
+          <span class="label-en">Choose your view</span>
+          <span class="label-pl">Wybierz widok</span>
+        </div>
+        <div class="view-cards" id="view-cards">
+          <button type="button" class="view-card" data-view="classic">
+            <img src="assets/thumbs/view-classic.jpg" alt="">
+            <span class="view-card-name">Classic<small>Klasyczny</small></span>
+          </button>
+          <button type="button" class="view-card" data-view="iso">
+            <img src="assets/thumbs/view-iso.jpg" alt="">
+            <span class="view-card-name">Isometric<small>Izometryczny</small></span>
+          </button>
+          <button type="button" class="view-card" data-view="fp">
+            <img src="assets/thumbs/view-fp.jpg" alt="">
+            <span class="view-card-name">3D<small>Pierwsza osoba</small></span>
+          </button>
         </div>
       </div>
 
-      <div class="start-form">
-        <label for="player-name">Your Name:</label>
+      <div class="start-form hud-frame">
+        <label for="player-name">Your Name / Twoje imię:</label>
         <input type="text" id="player-name" placeholder="Enter your name..." maxlength="20">
 
         <div class="start-buttons">
-          <button id="new-game-btn" class="btn btn-primary">New Adventure</button>
-          <button id="load-game-btn" class="btn btn-secondary">Continue Adventure</button>
+          <button id="new-game-btn" class="hud-btn-wide primary">New Adventure</button>
+          <button id="load-game-btn" class="hud-btn-wide">Continue Adventure</button>
         </div>
       </div>
 
-      <div id="profile-stats" class="profile-stats hidden">
+      <div id="profile-stats" class="profile-stats start-panel hud-frame hidden">
         <h3>Your Learning Progress / Twoje Postępy</h3>
         <div class="profile-stats-grid">
           <div class="profile-stat">
@@ -62,15 +82,15 @@
         </div>
       </div>
 
-      <div class="saved-games">
+      <div class="saved-games start-panel hud-frame">
         <h3>Saved Adventures</h3>
         <div id="saved-games-list">
           <!-- Populated by JavaScript -->
         </div>
       </div>
 
-      <div class="instructions">
-        <h3>How to Play</h3>
+      <details class="instructions start-panel hud-frame">
+        <summary>How to Play</summary>
         <ul>
           <li>Explore the dungeon as Mr Owl the Knight</li>
           <li>Answer Polish questions to defeat monsters</li>
@@ -78,13 +98,7 @@
           <li>Wrong answers push you back - try again!</li>
           <li>Defeat the dragon by answering 3 questions in a row!</li>
         </ul>
-      </div>
-
-      <div class="proto-links">
-        <span class="proto-links-label">Experimental views:</span>
-        <a class="proto-link" href="proto/first-person.html">First-person 3D</a>
-        <a class="proto-link" href="proto/isometric.html">Isometric map</a>
-      </div>
+      </details>
     </div>
 
     <!-- Game Screen -->
@@ -298,7 +312,9 @@
   <script src="js/modules/map.js"></script>
   <script src="js/modules/sfx.js"></script>
   <script src="js/modules/fx.js"></script>
+  <script src="js/modules/music.js"></script>
   <script src="js/modules/ui.js"></script>
+  <script src="js/proto/session.js"></script>
 
   <!-- Load main game controller -->
   <script src="js/main.js"></script>

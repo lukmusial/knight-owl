@@ -109,6 +109,7 @@ const Game = (function() {
 
     // Show start screen with saved games
     refreshStartScreen();
+    initViewSelector();
 
     initialized = true;
     console.log('Mr Owl\'s Dungeon Adventure initialized!');
@@ -120,6 +121,49 @@ const Game = (function() {
   function refreshStartScreen() {
     const savedGames = Save.listSaves();
     UI.renderStartScreen(savedGames);
+    if (typeof Music !== 'undefined') {
+      Music.init();
+      Music.play();
+    }
+  }
+
+  /**
+   * View selector on the start screen (classic / isometric / 3D).
+   * Picking a card only remembers the choice; the game starts from the buttons.
+   */
+  function initViewSelector() {
+    if (typeof ProtoSession === 'undefined') return;
+    const cards = document.querySelectorAll('#view-cards .view-card');
+    if (!cards.length) return;
+    function reflect() {
+      const current = ProtoSession.getView();
+      cards.forEach(function(card) {
+        card.classList.toggle('selected', card.dataset.view === current);
+      });
+    }
+    cards.forEach(function(card) {
+      card.addEventListener('click', function() {
+        ProtoSession.setView(card.dataset.view);
+        if (typeof FX !== 'undefined') FX.play('tap');
+        reflect();
+      });
+    });
+    reflect();
+  }
+
+  /**
+   * When a non-classic view is selected, hand the run over to that page
+   * @param {string} playerName - Player name
+   * @param {string} action - 'new' | 'continue'
+   * @returns {boolean} True when navigation was triggered
+   */
+  function launchSelectedView(playerName, action) {
+    if (typeof ProtoSession === 'undefined') return false;
+    const view = ProtoSession.getView();
+    if (view === 'classic') return false;
+    if (typeof Music !== 'undefined') Music.stop(300);
+    window.location.href = ProtoSession.launchUrl(view, playerName, action);
+    return true;
   }
 
   /**
@@ -140,6 +184,7 @@ const Game = (function() {
       }
     }
 
+    if (launchSelectedView(playerName, 'new')) return;
     startNewGame(playerName);
   }
 
@@ -159,6 +204,7 @@ const Game = (function() {
       return;
     }
 
+    if (launchSelectedView(playerName, 'continue')) return;
     loadGame(playerName);
   }
 
@@ -234,6 +280,7 @@ const Game = (function() {
 
     // Start game
     gameInProgress = true;
+    if (typeof Music !== 'undefined') Music.stop();
 
     // Show game screen and render entrance
     UI.showScreen('game');
@@ -287,6 +334,7 @@ const Game = (function() {
 
     // Start game
     gameInProgress = true;
+    if (typeof Music !== 'undefined') Music.stop();
 
     // Show game screen and render current room
     UI.showScreen('game');

@@ -221,6 +221,8 @@ loadScript('www/js/modules/map.js');
 loadScript('www/js/modules/sfx.js');
 loadScript('www/js/modules/fx.js');
 loadScript('www/js/proto/shared-dom.js');
+loadScript('www/js/proto/session.js');
+loadScript('www/js/modules/music.js');
 loadScript('www/js/proto/fp-world.js');
 loadScript('www/js/proto/iso-model.js');
 
@@ -245,6 +247,7 @@ loadScript('tests/combat.test.js');
 loadScript('tests/map.test.js');
 loadScript('tests/fx.test.js');
 loadScript('tests/shared-dom.test.js');
+loadScript('tests/session.test.js');
 loadScript('tests/fp-world.test.js');
 loadScript('tests/iso-model.test.js');
 loadScript('tests/integration.test.js');
