@@ -80,6 +80,19 @@ Two experimental presentations of the same dungeon live under `www/proto/` and a
 | `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style first-person corridors: turn left/right, step forward/back, monsters appear ahead as billboards. |
 | `proto/isometric.html` | Phaser 3.90 (WebGL, Canvas fallback) | Isometric map with fog of war: unexplored rooms are dark, neighbours are dimmed with a "?" marker, tap an adjacent room to walk there. |
 
+<p align="center">
+  <img src="docs/screenshots/proto-fp-01-corridor.png" alt="First-person corridor" width="420">
+  &nbsp;
+  <img src="docs/screenshots/proto-fp-04-knockback.png" alt="First-person after a knockback" width="420">
+</p>
+<p align="center">
+  <img src="docs/screenshots/proto-iso-01-start.png" alt="Isometric start with fog of war" width="420">
+  &nbsp;
+  <img src="docs/screenshots/proto-iso-06-fog-overview.png" alt="Isometric explored area" width="420">
+</p>
+
+Example play recordings: [first-person](docs/videos/proto-first-person.mp4) and [isometric](docs/videos/proto-isometric.mp4). More stills in `docs/screenshots/proto-*.png` (encounter, result, wrong answer, push-back).
+
 Run them from an http server (canvas image processing is blocked on `file://`):
 
 ```bash
