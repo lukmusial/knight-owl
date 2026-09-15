@@ -1,0 +1,181 @@
+/* ==========================================================================
+   Classic game screen in the 1990s HUD convention (tokens from proto-hud.css).
+   Scoped to body.on-game so the module CSS in styles.css keeps its layout.
+   ========================================================================== */
+
+body.on-game {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(70, 60, 40, 0.35), rgba(0, 0, 0, 0) 60%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0 2px, rgba(0, 0, 0, 0) 2px 9px),
+    linear-gradient(180deg, #1c1e28, #0b0c12);
+  font-family: var(--hud-font-title);
+}
+
+body.on-game #game-container {
+  padding-top: calc(6px + env(safe-area-inset-top, 0px));
+}
+
+/* Header as a parchment ribbon (desktop) */
+body.on-game .game-header {
+  background: linear-gradient(180deg, var(--hud-parchment), var(--hud-parchment-dark));
+  color: var(--hud-ink);
+  border: 0;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(120, 90, 30, 0.35);
+  padding: 8px 16px;
+  margin-bottom: 12px;
+}
+
+body.on-game .game-header h1 {
+  font-family: var(--hud-font-title);
+  color: var(--hud-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  font-size: 1.4rem;
+}
+
+/* Generic stone panel */
+body.on-game .panel {
+  position: relative;
+  border: 0;
+  border-radius: 8px;
+  color: var(--hud-parchment);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 2px, rgba(0, 0, 0, 0) 2px 7px),
+    linear-gradient(180deg, var(--hud-stone-light), var(--hud-stone) 40%, var(--hud-stone-dark));
+  box-shadow:
+    inset 0 0 0 2px var(--hud-bronze),
+    inset 0 0 0 4px var(--hud-gold),
+    inset 0 0 0 5px var(--hud-bronze),
+    inset 0 0 18px rgba(0, 0, 0, 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+body.on-game .panel h3,
+body.on-game .nav-header,
+body.on-game .inventory-header {
+  font-family: var(--hud-font-title);
+  color: var(--hud-gold-bright);
+  text-shadow: 0 1px 2px #000;
+  border: 0;
+}
+
+/* Room illustration: gold-framed, vignetted */
+body.on-game .room-image-container {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #05060a;
+  box-shadow:
+    inset 0 0 0 2px var(--hud-bronze),
+    inset 0 0 0 4px var(--hud-gold),
+    0 6px 18px rgba(0, 0, 0, 0.7);
+  padding: 6px;
+}
+
+body.on-game #room-image {
+  border-radius: 4px;
+  display: block;
+  margin: 0 auto;
+}
+
+body.on-game .room-image-container::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 4px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Room description: parchment */
+body.on-game #room-description.panel {
+  background: linear-gradient(180deg, var(--hud-parchment), var(--hud-parchment-dark));
+  color: var(--hud-ink);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 0 14px rgba(120, 90, 30, 0.4);
+}
+
+body.on-game .room-title .title-en { color: var(--hud-ink); text-shadow: none; }
+body.on-game .room-title .title-pl { color: #6b4a1a; }
+body.on-game .room-desc { color: #3f2f16; }
+
+/* Map: parchment inside a stone frame */
+body.on-game .map-panel .dungeon-map-container {
+  background: radial-gradient(circle at 50% 40%, var(--hud-parchment), var(--hud-parchment-dark));
+  border-radius: 4px;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5);
+  margin: 0 6px 6px;
+}
+
+body.on-game .map-legend-html { color: var(--hud-ink); background: rgba(230, 211, 163, 0.85); }
+
+/* Navigation buttons: bronze with gold rim */
+body.on-game .nav-btn {
+  font-family: var(--hud-font-title);
+  color: var(--hud-parchment);
+  background: linear-gradient(180deg, var(--hud-bronze-light), var(--hud-bronze) 55%, #4a3114);
+  border: 2px solid var(--hud-gold);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.5), 0 3px 6px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 2px #000;
+}
+
+body.on-game .nav-btn .nav-en { color: var(--hud-parchment); }
+body.on-game .nav-btn .nav-pl { color: var(--hud-gold-bright); }
+body.on-game .nav-btn.unexplored { box-shadow: inset 0 1px 0 rgba(255,255,255,.25), inset 0 -3px 6px rgba(0,0,0,.5), 0 0 12px rgba(232, 182, 74, 0.5); }
+body.on-game .nav-btn.boss-btn { border-color: #ff7a7a; }
+body.on-game .nav-btn:hover { background: linear-gradient(180deg, var(--hud-gold), var(--hud-bronze-light) 60%, var(--hud-bronze)); color: var(--hud-ink); }
+
+/* Stats and loot rows */
+body.on-game .stat { border-bottom: 1px solid rgba(232, 182, 74, 0.25); }
+body.on-game .stat-label .label-en { color: var(--hud-parchment); }
+body.on-game .stat-label .label-pl { color: #c9b27c; }
+body.on-game .stat-value { color: var(--hud-gold-bright); text-shadow: 0 1px 2px #000; }
+body.on-game .inventory-panel .loot-pl,
+body.on-game .inventory-panel .loot-en,
+body.on-game .empty-inventory .label-en { color: var(--hud-parchment); }
+body.on-game .inventory-panel .loot-value { color: var(--hud-gold-bright); }
+
+/* Toasts */
+body.on-game .toast {
+  font-family: var(--hud-font-title);
+  background: linear-gradient(180deg, var(--hud-parchment), var(--hud-parchment-dark));
+  color: var(--hud-ink);
+  border: 2px solid var(--hud-gold);
+}
+
+/* Mobile direction bar as a stone dock with round buttons */
+@media (max-width: 768px) {
+  body.on-game .direction-bar {
+    background:
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 2px, rgba(0, 0, 0, 0) 2px 7px),
+      linear-gradient(180deg, var(--hud-stone-light), var(--hud-stone) 40%, var(--hud-stone-dark));
+    border: 0;
+    border-radius: 12px 12px 0 0;
+    box-shadow:
+      inset 0 0 0 2px var(--hud-bronze),
+      inset 0 0 0 4px var(--hud-gold),
+      inset 0 0 0 5px var(--hud-bronze),
+      0 -4px 12px rgba(0, 0, 0, 0.6);
+    padding-top: 12px;
+  }
+
+  body.on-game .dir-btn {
+    border: 0;
+    border-radius: 50%;
+    color: var(--hud-gold-bright);
+    background: radial-gradient(circle at 40% 35%, var(--hud-stone-light), var(--hud-stone) 60%, var(--hud-stone-dark));
+    box-shadow:
+      inset 0 0 0 2px var(--hud-bronze),
+      inset 0 0 0 3px var(--hud-gold),
+      inset 0 -3px 6px rgba(0, 0, 0, 0.6),
+      0 3px 6px rgba(0, 0, 0, 0.7);
+    text-shadow: 0 1px 2px #000;
+  }
+
+  body.on-game .dir-btn.explored { color: var(--hud-parchment); }
+  body.on-game .dir-btn.unexplored { box-shadow: inset 0 0 0 2px var(--hud-bronze), inset 0 0 0 3px var(--hud-gold), 0 0 10px rgba(232, 182, 74, 0.55); }
+  body.on-game .dir-btn.boss-btn { color: #ff7a7a; }
+  body.on-game .dir-btn:active { transform: translateY(1px); }
+
+  body.on-game .map-panel .map-toggle { color: var(--hud-gold-bright); }
+}
