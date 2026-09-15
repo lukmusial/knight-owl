@@ -553,7 +553,7 @@ var IsoScenes = (function() {
       if (snapPlayer || !this.player.visible) {
         this.player.setPosition(p.x, p.y + 12).setVisible(true);
       }
-      this.player.setDepth(IsoModel.depthKey(c.gx, c.gy, LAYERS.token) + 1);
+      this.updatePlayerDepth();
 
       this.reachRings.forEach(function(r) { r.destroy(); });
       this.reachRings = [];
@@ -564,6 +564,17 @@ var IsoScenes = (function() {
       });
 
       this.focusOn(p.x, p.y, firstRoom);
+    },
+
+    /**
+     * Depth from the owl's feet: on the floor plane gx + gy == y / TILE_H*2,
+     * so sorting by the continuous position keeps the sprite above the tile
+     * it is actually standing on while it walks (tile-snapped depth put it
+     * under the origin tile when heading up-left).
+     */
+    updatePlayerDepth: function() {
+      var feetY = this.player.y - 12;
+      this.player.setDepth((feetY / (TILE_H / 2)) * 4 + LAYERS.token + 1);
     },
 
     /**
@@ -621,7 +632,6 @@ var IsoScenes = (function() {
         var from = { x: self.player.x, y: self.player.y };
         var to = segments[idx++];
         var g = IsoModel.isoToGrid(to.x, to.y - 12);
-        self.player.setDepth(IsoModel.depthKey(g.gx, g.gy, LAYERS.token) + 1);
         self.ghostArchesFor([IsoModel.isoToGrid(from.x, from.y - 12), g]);
         if (Math.abs(to.x - from.x) > 2) self.player.setFlipX(to.x < from.x);
         var dist = Phaser.Math.Distance.Between(from.x, from.y, to.x, to.y);
@@ -630,6 +640,7 @@ var IsoScenes = (function() {
         self.time.delayedCall(dur / 2, function() { fx('step', { volume: 0.7 }); });
         self.tweens.add({
           targets: self.player, x: to.x, y: to.y, duration: dur, ease: 'Linear',
+          onUpdate: function() { self.updatePlayerDepth(); },
           onComplete: segment
         });
       }
