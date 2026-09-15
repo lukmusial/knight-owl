@@ -1,95 +1,4 @@
-/* First-person prototype layout (loaded after styles.css and fx.css) */
-
-body.proto-fp {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
-#fp-app {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 10px;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.fp-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.fp-header h1 {
-  font-size: 1.2rem;
-  margin: 0;
-}
-
-.fp-back {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-size: 0.95rem;
-}
-
-#fp-view {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  max-height: 70vh;
-  background: #05060a;
-  border: 3px solid var(--color-primary);
-  border-radius: var(--border-radius);
-  overflow: hidden;
-}
-
-#fp-view canvas {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-#fp-hud {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  pointer-events: none;
-}
-
-.fp-minimap {
-  width: 140px;
-  background: rgba(0, 0, 0, 0.55);
-  border-radius: 8px;
-  padding: 4px;
-}
-
-.fp-minimap .dungeon-map-svg {
-  width: 100%;
-  height: auto;
-  max-height: 110px;
-}
-
-.fp-minimap .map-legend-html {
-  display: none;
-}
-
-#fp-compass {
-  font-weight: bold;
-  font-size: 1.4rem;
-  color: var(--color-primary);
-  background: rgba(0, 0, 0, 0.55);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* First-person prototype (loaded after styles.css, fx.css and proto-hud.css) */
 
 #fp-fade {
   position: absolute;
@@ -97,121 +6,25 @@ body.proto-fp {
   background: #000;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 150ms ease-in-out;
+  transition: opacity 220ms ease-in-out;
+  z-index: 2;
 }
 
 #fp-fade.active {
   opacity: 1;
 }
 
-#fp-nogl {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.8);
-}
-
 #fp-nogl.hidden {
   display: none;
 }
 
-.fp-caption {
-  padding: 8px 12px;
+/* Torch-lit warm tint at the bottom of the view */
+body.proto-fp .hud-stage::after {
+  background:
+    radial-gradient(ellipse at 50% 110%, rgba(255, 150, 60, 0.12), rgba(0, 0, 0, 0) 55%),
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.6) 100%);
 }
 
-.fp-caption .room-title {
-  margin: 0 0 4px;
-  font-size: 1.1rem;
-}
-
-.fp-caption .room-desc {
-  margin: 0;
-  font-size: 0.9rem;
-  opacity: 0.85;
-}
-
-#fp-controls {
-  display: grid;
-  grid-template-columns: repeat(3, 72px);
-  grid-template-rows: 64px 64px;
-  gap: 8px;
-  justify-content: center;
-}
-
-.fp-btn {
-  min-width: 64px;
-  min-height: 64px;
-  font-size: 1.8rem;
-  background: var(--color-surface);
-  border: 2px solid var(--color-primary);
-  border-radius: 12px;
-  color: var(--color-primary);
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.fp-btn:active {
-  transform: scale(0.95);
-  background: var(--color-primary);
-  color: var(--color-bg);
-}
-
-.fp-btn-back {
-  grid-column: 2;
-}
-
-.fp-panels {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-#fp-new-game {
-  justify-self: center;
-}
-
-/* Reused victory screen must overlay the page */
-body.proto-fp #victory-screen {
-  position: fixed;
-  inset: 0;
-  overflow: auto;
-  z-index: 1001;
-  background: var(--color-bg);
-}
-
-body.proto-fp #victory-screen.hidden {
-  display: none;
-}
-
-@media (min-width: 768px) and (orientation: landscape) {
-  #fp-app {
-    grid-template-columns: 2fr 1fr;
-    grid-template-areas:
-      "header header"
-      "view caption"
-      "view controls"
-      "view panels"
-      "view newgame";
-    align-items: start;
-  }
-  .fp-header { grid-area: header; }
-  #fp-view { grid-area: view; max-height: none; }
-  .fp-caption { grid-area: caption; }
-  #fp-controls { grid-area: controls; }
-  .fp-panels { grid-area: panels; grid-template-columns: 1fr; }
-  #fp-new-game { grid-area: newgame; }
-}
-
-@media (max-width: 480px) {
-  .fp-panels {
-    grid-template-columns: 1fr;
-  }
-  .fp-minimap {
-    width: 110px;
-  }
+body.proto-fp .hud-dock-side .hud-btn {
+  align-self: flex-start;
 }

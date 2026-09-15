@@ -1,8 +1,9 @@
 /**
  * ProtoFp
  * Bootstrap for the first-person prototype page. Mirrors the encounter flow
- * of js/main.js (enterRoom, combat, matching, treasure, dragon) but drives a
- * three.js view instead of the room illustration. No save/profile calls.
+ * of js/main.js (enterRoom, combat, matching, treasure, dragon) but drives
+ * the three.js chamber view and the shared ProtoHud chrome instead of the
+ * classic page layout. No save/profile calls.
  */
 
 var ProtoFp = (function() {
@@ -10,8 +11,9 @@ var ProtoFp = (function() {
   var gameInProgress = false;
   var world = null;
   var textures = null;
-  var STEP_MS = 250;
-  var TURN_MS = 200;
+  var STEP_MS = 520;
+  var TURN_MS = 240;
+  var REVEAL_MS = 900;
 
   function fx(name, opts) {
     if (typeof FX !== 'undefined' && FX.play) FX.play(name, opts);
@@ -32,20 +34,33 @@ var ProtoFp = (function() {
   // ---------------------------------------------------------------------------
   // Boot
   // ---------------------------------------------------------------------------
-  function whenPlatformReady() {
-    return new Promise(function(resolve) {
-      var tries = 0;
-      (function check() {
-        if (typeof Platform === 'undefined' || Platform.isInitialized() || tries > 40) return resolve();
-        tries++;
-        setTimeout(check, 50);
-      })();
-    });
-  }
-
   function init() {
     if (typeof SFX !== 'undefined') SFX.init();
     ProtoSharedDom.inject(document.getElementById('fp-modals'));
+
+    ProtoHud.mount({
+      compass: true,
+      name: 'Mr Owl',
+      controlsHtml:
+        '<div class="hud-dpad">' +
+        '<button type="button" class="hud-btn hud-btn-forward" data-cmd="forward" aria-label="Forward">&#x25B2;</button>' +
+        '<button type="button" class="hud-btn hud-btn-left" data-cmd="turnLeft" aria-label="Turn left">&#x21B6;</button>' +
+        '<button type="button" class="hud-btn hud-btn-back" data-cmd="back" aria-label="Back">&#x25BC;</button>' +
+        '<button type="button" class="hud-btn hud-btn-right" data-cmd="turnRight" aria-label="Turn right">&#x21B7;</button>' +
+        '</div>',
+      note: { en: 'Swipe or use the pad. Tap ▲ to walk.', pl: 'Przesuń palcem lub użyj przycisków.' }
+    });
+    var side = document.querySelector('#hud-root .hud-dock-side');
+    if (side) {
+      var ng = document.createElement('button');
+      ng.type = 'button';
+      ng.id = 'fp-new-game';
+      ng.className = 'hud-btn';
+      ng.title = 'New game / Nowa gra';
+      ng.innerHTML = '&#x27F3;';
+      side.appendChild(ng);
+      ng.addEventListener('click', newGame);
+    }
 
     Questions.init();
     if (typeof Matching !== 'undefined') Matching.init();
@@ -60,14 +75,16 @@ var ProtoFp = (function() {
       InputAdapter.on('navigate', function(data) { onNavigate(data.direction); });
     }
 
-    var newGameBtn = document.getElementById('fp-new-game');
-    if (newGameBtn) newGameBtn.addEventListener('click', newGame);
-
-    newGame();
+    ProtoHud.loadSprites().then(function() {
+      ProtoHud.useSpritesInModals();
+      newGame();
+      var veil = document.getElementById('fp-loading');
+      if (veil) veil.classList.add('hidden');
+    });
   }
 
   function bindControls() {
-    var buttons = document.querySelectorAll('#fp-controls [data-cmd]');
+    var buttons = document.querySelectorAll('#hud-root [data-cmd]');
     for (var i = 0; i < buttons.length; i++) {
       (function(btn) {
         btn.addEventListener('click', function() { runCommand(btn.dataset.cmd); });
@@ -100,7 +117,7 @@ var ProtoFp = (function() {
     Questions.resetUsed();
     if (typeof Matching !== 'undefined') Matching.resetUsed();
     Player.reset();
-    Player.create('Explorer');
+    Player.create('Mr Owl');
     DungeonMap.init();
     Dungeon.generate();
     DungeonMap.calculateLayout(Dungeon.getEntranceId());
@@ -119,11 +136,13 @@ var ProtoFp = (function() {
     FpRenderer.buildScene(world, textures);
     FpTextures.load().then(function(loaded) {
       textures = loaded;
-      FpRenderer.setTextures(loaded);
+      FpRenderer.buildScene(world, loaded);
+      FpRenderer.setPose(FpWorld.getState().roomId, FpWorld.getFacing());
+      refreshVisibility();
+      restoreEntities();
       console.log('FpTextures: using ' + loaded.source + ' textures');
     });
 
-    placeEntities();
     FpRenderer.setPose(entrance, facing);
     FpRenderer.resume();
     gameInProgress = true;
@@ -131,19 +150,26 @@ var ProtoFp = (function() {
     resolveRoom(entrance);
   }
 
-  function placeEntities() {
+  /**
+   * Re-create billboards for discovered, uncleared chambers (after a rebuild)
+   */
+  function restoreEntities() {
     var rooms = Dungeon.getState().rooms;
     Object.keys(rooms).forEach(function(id) {
       var room = rooms[id];
-      if (room.type === 'monster' && !room.cleared && room.monster) {
-        FpRenderer.setEntity(id, { kind: 'monster', imageId: room.monster.id });
-      } else if (room.type === 'boss' && !room.cleared) {
-        FpRenderer.setEntity(id, { kind: 'dragon', imageId: 'dragon' });
-      } else if (room.type === 'treasure' && !room.cleared) {
-        FpRenderer.setEntity(id, { kind: 'treasure', imageId: 'treasure' });
+      if (!DungeonMap.isExplored(id) || room.cleared) return;
+      if (room.type === 'monster' && room.monster) {
+        FpRenderer.setEntity(id, { kind: 'monster', imageId: room.monster.id, fromDir: entryDir(id) });
+      } else if (room.type === 'boss') {
+        FpRenderer.setEntity(id, { kind: 'dragon', imageId: 'dragon', fromDir: entryDir(id) });
+      } else if (room.type === 'treasure') {
+        FpRenderer.setEntity(id, { kind: 'treasure', imageId: 'treasure', fromDir: entryDir(id) });
       }
     });
   }
+
+  var entryDirs = {};
+  function entryDir(roomId) { return entryDirs[roomId] || FpWorld.getFacing(); }
 
   // ---------------------------------------------------------------------------
   // Movement
@@ -174,13 +200,16 @@ var ProtoFp = (function() {
     busy = true;
     Player.moveTo(to);
     haptic('onNavigation');
+    entryDirs[to] = backwards ? FpWorld.OPPOSITE[facing] : facing;
     var portal = FpWorld.portalBetween(from, to);
+    if (portal) FpRenderer.openGate();
     if (portal && portal.teleport) {
       fx('door');
       FpRenderer.animateTeleport(to, facing, function() { resolveRoom(to); });
       return;
     }
     if (portal) fx('door'); else fx('step');
+    fx('step', { delay: 0.25, volume: 0.7 });
     FpRenderer.animateStep(to, facing, STEP_MS, function() { resolveRoom(to); });
   }
 
@@ -189,41 +218,24 @@ var ProtoFp = (function() {
     fx('turn');
     FpRenderer.animateTurn(facing, TURN_MS, function() {
       busy = false;
-      updateCompass();
-      refreshVisibleEntities();
+      ProtoHud.setCompass(FpWorld.getFacing());
     });
   }
 
-  function updateCompass() {
-    var el = document.getElementById('fp-compass');
-    if (el) el.textContent = FpWorld.getFacing();
-  }
-
   /**
-   * Fog-of-war predicate: explored, or adjacent to an explored room
-   * (same rule DungeonMap uses internally for the SVG map)
+   * Fog of war: explored chambers lit, neighbours of explored chambers dim
    */
-  function isRoomSeen(roomId) {
-    if (DungeonMap.isExplored(roomId)) return true;
-    var room = Dungeon.getRoom(roomId);
-    if (!room) return false;
-    for (var i = 0; i < room.connections.length; i++) {
-      if (DungeonMap.isExplored(room.connections[i])) return true;
-    }
-    return false;
-  }
-
-  /**
-   * Only rooms the player has seen (explored or adjacent) show their occupant
-   */
-  function refreshVisibleEntities() {
+  function refreshVisibility() {
     var rooms = Dungeon.getState().rooms;
+    var explored = [], seen = [];
     Object.keys(rooms).forEach(function(id) {
-      if (!FpRenderer.hasEntity(id)) return;
-      var seen = isRoomSeen(id);
-      var here = id === Player.getCurrentRoom();
-      FpRenderer.hideEntity(id, !seen || here);
+      if (DungeonMap.isExplored(id)) { explored.push(id); return; }
+      var room = rooms[id];
+      for (var i = 0; i < room.connections.length; i++) {
+        if (DungeonMap.isExplored(room.connections[i])) { seen.push(id); return; }
+      }
     });
+    FpRenderer.setVisibility(explored, seen);
   }
 
   // ---------------------------------------------------------------------------
@@ -233,38 +245,53 @@ var ProtoFp = (function() {
     var room = Dungeon.getRoom(roomId);
     if (!room) { busy = false; return; }
 
+    var firstVisit = !DungeonMap.isExplored(roomId);
     DungeonMap.exploreRoom(roomId);
-    updateUI();
-    updateCompass();
-    refreshVisibleEntities();
+    refreshVisibility();
+    updateHud();
+    ProtoHud.setCompass(FpWorld.getFacing());
 
     if (Dungeon.hasMonsterEncounter(roomId)) {
-      FpRenderer.pause();
-      if (room.encounterType === 'matching' && typeof Matching !== 'undefined') {
-        startMatchingEncounter(room.monster, room.depth, room.matchingCategory);
-      } else {
-        startCombat(room.monster, room.depth);
+      var kind = room.type === 'boss' ? 'dragon' : 'monster';
+      var imageId = room.type === 'boss' ? 'dragon' : room.monster.id;
+      if (!FpRenderer.hasEntity(roomId)) {
+        FpRenderer.setEntity(roomId, { kind: kind, imageId: imageId, fromDir: entryDir(roomId), fadeMs: 700 });
       }
+      if (kind === 'dragon') fx('dragon-roar', { delay: 0.3 }); else fx('reveal');
+      var delay = (firstVisit && !reducedMotion()) ? REVEAL_MS : 250;
+      setTimeout(function() {
+        FpRenderer.pause();
+        if (room.encounterType === 'matching' && typeof Matching !== 'undefined') {
+          startMatchingEncounter(room.monster, room.depth, room.matchingCategory);
+        } else {
+          startCombat(room.monster, room.depth);
+        }
+      }, delay);
     } else if (room.type === 'treasure' && !room.cleared) {
-      FpRenderer.pause();
-      startTreasureEncounter(roomId);
+      if (!FpRenderer.hasEntity(roomId)) {
+        FpRenderer.setEntity(roomId, { kind: 'treasure', imageId: 'treasure', fromDir: entryDir(roomId), fadeMs: 500 });
+      }
+      fx('reveal');
+      setTimeout(function() {
+        FpRenderer.pause();
+        startTreasureEncounter(roomId);
+      }, reducedMotion() ? 100 : 650);
     } else {
       busy = false;
     }
   }
 
-  function updateUI() {
+  function updateHud() {
     var stats = Player.getQuestionStats();
-    UI.renderStats({
+    ProtoHud.updateStats({
       monstersDefeated: Player.getMonstersDefeated(),
       questionsCorrect: stats.correct,
       questionsTotal: stats.total,
-      accuracy: stats.percentage,
       totalLoot: Player.getTotalLootValue()
     });
-    UI.renderInventory(Player.getInventory());
-    UI.renderMap(DungeonMap.renderSVG(Player.getCurrentRoom()));
-    UI.renderRoom(Dungeon.getRoom(Player.getCurrentRoom()));
+    ProtoHud.setLoot(Player.getInventory());
+    ProtoHud.setMinimap(DungeonMap.renderSVG(Player.getCurrentRoom()));
+    ProtoHud.setRoom(Dungeon.getRoom(Player.getCurrentRoom()));
   }
 
   // ---------------------------------------------------------------------------
@@ -340,14 +367,14 @@ var ProtoFp = (function() {
       items.forEach(function(item) { Player.addLoot(item); });
       Dungeon.clearRoom(roomId);
       FpRenderer.removeEntity(roomId);
-      updateUI();
+      updateHud();
       FpRenderer.resume();
       busy = false;
     });
   }
 
   function handleResultContinue(result) {
-    updateUI();
+    updateHud();
     FpRenderer.resume();
 
     if (result.pushedBack) {
@@ -357,24 +384,38 @@ var ProtoFp = (function() {
       var facing = FpWorld.facingBetween(cur, monsterRoom) || FpWorld.getFacing();
       FpWorld.setPosition(cur, facing);
       fx('knockback');
-      FpRenderer.animateKnockback(cur, facing, 350, function() {
+      FpRenderer.animateKnockback(cur, facing, 520, function() {
         DungeonMap.exploreRoom(cur);
-        updateUI();
-        updateCompass();
-        refreshVisibleEntities();
+        refreshVisibility();
+        updateHud();
+        ProtoHud.setCompass(FpWorld.getFacing());
         busy = false;
       });
       return;
     }
 
     FpRenderer.removeEntity(Player.getCurrentRoom());
-    refreshVisibleEntities();
     busy = false;
   }
 
   function showVictory() {
-    FpRenderer.pause();
+    FpRenderer.stop();
     UI.showVictoryScreen(Player.getGameSummary(), newGame);
+  }
+
+  /**
+   * Debug helper (screenshots/tests): jump straight into a chamber
+   */
+  function debugJump(roomId, facing) {
+    if (!world || !world.cells[roomId]) return false;
+    facing = facing || FpWorld.getFacing();
+    Player.moveTo(roomId);
+    FpWorld.setPosition(roomId, facing);
+    entryDirs[roomId] = facing;
+    FpRenderer.setPose(roomId, facing);
+    busy = true;
+    resolveRoom(roomId);
+    return true;
   }
 
   function getDebugState() {
@@ -383,7 +424,8 @@ var ProtoFp = (function() {
       gameInProgress: gameInProgress,
       world: FpWorld.getState(),
       pose: FpRenderer.getPose(),
-      player: Player.getCurrentRoom()
+      player: Player.getCurrentRoom(),
+      calls: FpRenderer.getRenderInfo() ? FpRenderer.getRenderInfo().calls : null
     };
   }
 
@@ -391,6 +433,7 @@ var ProtoFp = (function() {
     init: init,
     newGame: newGame,
     runCommand: runCommand,
+    debugJump: debugJump,
     getDebugState: getDebugState
   };
 })();
