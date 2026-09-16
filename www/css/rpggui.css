@@ -404,3 +404,71 @@ body.on-game .btn-progress.ready { color: var(--rpg-gold) !important; }
 .btn-progress.ready::before,
 body.proto .btn-progress.ready::before,
 body.on-game .btn-progress.ready::before { background: linear-gradient(90deg, rgba(241, 214, 138, 0.35), rgba(241, 214, 138, 0.7)); }
+
+/* --- Answer grid and speak buttons: never wider than the modal ---------------- */
+
+.answers-container,
+body.proto .answers-container,
+body.on-game .answers-container {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.answer-row,
+body.proto .answer-row,
+body.on-game .answer-row {
+  min-width: 0;
+  gap: 4px;
+}
+
+.answer-btn,
+body.proto .answer-btn,
+body.on-game .answer-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 2px;
+  font-size: 1rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.btn-speak-answer,
+body.proto .btn-speak-answer,
+body.on-game .btn-speak-answer {
+  flex: 0 0 38px;
+  width: 38px;
+  min-width: 38px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 1rem;
+}
+
+/* "Listen" button: room for the icon and label inside the square button art */
+.btn-speak,
+body.proto .btn-speak,
+body.on-game .btn-speak {
+  min-width: 136px;
+  padding: 8px 24px;
+  justify-content: center;
+}
+
+/* Narrow phones: answers that carry a speak button get a full row each,
+   so words are not broken mid-syllable */
+@media (max-width: 480px) {
+  .answers-container.with-speak,
+  .answers-container:has(.btn-speak-answer),
+  body.proto .answers-container.with-speak,
+  body.proto .answers-container:has(.btn-speak-answer),
+  body.on-game .answers-container.with-speak,
+  body.on-game .answers-container:has(.btn-speak-answer) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .answer-btn,
+  body.proto .answer-btn,
+  body.on-game .answer-btn {
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: manual;
+  }
+}
