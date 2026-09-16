@@ -471,7 +471,8 @@ body.proto .sfx-toggle {
   .hud-cross .hud-btn { width: 44px; height: 44px; font-size: 1.1rem; }
   .hud-minimap { width: 120px; }
   .hud-compass { right: calc(8px + 176px + 8px + env(safe-area-inset-right, 0px)); }
-  .hud-ribbon {
+  /* HUD ribbon only: the launch screen's title banner shares the class */
+  #hud-root .hud-ribbon {
     position: absolute;
     left: 8px;
     right: calc(8px + 176px + 16px + env(safe-area-inset-right, 0px));
@@ -479,7 +480,7 @@ body.proto .sfx-toggle {
     margin: 0;
     padding: 3px 12px;
   }
-  .hud-ribbon .title-pl { display: none; }
+  #hud-root .hud-ribbon .title-pl { display: none; }
 }
 
 /* Modals on prototype pages: stone frame + parchment question ---------------- */
