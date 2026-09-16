@@ -562,6 +562,9 @@ const Game = (function() {
 
     // Listen for navigate events (from swipes and arrow keys)
     InputAdapter.on('navigate', (data) => {
+      // Classic view moves only through the navigation buttons (and desktop
+      // arrow keys); swipes are page scrolling here, not movement
+      if (data.source === 'touch' || data.source === 'swipe') return;
       if (data.direction) {
         handleDirectionNavigation(data.direction);
       }
