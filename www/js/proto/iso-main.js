@@ -57,7 +57,25 @@ var ProtoIso = (function() {
       note: { en: 'Tap a lit chamber or use the compass.', pl: 'Dotknij komnaty lub użyj kompasu.' }
     });
     ProtoSharedDom.inject(document.getElementById('iso-modals'));
-    if (typeof SFX !== 'undefined') SFX.init();
+    if (typeof SFX !== 'undefined') {
+      SFX.init();
+      // Kenney RPG Audio (CC0) clips for the isometric view; synth stays for the rest
+      var K = 'assets/audio/kenney/';
+      SFX.registerFiles({
+        'step': [K + 'footstep00.mp3', K + 'footstep01.mp3', K + 'footstep02.mp3', K + 'footstep03.mp3', K + 'footstep04.mp3'],
+        'tap': K + 'metalClick.mp3',
+        'reveal': [K + 'doorOpen_1.mp3', K + 'doorOpen_2.mp3'],
+        'door': K + 'doorOpen_2.mp3',
+        'coin': K + 'handleCoins.mp3',
+        'coins': K + 'handleCoins2.mp3',
+        'hit': [K + 'knifeSlice.mp3', K + 'knifeSlice2.mp3'],
+        'attack': K + 'chop.mp3',
+        'pushback': K + 'dropLeather.mp3',
+        'knockback': K + 'dropLeather.mp3',
+        'chest': K + 'metalLatch.mp3',
+        'creak': K + 'creak1.mp3'
+      });
+    }
     if (typeof UI.setSfxToggleState === 'function') UI.setSfxToggleState();
 
     // Move the shared sound toggle and add a restart button into the top bar
