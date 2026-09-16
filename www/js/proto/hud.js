@@ -76,6 +76,16 @@ var ProtoHud = (function() {
     if (sfx) btns.appendChild(sfx);
     var back = el('a', 'hud-btn', '&#x2716;');
     back.href = 'index.html';
+    back.addEventListener('click', function(e) {
+      // Straight to the launch screen (no splash video), name prefilled
+      if (typeof ProtoSession === 'undefined') return;
+      e.preventDefault();
+      var name = (typeof Player !== 'undefined' && Player.getName) ? Player.getName() : '';
+      if (typeof ProtoSession.autoSave === 'function' && name) {
+        try { ProtoSession.autoSave(); } catch (err) { /* ignore */ }
+      }
+      window.location.href = ProtoSession.launcherUrl(name);
+    });
     back.setAttribute('aria-label', 'Back to classic view');
     btns.appendChild(back);
     top.appendChild(btns);

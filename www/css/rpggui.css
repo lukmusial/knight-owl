@@ -472,3 +472,35 @@ body.on-game .btn-speak {
     hyphens: manual;
   }
 }
+
+/* --- HUD top bar (isometric / 3D): room for the kit frame, items centred ------
+   The frame's 14px border needs a taller bar than the base HUD's 56px;
+   --hud-top-h also positions the minimap and compass below the bar. */
+:root { --hud-top-h: 76px; }
+@media (orientation: landscape) and (max-height: 520px) {
+  :root { --hud-top-h: 68px; }
+}
+
+#hud-root .hud-top {
+  box-sizing: border-box;
+  height: calc(var(--hud-top-h) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: 0;
+  align-items: center;
+}
+#hud-root .hud-identity { align-self: center; justify-content: center; }
+#hud-root .hud-stats { align-items: center; }
+#hud-root .hud-iconbtns { display: flex; align-items: center; gap: 6px; }
+#hud-root .hud-iconbtns .hud-btn,
+#hud-root .hud-iconbtns .sfx-toggle,
+body.proto #hud-root .hud-iconbtns .sfx-toggle {
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 1.05rem;
+  text-decoration: none;
+}

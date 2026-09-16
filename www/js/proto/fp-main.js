@@ -422,7 +422,7 @@ var ProtoFp = (function() {
   function showVictory() {
     FpRenderer.stop();
     ProtoSession.finishRun();
-    UI.showVictoryScreen(Player.getGameSummary(), function() { window.location.href = 'index.html'; });
+    UI.showVictoryScreen(Player.getGameSummary(), function() { window.location.href = ProtoSession.launcherUrl(Player.getName()); });
   }
 
   /**
