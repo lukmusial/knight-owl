@@ -105,12 +105,28 @@ body.view-iso .hud-stat { color: var(--rpg-gold); }
 body.view-iso .modal-content {
   background: var(--rpg-wood) repeat;
   background-size: 256px 256px;
-  border: 24px solid transparent;
-  border-image: url('../assets/proto/ui/rpggui/frame-thin.png') 27 / 24px stretch;
+  /* continuous bronze frame (the kit's thin frame is dashed at the corners) */
+  border: 14px solid transparent;
+  border-image: url('../assets/proto/ui/rpggui/frame-wood.png') 16 / 14px round;
   border-radius: 0;
-  padding: 6px 8px 10px;
+  padding: 10px 10px 12px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85), inset 0 0 40px rgba(0, 0, 0, 0.5);
 }
+
+/* Continue button: the progress fill runs inside the wooden bar, between its bronze ends */
+body.view-iso .btn-progress {
+  background: none !important;
+  color: var(--rpg-gold-dim) !important;
+}
+body.view-iso .btn-progress::before {
+  top: 5px;
+  bottom: 5px;
+  height: auto;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(241, 214, 138, 0.4), rgba(241, 214, 138, 0.8));
+}
+body.view-iso .btn-progress.ready { color: var(--rpg-gold) !important; }
+body.view-iso .btn-progress.ready::before { background: linear-gradient(90deg, rgba(241, 214, 138, 0.35), rgba(241, 214, 138, 0.7)); }
 body.view-iso .question-section,
 body.view-iso .matching-instruction,
 body.view-iso .result-explanation {
