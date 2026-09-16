@@ -1,0 +1,7 @@
+RPG GUI construction kit v1.0
+by Lamoot — https://opengameart.org/content/rpg-gui-construction-kit-v10
+Licence: CC-BY 3.0 — https://creativecommons.org/licenses/by/3.0/
+
+Changes: pieces were cropped from the RPG_GUI_v1.png sheet (bars, frames,
+buttons, arrow buttons), the thin frame's centre ornament was removed, and
+the wood/paper backgrounds were downscaled to 256x256 JPEG.
