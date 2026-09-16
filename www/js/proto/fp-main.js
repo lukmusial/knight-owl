@@ -57,7 +57,7 @@ var ProtoFp = (function() {
       ng.type = 'button';
       ng.id = 'fp-new-game';
       ng.className = 'hud-btn';
-      ng.title = 'New game / Nowa gra';
+      ng.title = 'New game. Nowa gra.';
       ng.innerHTML = '&#x27F3;';
       side.appendChild(ng);
       ng.addEventListener('click', function() { newGame(true); });

@@ -439,11 +439,11 @@ const UI = (function() {
           <div class="saved-game-item" data-name="${save.name}">
             <span class="save-name">${save.name}</span>
             <span class="save-info">${save.monstersDefeated} monsters / potworów</span>
-            <button class="delete-save-btn" data-name="${save.name}">Delete / Usuń</button>
+            <button class="delete-save-btn bi" data-name="${save.name}"><span class="bi-en">Delete</span><span class="bi-pl">Usuń</span></button>
           </div>
         `).join('');
       } else {
-        elements.savedGamesList.innerHTML = '<p class="no-saves">No saved games / Brak zapisanych gier</p>';
+        elements.savedGamesList.innerHTML = '<p class="no-saves bi">'+'<span class="bi-en">No saved games</span><span class="bi-pl">Brak zapisanych gier</span>'+'</p>';
       }
     }
 

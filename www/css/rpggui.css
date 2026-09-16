@@ -508,3 +508,10 @@ body.proto #hud-root .hud-iconbtns .sfx-toggle {
   font-size: 1.05rem;
   text-decoration: none;
 }
+
+/* Bilingual text on two lines instead of "English / Polski" */
+.bi .bi-en, .bi .bi-pl { display: block; }
+.bi .bi-pl { font-style: italic; font-size: 0.85em; opacity: 0.85; margin-top: 2px; }
+.hud-loading .bi { text-align: center; line-height: 1.4; }
+.hud-loading .bi .bi-pl { color: var(--rpg-gold-dim); }
+.delete-save-btn.bi { line-height: 1.1; padding-top: 4px; padding-bottom: 4px; }
