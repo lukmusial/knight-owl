@@ -841,6 +841,7 @@ const UI = (function() {
         </div>
       `).join('');
 
+      elements.answersContainer.classList.toggle('with-speak', question.category !== 'vocabulary');
       answerSubmitted = false;
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -939,6 +940,7 @@ const UI = (function() {
         </div>
       `).join('');
 
+      elements.answersContainer.classList.toggle('with-speak', question.category !== 'vocabulary');
       answerSubmitted = false;
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
