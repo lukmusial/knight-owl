@@ -483,10 +483,14 @@ body.on-game .btn-speak {
 
 #hud-root .hud-top {
   box-sizing: border-box;
-  height: calc(var(--hud-top-h) + env(safe-area-inset-top, 0px));
-  padding-top: env(safe-area-inset-top, 0px);
+  /* The frame starts below the status bar (like the classic view), so the
+     icons are centred inside the visible frame; the strip above is painted dark */
+  height: var(--hud-top-h);
+  margin-top: env(safe-area-inset-top, 0px);
+  padding-top: 0;
   padding-bottom: 0;
   align-items: center;
+  box-shadow: 0 calc(-1 * env(safe-area-inset-top, 0px)) 0 0 #0b0c12, 0 6px 16px rgba(0, 0, 0, 0.7), inset 0 0 40px rgba(0, 0, 0, 0.45);
 }
 #hud-root .hud-identity { align-self: center; justify-content: center; }
 #hud-root .hud-stats { align-items: center; }
