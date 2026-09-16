@@ -353,7 +353,7 @@ var ProtoIso = (function() {
 
   function showVictory() {
     ProtoSession.finishRun();
-    UI.showVictoryScreen(Player.getGameSummary(), function() { location.href = 'index.html'; });
+    UI.showVictoryScreen(Player.getGameSummary(), function() { location.href = ProtoSession.launcherUrl(Player.getName()); });
   }
 
   // ---------------------------------------------------------------------------

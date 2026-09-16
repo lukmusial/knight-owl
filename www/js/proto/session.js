@@ -49,6 +49,14 @@ var ProtoSession = (function() {
   }
 
   /**
+   * URL of the launch screen when leaving a view: skips the splash video and
+   * prefills the player's name. Built relative to www/proto/.
+   */
+  function launcherUrl(name) {
+    return '../index.html?launcher=1' + (name ? '&name=' + encodeURIComponent(name) : '');
+  }
+
+  /**
    * Parse ?name=&action= from a query string (defaults to location.search)
    */
   function parseParams(search) {
@@ -61,6 +69,7 @@ var ProtoSession = (function() {
       var val = decodeURIComponent((kv[1] || '').replace(/\+/g, ' '));
       if (key === 'name') out.name = val.substring(0, 20);
       if (key === 'action') out.action = val === 'continue' ? 'continue' : 'new';
+      if (key === 'launcher') out.launcher = val === '1';
     });
     return out;
   }
@@ -157,6 +166,7 @@ var ProtoSession = (function() {
     setView: setView,
     pageFor: pageFor,
     launchUrl: launchUrl,
+    launcherUrl: launcherUrl,
     parseParams: parseParams,
     startNew: startNew,
     restore: restore,

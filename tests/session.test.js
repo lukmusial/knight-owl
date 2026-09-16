@@ -20,6 +20,15 @@ TestRunner.suite('ProtoSession', () => {
       '../index.html?name=Bob&action=new', 'relative from proto');
   });
 
+  TestRunner.test('launcherUrl returns to the launch screen with the name', () => {
+    TestRunner.assertEqual(ProtoSession.launcherUrl('Zosia Ł'), '../index.html?launcher=1&name=Zosia%20%C5%81', 'with name');
+    TestRunner.assertEqual(ProtoSession.launcherUrl(''), '../index.html?launcher=1', 'without name');
+    var p = ProtoSession.parseParams('?launcher=1&name=Bob');
+    TestRunner.assertEqual(p.launcher, true, 'launcher flag parsed');
+    TestRunner.assertEqual(p.name, 'Bob', 'name parsed');
+    TestRunner.assert(!ProtoSession.parseParams('?name=Bob').launcher, 'flag absent by default');
+  });
+
   TestRunner.test('parseParams reads name and action', () => {
     var p = ProtoSession.parseParams('?name=Zosia%20%C5%81&action=continue');
     TestRunner.assertEqual(p.name, 'Zosia Ł', 'decoded name');

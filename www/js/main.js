@@ -21,6 +21,19 @@ const Game = (function() {
     // Arm sound effects (unlocked by the first tap, e.g. the splash prompt)
     if (typeof SFX !== 'undefined') SFX.init();
 
+    // Returning from the isometric/3D view goes straight to the launch screen
+    const params = (typeof ProtoSession !== 'undefined') ? ProtoSession.parseParams() : {};
+    if (params.launcher) {
+      initGame();
+      const nameInput = document.getElementById('player-name');
+      if (nameInput && params.name) {
+        nameInput.value = params.name;
+        nameInput.dispatchEvent(new Event('input'));
+      }
+      if (window.history && history.replaceState) history.replaceState(null, '', location.pathname);
+      return;
+    }
+
     // On native platforms, show splash video before anything else
     if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
       showSplashVideo(function() {
