@@ -44,10 +44,10 @@ var ProtoFp = (function() {
       name: 'Mr Owl',
       controlsHtml:
         '<div class="hud-dpad">' +
-        '<button type="button" class="hud-btn hud-btn-forward" data-cmd="forward" aria-label="Forward">&#x25B2;</button>' +
-        '<button type="button" class="hud-btn hud-btn-left" data-cmd="turnLeft" aria-label="Turn left">&#x21B6;</button>' +
-        '<button type="button" class="hud-btn hud-btn-back" data-cmd="back" aria-label="Back">&#x25BC;</button>' +
-        '<button type="button" class="hud-btn hud-btn-right" data-cmd="turnRight" aria-label="Turn right">&#x21B7;</button>' +
+        '<button type="button" class="hud-btn rpg-arrow hud-btn-forward" data-cmd="forward" aria-label="Forward">&#x25B2;</button>' +
+        '<button type="button" class="hud-btn rpg-arrow hud-btn-left" data-cmd="turnLeft" aria-label="Turn left">&#x21B6;</button>' +
+        '<button type="button" class="hud-btn rpg-arrow hud-btn-back" data-cmd="back" aria-label="Back">&#x25BC;</button>' +
+        '<button type="button" class="hud-btn rpg-arrow hud-btn-right" data-cmd="turnRight" aria-label="Turn right">&#x21B7;</button>' +
         '</div>',
       note: { en: 'Swipe or use the pad. Tap ▲ to walk.', pl: 'Przesuń palcem lub użyj przycisków.' }
     });

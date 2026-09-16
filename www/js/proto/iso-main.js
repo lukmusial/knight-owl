@@ -36,10 +36,10 @@ var ProtoIso = (function() {
 
   var CONTROLS_HTML =
     '<div id="direction-bar" class="hud-cross">' +
-      '<button type="button" class="hud-btn dir-btn dir-north" data-direction="North" disabled aria-label="North">&#x2191;</button>' +
-      '<button type="button" class="hud-btn dir-btn dir-west" data-direction="West" disabled aria-label="West">&#x2190;</button>' +
-      '<button type="button" class="hud-btn dir-btn dir-east" data-direction="East" disabled aria-label="East">&#x2192;</button>' +
-      '<button type="button" class="hud-btn dir-btn dir-south" data-direction="South" disabled aria-label="South">&#x2193;</button>' +
+      '<button type="button" class="hud-btn rpg-arrow dir-btn dir-north" data-direction="North" disabled aria-label="North">&#x2191;</button>' +
+      '<button type="button" class="hud-btn rpg-arrow dir-btn dir-west" data-direction="West" disabled aria-label="West">&#x2190;</button>' +
+      '<button type="button" class="hud-btn rpg-arrow dir-btn dir-east" data-direction="East" disabled aria-label="East">&#x2192;</button>' +
+      '<button type="button" class="hud-btn rpg-arrow dir-btn dir-south" data-direction="South" disabled aria-label="South">&#x2193;</button>' +
     '</div>';
 
   // ---------------------------------------------------------------------------

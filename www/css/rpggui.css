@@ -1,0 +1,207 @@
+/* ==========================================================================
+   Shared UI skin built from Lamoot's "RPG GUI construction kit"
+   (OpenGameArt, CC-BY 3.0): wooden panels in bronze frames, wooden bars,
+   arrow buttons, paper insets. Loaded after proto-hud.css / start.css /
+   classic.css on every page; those keep the layout, this restyles it.
+   Parchment stays for the launch-screen title banner and the 3D view's
+   room ribbon. Assets: assets/proto/ui/rpggui/
+   ========================================================================== */
+
+:root {
+  --rpg-wood: url('../assets/proto/ui/rpggui/bg-wood.jpg');
+  --rpg-paper: url('../assets/proto/ui/rpggui/bg-paper.jpg');
+  --rpg-frame: url('../assets/proto/ui/rpggui/frame-wood.png');
+  --rpg-bar: url('../assets/proto/ui/rpggui/bar-dark.png');
+  --rpg-bar-light: url('../assets/proto/ui/rpggui/bar-light.png');
+  --rpg-btn: url('../assets/proto/ui/rpggui/btn-square.png');
+  --rpg-gold: #f1d68a;
+  --rpg-gold-dim: #c9a55a;
+  --rpg-ink: #3a2a12;
+}
+
+/* --- Primitives ------------------------------------------------------------ */
+
+/* Wooden panel with a continuous bronze frame (9-slice of the kit's framed square) */
+.hud-frame,
+body.on-game .panel,
+body.on-game .game-header,
+body.on-game .room-image-container,
+body.on-start .view-card,
+.modal-content {
+  background: var(--rpg-wood) repeat;
+  background-size: 256px 256px;
+  border: 14px solid transparent;
+  border-image: var(--rpg-frame) 16 / 14px round;
+  border-radius: 0;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7), inset 0 0 40px rgba(0, 0, 0, 0.45);
+}
+
+.hud-frame::before, .hud-frame::after, .hud-rivet-tr, .hud-rivet-bl { display: none; }
+
+/* Square wooden button for icon buttons */
+.hud-btn, .sfx-toggle, body.proto .sfx-toggle, body.on-game .delete-save-btn {
+  border: 0;
+  border-radius: 6px;
+  background: var(--rpg-btn) center / 100% 100% no-repeat;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.7);
+  color: var(--rpg-gold);
+  text-shadow: 0 1px 2px #000;
+}
+.hud-btn:active, .sfx-toggle:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); filter: brightness(0.85); }
+
+/* Long wooden bar with bronze tips: wide buttons, answers, isometric room ribbon */
+.rpg-bar,
+.hud-btn-wide,
+.answer-btn, .matching-item, .modal-content .btn,
+body.on-game .nav-btn,
+body.view-iso #hud-root .hud-ribbon {
+  background: none;
+  border: 0 solid transparent;
+  border-width: 0 22px;
+  border-image: var(--rpg-bar-light) 0 40 fill / 0 22px stretch;
+  border-radius: 0;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.7);
+  color: var(--rpg-gold);
+  text-shadow: 0 1px 2px #000;
+  font-family: var(--hud-font-title);
+}
+.hud-btn-wide.primary { border-image-source: var(--rpg-bar); color: var(--rpg-gold); filter: brightness(1.15); }
+.hud-btn-wide:active, .answer-btn:active, .matching-item:active, body.on-game .nav-btn:active { transform: translateY(1px); filter: brightness(0.85); }
+.matching-item.selected { filter: brightness(1.25) drop-shadow(0 0 6px rgba(241, 214, 138, 0.9)); }
+.matching-item.matched { opacity: 0.35; }
+body.on-game .nav-btn .nav-en, body.on-game .nav-btn .nav-pl { color: var(--rpg-gold); }
+body.on-game .nav-btn.unexplored { filter: drop-shadow(0 0 6px rgba(241, 214, 138, 0.7)); }
+body.on-game .nav-btn.boss-btn { filter: drop-shadow(0 0 6px rgba(255, 90, 90, 0.9)); }
+
+/* Arrow buttons (kit's four arrows; smaller variant while pressed) */
+.rpg-arrow {
+  position: relative;
+  font-size: 0 !important;
+  color: transparent !important;
+  background: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.7));
+}
+.rpg-arrow::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: center / contain no-repeat;
+}
+.rpg-arrow[data-direction="North"]::after, .rpg-arrow[data-cmd="forward"]::after { background-image: url('../assets/proto/ui/rpggui/arrow-up.png'); }
+.rpg-arrow[data-direction="South"]::after, .rpg-arrow[data-cmd="back"]::after { background-image: url('../assets/proto/ui/rpggui/arrow-down.png'); }
+.rpg-arrow[data-direction="West"]::after, .rpg-arrow[data-cmd="turnLeft"]::after { background-image: url('../assets/proto/ui/rpggui/arrow-left.png'); }
+.rpg-arrow[data-direction="East"]::after, .rpg-arrow[data-cmd="turnRight"]::after { background-image: url('../assets/proto/ui/rpggui/arrow-right.png'); }
+.rpg-arrow[data-direction="North"]:active::after, .rpg-arrow[data-cmd="forward"]:active::after { background-image: url('../assets/proto/ui/rpggui/arrow-up-pressed.png'); }
+.rpg-arrow[data-direction="South"]:active::after, .rpg-arrow[data-cmd="back"]:active::after { background-image: url('../assets/proto/ui/rpggui/arrow-down-pressed.png'); }
+.rpg-arrow[data-direction="West"]:active::after, .rpg-arrow[data-cmd="turnLeft"]:active::after { background-image: url('../assets/proto/ui/rpggui/arrow-left-pressed.png'); }
+.rpg-arrow[data-direction="East"]:active::after, .rpg-arrow[data-cmd="turnRight"]:active::after { background-image: url('../assets/proto/ui/rpggui/arrow-right-pressed.png'); }
+.rpg-arrow.unexplored::after { filter: drop-shadow(0 0 6px rgba(241, 214, 138, 0.9)); }
+.rpg-arrow.explored::after { filter: saturate(0.6) brightness(0.9); }
+.rpg-arrow.boss-btn::after { filter: drop-shadow(0 0 6px rgba(255, 90, 90, 0.9)); }
+.rpg-arrow[disabled] { visibility: hidden; }
+
+/* Paper inset for reading */
+.rpg-paper,
+.hud-minimap .dungeon-map-container,
+body.on-game .map-panel .dungeon-map-container,
+.question-section, .matching-instruction, .result-explanation,
+body.on-start .start-form input {
+  background: var(--rpg-paper) repeat;
+  background-size: 256px 256px;
+  border: 1px solid #6b4a1a;
+  border-radius: 3px;
+  box-shadow: inset 0 0 14px rgba(60, 40, 10, 0.55);
+  color: var(--rpg-ink);
+}
+
+/* --- HUD (proto pages) ------------------------------------------------------ */
+
+#hud-root .hud-top { padding-left: 4px; padding-right: 4px; }
+#hud-root .hud-dock { padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)); border-radius: 0; }
+#hud-root .hud-minimap { padding: 4px; }
+#hud-root .hud-dock-note, #hud-root .hud-loot, #hud-root .hud-stat { color: var(--rpg-gold); }
+#hud-root .hud-dock-note .label-pl { color: var(--rpg-gold-dim); }
+#hud-root .hud-cross .dir-btn, #hud-root .hud-dpad .hud-btn { position: relative; }
+
+body.view-iso #hud-root .hud-ribbon { padding: 7px 8px; margin: 0 12px 6px; min-height: 1.6em; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7); }
+body.view-iso #hud-root .hud-ribbon::before, body.view-iso #hud-root .hud-ribbon::after { display: none; }
+body.view-iso #hud-root .hud-ribbon .title-en { color: var(--rpg-gold) !important; text-shadow: 0 1px 2px #000; }
+body.view-iso #hud-root .hud-ribbon .title-pl { color: var(--rpg-gold-dim) !important; text-shadow: 0 1px 2px #000; }
+/* 3D view keeps the parchment ribbon (see proto-hud.css) */
+
+/* --- Launch screen ------------------------------------------------------------ */
+
+body.on-start .start-banner { /* parchment title banner stays */ }
+body.on-start .view-select { padding: 8px 8px 6px; }
+body.on-start .view-select-label { color: var(--rpg-gold); }
+body.on-start .view-select-label .label-pl { color: var(--rpg-gold-dim); }
+body.on-start .view-card { border-width: 8px; border-image-width: 8px; padding: 0; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7); }
+body.on-start .view-card .view-card-name { background: none; color: var(--rpg-gold); }
+body.on-start .view-card.selected { box-shadow: 0 0 14px rgba(241, 214, 138, 0.7), 0 3px 8px rgba(0, 0, 0, 0.7); }
+body.on-start .view-card::after { border-color: var(--rpg-gold); }
+body.on-start .start-form label { color: var(--rpg-gold); }
+body.on-start .start-form input { font-size: 16px; }
+body.on-start .hud-btn-wide { min-height: 54px; font-size: 1.05rem; }
+body.on-start .start-panel h3, body.on-start details.start-panel summary { color: var(--rpg-gold); }
+body.on-start .start-panel, body.on-start .start-panel .no-saves, body.on-start .start-panel.instructions li { color: var(--rpg-gold-dim); }
+body.on-start .saved-game-item { background: rgba(0, 0, 0, 0.35); border: 1px solid #6b4a1a; }
+body.on-start .start-footer { color: var(--rpg-gold-dim); opacity: 0.85; }
+body.on-start .start-footer a { color: var(--rpg-gold); }
+
+/* --- Classic view --------------------------------------------------------------- */
+
+body.on-game .game-header { padding: 6px 16px; }
+body.on-game .game-header h1 { color: var(--rpg-gold); text-shadow: 0 1px 2px #000; }
+body.on-game .panel { color: var(--rpg-gold-dim); }
+body.on-game .panel h3, body.on-game .nav-header, body.on-game .inventory-header { color: var(--rpg-gold); }
+body.on-game .room-image-container { padding: 2px; }
+body.on-game .room-image-container::after { inset: 2px; }
+body.on-game #room-description.panel { background: var(--rpg-wood) repeat; background-size: 256px 256px; color: var(--rpg-gold-dim); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7), inset 0 0 40px rgba(0, 0, 0, 0.45); }
+body.on-game .room-title .title-en { color: var(--rpg-gold); }
+body.on-game .room-title .title-pl { color: var(--rpg-gold-dim); }
+body.on-game .room-desc { color: #e0cf9c; }
+body.on-game .stat-label .label-en, body.on-game .inventory-panel .loot-pl, body.on-game .inventory-panel .loot-en, body.on-game .empty-inventory .label-en { color: #e0cf9c; }
+body.on-game .stat-label .label-pl { color: var(--rpg-gold-dim); }
+body.on-game .stat-value, body.on-game .inventory-panel .loot-value { color: var(--rpg-gold); }
+body.on-game .map-legend-html { color: var(--rpg-ink); background: rgba(230, 211, 163, 0.85); }
+
+@media (max-width: 768px) {
+  body.on-game .direction-bar {
+    background: var(--rpg-wood) repeat;
+    background-size: 256px 256px;
+    border: 14px solid transparent;
+    border-bottom-width: 0;
+    border-image: var(--rpg-frame) 16 / 14px round;
+    border-radius: 0;
+    box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.7), inset 0 0 40px rgba(0, 0, 0, 0.45);
+    padding-top: 8px;
+  }
+  body.on-game .dir-btn { position: relative; }
+}
+
+/* --- Modals (all views) ------------------------------------------------------- */
+
+.modal-content { padding: 10px 10px 12px; }
+.monster-display img { border: 3px solid #b98a3a; border-radius: 4px; box-shadow: 0 0 0 2px #4a3114, 0 8px 18px rgba(0, 0, 0, 0.8); }
+.monster-display h2, .result-title.success, .result-title.victory, .result-message { color: var(--rpg-gold); }
+.result-message .msg-pl { color: var(--rpg-gold-dim); }
+.question-section .label-en, .matching-instruction .label-en, .result-explanation .label-en, .result-explanation .explanation-text, .question-text { color: var(--rpg-ink); text-shadow: none; }
+.question-section .label-pl, .matching-instruction .label-pl, .result-explanation .label-pl, .hint-text, .sentence-text { color: #6b4a1a; text-shadow: none; }
+.loot-container { background: rgba(0, 0, 0, 0.3); border: 1px solid #6b4a1a; }
+.btn-speak-answer, .btn-speak, .btn-speak-sentence { background: var(--rpg-btn) center / 100% 100% no-repeat; border: 0; color: var(--rpg-gold); }
+.answer-btn, .matching-item { min-height: 44px; }
+
+/* Continue button: the progress fill runs inside the wooden bar, between its bronze ends */
+.btn-progress { background: none !important; color: var(--rpg-gold-dim) !important; }
+.btn-progress::before {
+  top: 5px;
+  bottom: 5px;
+  height: auto;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(241, 214, 138, 0.4), rgba(241, 214, 138, 0.8));
+}
+.btn-progress.ready { color: var(--rpg-gold) !important; }
+.btn-progress.ready::before { background: linear-gradient(90deg, rgba(241, 214, 138, 0.35), rgba(241, 214, 138, 0.7)); }
