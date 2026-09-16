@@ -110,6 +110,7 @@ const Game = (function() {
     // Show start screen with saved games
     refreshStartScreen();
     initViewSelector();
+    initTopBar();
 
     initialized = true;
     console.log('Mr Owl\'s Dungeon Adventure initialized!');
@@ -125,6 +126,77 @@ const Game = (function() {
       Music.init();
       Music.play();
     }
+  }
+
+  /**
+   * Top bar of the classic game screen (same layout as the isometric/3D HUD):
+   * map toggle, sound toggle and an X that saves and returns to the launch screen.
+   */
+  function initTopBar() {
+    const quit = document.getElementById('classic-quit-btn');
+    if (quit) {
+      quit.addEventListener('click', function() {
+        if (typeof FX !== 'undefined') FX.play('tap');
+        quitToLaunchScreen();
+      });
+    }
+    const mapBtn = document.getElementById('classic-map-btn');
+    const mapPanel = document.getElementById('map-panel');
+    if (mapBtn && mapPanel) {
+      mapBtn.addEventListener('click', function() {
+        mapPanel.classList.toggle('collapsed');
+        if (!mapPanel.classList.contains('collapsed') && mapPanel.scrollIntoView) {
+          mapPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    }
+  }
+
+  /**
+   * Put the shared sound toggle into the classic top bar while playing and back
+   * in the corner on the launch screen
+   */
+  function placeSoundToggle(inGame) {
+    const toggle = document.getElementById('sfx-toggle');
+    const bar = document.getElementById('classic-iconbtns');
+    const container = document.getElementById('game-container');
+    if (!toggle || !bar || !container) return;
+    if (inGame) {
+      bar.insertBefore(toggle, bar.lastElementChild);
+    } else if (toggle.parentNode !== container) {
+      container.insertBefore(toggle, container.firstChild);
+    }
+  }
+
+  function updateTopBar(stats) {
+    const set = function(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    set('classic-name', Player.getName() || 'Mr Owl');
+    set('classic-stat-monsters', stats.monstersDefeated || 0);
+    set('classic-stat-questions', (stats.questionsCorrect || 0) + '/' + (stats.questionsTotal || 0));
+    set('classic-stat-gold', stats.totalLoot || 0);
+  }
+
+  /**
+   * End the current run for now: save it and go back to the launch screen
+   */
+  function quitToLaunchScreen() {
+    if (gameInProgress) autoSave();
+    gameInProgress = false;
+    if (typeof Combat !== 'undefined' && Combat.hasActiveEncounter && Combat.hasActiveEncounter()) {
+      Combat.cancelEncounter();
+    }
+    UI.hideQuizModal();
+    UI.hideResultModal();
+    if (typeof UI.hideMatchingModal === 'function') UI.hideMatchingModal();
+    if (typeof UI.hideTreasureModal === 'function') UI.hideTreasureModal();
+    UI.hideDirectionBar();
+    placeSoundToggle(false);
+    refreshStartScreen();
+    const nameInput = document.getElementById('player-name');
+    if (nameInput && Player.getName()) nameInput.value = Player.getName();
   }
 
   /**
@@ -284,6 +356,7 @@ const Game = (function() {
 
     // Show game screen and render entrance
     UI.showScreen('game');
+    placeSoundToggle(true);
     enterRoom(Dungeon.getEntranceId());
 
     // Auto-save
@@ -338,6 +411,7 @@ const Game = (function() {
 
     // Show game screen and render current room
     UI.showScreen('game');
+    placeSoundToggle(true);
     enterRoom(Player.getCurrentRoom());
 
     UI.showToast(`Welcome back, ${playerName}!`, 'success');
@@ -428,13 +502,15 @@ const Game = (function() {
   function updateUI() {
     const questionStats = Player.getQuestionStats();
 
-    UI.renderStats({
+    const stats = {
       monstersDefeated: Player.getMonstersDefeated(),
       questionsCorrect: questionStats.correct,
       questionsTotal: questionStats.total,
       accuracy: questionStats.percentage,
       totalLoot: Player.getTotalLootValue()
-    });
+    };
+    UI.renderStats(stats);
+    updateTopBar(stats);
 
     UI.renderInventory(Player.getInventory());
 
@@ -687,6 +763,7 @@ const Game = (function() {
     }
     gameInProgress = false;
 
+    placeSoundToggle(false);
     refreshStartScreen();
   }
 
