@@ -141,7 +141,7 @@ var ProtoIso = (function() {
       },
       onRoomTap: tapRoom,
       onFarTap: function() {
-        UI.showToast('Too far away / Za daleko', 'info');
+        UI.showToast('Too far away. Za daleko.', 'info');
       }
     });
   }
