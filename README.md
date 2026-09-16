@@ -114,8 +114,9 @@ Wall textures, tiles and props are drawn procedurally from the existing artwork'
 |-------|------------------|----------|
 | [Isometric Miniature Dungeon](https://kenney.nl/assets/isometric-miniature-dungeon) | Kenney, CC0 | Floors, walls, archways, stairs, chests and props in the isometric view (`www/assets/proto/iso/kenney/`, downscaled to 128x256) |
 | [RPG Audio](https://kenney.nl/assets/rpg-audio) | Kenney, CC0 | Footsteps, clicks, doors, coins and hit clips in the isometric view (`www/assets/audio/kenney/`, converted to mp3) |
+| [RPG GUI construction kit v1.0](https://opengameart.org/content/rpg-gui-construction-kit-v10) | Lamoot, CC-BY 3.0 | Wooden panels, bronze frames, bars and arrow buttons of the isometric view's HUD and modals (`www/assets/proto/ui/rpggui/`, pieces cropped from the sheet; credited on the launch screen) |
 
-Kenney's packs are CC0 (no attribution required); the licence texts ship next to the files. The start-screen theme's provenance is documented in `www/assets/music/README.md`.
+Kenney's packs are CC0 (no attribution required); Lamoot's kit is CC-BY and is credited on the launch screen. Licence texts ship next to the files. The start-screen theme's provenance is documented in `www/assets/music/README.md`.
 
 ## Running Tests
 
