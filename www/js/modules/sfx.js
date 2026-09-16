@@ -19,6 +19,10 @@ var SFX = (function() {
 
   var ctx = null;
   var master = null;
+  // Optional recorded clips: name -> [urls]; decoded buffers: name -> [AudioBuffer]
+  var clipUrls = {};
+  var clipBuffers = {};
+  var clipsLoading = false;
   var noiseBuffer = null;
   var muted = false;
   var ducked = false;
@@ -168,6 +172,58 @@ var SFX = (function() {
     }
     unlockListenersArmed = false;
     console.log('SFX: unlocked');
+    loadClips();
+  }
+
+  /**
+   * Register recorded clips for sound names. Each name maps to one url or a
+   * list of urls (one is picked at random per play, e.g. footstep variants).
+   * Clips are decoded after the audio unlock; until then, and for names
+   * without a clip, the synthesized recipe plays.
+   */
+  function registerFiles(map) {
+    Object.keys(map || {}).forEach(function(name) {
+      var v = map[name];
+      clipUrls[name] = Array.isArray(v) ? v.slice() : [v];
+    });
+    if (isRunning()) loadClips();
+  }
+
+  function loadClips() {
+    if (clipsLoading || !ctx || typeof fetch !== 'function') return;
+    clipsLoading = true;
+    Object.keys(clipUrls).forEach(function(name) {
+      if (clipBuffers[name]) return;
+      clipUrls[name].forEach(function(url) {
+        fetch(url).then(function(r) {
+          if (!r.ok) throw new Error(r.status);
+          return r.arrayBuffer();
+        }).then(function(data) {
+          return new Promise(function(resolve, reject) {
+            // callback form: older WebViews lack the promise variant
+            ctx.decodeAudioData(data, resolve, reject);
+          });
+        }).then(function(buffer) {
+          (clipBuffers[name] = clipBuffers[name] || []).push(buffer);
+        }).catch(function(e) {
+          console.warn('SFX: clip not available ' + url + ':', e && e.message ? e.message : e);
+        });
+      });
+    });
+  }
+
+  function playClip(c, name, volume, delay) {
+    var list = clipBuffers[name];
+    if (!list || !list.length) return false;
+    var buffer = list[Math.floor(Math.random() * list.length)];
+    var src = c.createBufferSource();
+    src.buffer = buffer;
+    var gain = c.createGain();
+    gain.gain.value = volume;
+    src.connect(gain);
+    gain.connect(master);
+    src.start(c.currentTime + delay);
+    return true;
   }
 
   /**
@@ -288,7 +344,7 @@ var SFX = (function() {
    */
   function play(name, opts) {
     var recipe = RECIPES[name];
-    if (!recipe) return false;
+    if (!recipe && !clipUrls[name]) return false;
     if (muted) return false;
 
     var c = ensureContext();
@@ -298,6 +354,12 @@ var SFX = (function() {
     var volume = (typeof opts.volume === 'number') ? opts.volume : 1;
     var delay = opts.delay || 0;
     var t0 = c.currentTime + delay;
+
+    // A recorded clip wins over the synthesized recipe when one is decoded
+    try {
+      if (playClip(c, name, volume, delay)) return true;
+    } catch (e) { /* fall through to synth */ }
+    if (!recipe) return false;
 
     try {
       for (var i = 0; i < recipe.steps.length; i++) {
@@ -362,7 +424,13 @@ var SFX = (function() {
     master = null;
     noiseBuffer = null;
     ducked = false;
+    clipBuffers = {};
+    clipsLoading = false;
     muted = loadMuted();
+  }
+
+  function hasClip(name) {
+    return !!(clipBuffers[name] && clipBuffers[name].length);
   }
 
   return {
@@ -375,6 +443,8 @@ var SFX = (function() {
     duck: duck,
     isAvailable: isAvailable,
     reset: reset,
+    registerFiles: registerFiles,
+    hasClip: hasClip,
     RECIPES: RECIPES,
     STORAGE_KEY: STORAGE_KEY
   };
