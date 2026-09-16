@@ -255,3 +255,15 @@ details.start-panel[open] summary { margin-bottom: 8px; }
 @media (min-width: 700px) {
   .start-banner h1 { font-size: 2rem; }
 }
+
+/* Every launch-screen section spans the same centred column
+   (styles.css gives some of them max-width 400px + auto/10px margins) */
+#start-screen > .view-select,
+#start-screen > .start-form,
+#start-screen > .start-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
