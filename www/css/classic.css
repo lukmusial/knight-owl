@@ -179,3 +179,16 @@ body.on-game .toast {
 
   body.on-game .map-panel .map-toggle { color: var(--hud-gold-bright); }
 }
+
+/* Top bar (same component as the isometric / 3D HUD), pinned while scrolling */
+#classic-top { display: none; }
+body.on-game #classic-top {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  margin: 0 -10px 12px;
+}
+body.on-game .game-header { display: none; }
+body.on-game #classic-top .hud-stat { font-size: 0.9rem; }
+body.on-game #classic-top .sfx-toggle { position: static; width: 40px; height: 40px; }

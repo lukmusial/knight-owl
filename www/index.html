@@ -107,6 +107,23 @@
 
     <!-- Game Screen -->
     <div id="game-screen" class="screen hidden">
+      <!-- Top bar shared with the isometric and 3D views -->
+      <div id="classic-top" class="hud-top hud-frame">
+        <div class="hud-identity">
+          <div class="hud-portrait"><img alt="Mr Owl" src="assets/proto/monsters/knight_owl.png"></div>
+          <div class="hud-name" id="classic-name">Mr Owl</div>
+        </div>
+        <div class="hud-stats">
+          <span class="hud-stat" title="Monsters defeated / Pokonane potwory">&#x1F480; <b id="classic-stat-monsters">0</b></span>
+          <span class="hud-stat" title="Questions / Pytania">&#x1F4DC; <b id="classic-stat-questions">0/0</b></span>
+          <span class="hud-stat" title="Gold / Złoto">&#x1FA99; <b id="classic-stat-gold">0</b></span>
+        </div>
+        <div class="hud-iconbtns" id="classic-iconbtns">
+          <button type="button" class="hud-btn" id="classic-map-btn" aria-label="Map / Mapa">&#x1F5FA;</button>
+          <button type="button" class="hud-btn" id="classic-quit-btn" aria-label="End adventure / Zakończ">&#x2716;</button>
+        </div>
+      </div>
+
       <header class="game-header">
         <h1>Mr Owl's Dungeon</h1>
       </header>
