@@ -80,19 +80,10 @@ var ProtoIso = (function() {
     }
     if (typeof UI.setSfxToggleState === 'function') UI.setSfxToggleState();
 
-    // Move the shared sound toggle and add a restart button into the top bar
+    // Move the shared sound toggle into the top bar
     var iconBtns = document.querySelector('.hud-iconbtns');
     var sfxBtn = document.getElementById('sfx-toggle');
     if (iconBtns && sfxBtn) iconBtns.insertBefore(sfxBtn, iconBtns.lastElementChild);
-    if (iconBtns) {
-      var restart = document.createElement('button');
-      restart.type = 'button';
-      restart.className = 'hud-btn';
-      restart.id = 'iso-new-game';
-      restart.setAttribute('aria-label', 'New game / Nowa gra');
-      restart.innerHTML = '&#x21bb;';
-      iconBtns.insertBefore(restart, iconBtns.lastElementChild);
-    }
     ProtoHud.loadSprites().then(function() { ProtoHud.useSpritesInModals(); });
 
     // New run or restored save from the launch parameters (?name=&action=)
@@ -105,13 +96,6 @@ var ProtoIso = (function() {
       try { InputAdapter.setInputEnabled('touch', false); } catch (e) { /* ignore */ }
       InputAdapter.on('navigate', function(data) {
         if (data && data.direction) handleDirectionNavigation(data.direction);
-      });
-    }
-
-    var restartBtn = document.getElementById('iso-new-game');
-    if (restartBtn) {
-      restartBtn.addEventListener('click', function() {
-        location.href = location.pathname + '?name=' + encodeURIComponent(Player.getName() || 'Explorer') + '&action=new';
       });
     }
 
