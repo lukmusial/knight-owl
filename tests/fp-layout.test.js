@@ -279,6 +279,36 @@ TestRunner.suite('FpLayout', () => {
     TestRunner.assertEqual(FpLayout.assignLights(torches, { focusId: 'b', px: 0, pz: 0, count: 0 }).length, 0, 'empty pool');
   });
 
+  TestRunner.test('assignLights keeps both chambers as focus while walking between them', () => {
+    var torches = [
+      { cellId: 'a', x: 0, z: -3 }, { cellId: 'a', x: 0, z: 3 },
+      { cellId: 'b', x: 10, z: -3 }, { cellId: 'b', x: 10, z: 3 },
+      { cellId: 'c', x: 5, z: 1 }
+    ];
+    var slots = FpLayout.assignLights(torches, { focusIds: ['b', 'a'], px: 5, pz: 0, count: 5, shadowCount: 4 });
+    TestRunner.assertEqual(slots.slice(0, 4).sort().join(','), '0,1,2,3', 'torches of both chambers cast shadows in transit');
+    TestRunner.assertEqual(slots[4], 4, 'a nearer torch elsewhere only gets a plain slot');
+  });
+
+  TestRunner.test('shadowRefresh redraws the nearest casting lights, the next one on alternate frames', () => {
+    var lights = [
+      { x: 0, z: 0, casts: true, on: true },
+      { x: 4, z: 0, casts: true, on: true },
+      { x: 8, z: 0, casts: true, on: true },
+      { x: 1, z: 0, casts: false, on: true },
+      { x: 2, z: 0, casts: true, on: false },
+      { x: 50, z: 0, casts: true, on: true }
+    ];
+    var at = { x: 0.5, z: 0 };
+    var even = FpLayout.shadowRefresh(lights, at, { range: 14, everyFrame: 1, alternating: 1, frame: 0 });
+    var odd = FpLayout.shadowRefresh(lights, at, { range: 14, everyFrame: 1, alternating: 1, frame: 1 });
+    TestRunner.assertEqual(even.join(','), '0,1', 'nearest every frame, second on even frames');
+    TestRunner.assertEqual(odd.join(','), '0', 'second skipped on odd frames');
+    var high = FpLayout.shadowRefresh(lights, at, { range: 14, everyFrame: 2, alternating: 1, frame: 2 });
+    TestRunner.assertEqual(high.join(','), '0,1,2', 'high tier: two every frame plus one alternating');
+    TestRunner.assertEqual(FpLayout.shadowRefresh(lights, { x: 100, z: 0 }, { range: 14 }).length, 0, 'nothing in range');
+  });
+
   TestRunner.test('flicker stays in a gentle range', () => {
     var lo = 10, hi = 0;
     for (var t = 0; t < 20; t += 0.013) {

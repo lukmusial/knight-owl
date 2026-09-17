@@ -74,7 +74,9 @@ var FpRenderer = (function() {
   // Camera: 'first' (eyes) or 'third' (over Mr Owl's shoulder, FpOwl)
   var viewMode = 'first';
   var owl = null;            // FpOwl controller once the model has loaded
-  var owlShadowClock = 0;    // throttles shadow-map refreshes while the owl animates
+  var transit = null;         // { from, to } chamber ids while walking between them
+  var shadowFrame = 0;        // alternates the second nearest owl shadow light
+  var shadowRedraws = 0;      // debug: shadow maps redrawn so far
   var reducedMotion = false;
   var clock = 0, lastNow = 0;
   var brightening = false;
@@ -205,6 +207,9 @@ var FpRenderer = (function() {
       var l = new THREE.PointLight(0xffac5c, 0, TORCH_RANGE, 2);
       if (i < quality.shadowLights) {
         l.castShadow = true;
+        // each map is redrawn on request: all of them when the static scene
+        // changes, only the ones near Mr Owl while he moves (see render)
+        l.shadow.autoUpdate = false;
         l.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
         l.shadow.camera.near = 0.05;
         l.shadow.camera.far = TORCH_RANGE;
@@ -1785,8 +1790,15 @@ var FpRenderer = (function() {
   function assignLights() {
     if (!world || !torchLights.length) return;
     var focus = focusId && world.cells[focusId] ? cellCenter(world.cells[focusId]) : { x: pose.x, z: pose.z };
+    var focusIds = [focusId];
+    if (transit && transit.from && world.cells[transit.from]) {
+      // halfway between the chambers, both keep their shadow-casting torches
+      var a = cellCenter(world.cells[transit.from]);
+      focus = { x: (a.x + focus.x) / 2, z: (a.z + focus.z) / 2 };
+      focusIds.push(transit.from);
+    }
     var chosen = FpLayout.assignLights(torchList, {
-      focusId: focusId, px: focus.x, pz: focus.z,
+      focusIds: focusIds, px: focus.x, pz: focus.z,
       count: torchLights.length, shadowCount: quality.shadowLights,
       isLit: function(id) { return !!(brightness[id] && brightness[id].target === 1); }
     });
@@ -1965,6 +1977,7 @@ var FpRenderer = (function() {
       var cb = tween.done;
       tween = null;
       if (owl) owl.setBase('idle');
+      if (transit) { transit = null; assignLights(); }
       if (cb) cb();
     }
   }
@@ -1987,6 +2000,7 @@ var FpRenderer = (function() {
   function animateStep(toId, facing, ms, done) {
     var c = cellCenter(world.cells[toId]);
     if (focusId) openDoor(focusId, toId);
+    transit = focusId && focusId !== toId ? { from: focusId, to: toId } : null;
     enterCell(toId);
     setFocus(toId);
     startTween({ x: c.x, z: c.z, yaw: FpWorld.YAW[facing] }, typeof ms === 'number' ? ms : 520, easeInOut, done, true);
@@ -1999,6 +2013,7 @@ var FpRenderer = (function() {
   function animateKnockback(toId, facing, ms, done) {
     var c = cellCenter(world.cells[toId]);
     if (focusId) openDoor(focusId, toId);
+    transit = focusId && focusId !== toId ? { from: focusId, to: toId } : null;
     pose.yaw = FpWorld.YAW[facing];
     setFocus(toId);
     if (owl) owl.play('knockback');
@@ -2259,13 +2274,54 @@ var FpRenderer = (function() {
   // ---------------------------------------------------------------------------
   function render() {
     if (!renderer) return;
-    if (shadowDirty && renderer.shadowMap.enabled) {
-      renderer.shadowMap.needsUpdate = true;
+    if (renderer.shadowMap.enabled) {
+      if (shadowDirty) {
+        markShadows(null);
+      } else if (owlShadowLive()) {
+        markShadows(nearOwlShadowLights());
+      }
     }
     shadowDirty = false;
     updateReflections();
     renderer.render(scene, camera);
     dirty = false;
+  }
+
+  /** Ask three.js to redraw these shadow maps (null: every casting light) */
+  function markShadows(indices) {
+    var any = false;
+    for (var i = 0; i < torchLights.length; i++) {
+      var L = torchLights[i];
+      if (!L.castShadow) continue;
+      if (indices && indices.indexOf(i) === -1) continue;
+      L.shadow.needsUpdate = true;
+      shadowRedraws++;
+      any = true;
+    }
+    if (any) renderer.shadowMap.needsUpdate = true;
+  }
+
+  /** Mr Owl is visible and animating, so his shadow must follow every frame */
+  function owlShadowLive() {
+    return thirdPersonActive() && owl.object.visible && (animated || !!tween);
+  }
+
+  function nearOwlShadowLights() {
+    var p = owl.object.position;
+    var list = torchLights.map(function(L) {
+      return { x: L.position.x, z: L.position.z, casts: L.castShadow, on: L.intensity > 0.01 };
+    });
+    shadowFrame++;
+    // walking: high tier redraws the nearest two every frame and the third on
+    // alternate frames, medium the nearest plus the second alternating;
+    // standing (idle breathing moves the shadow very little): the nearest only
+    var high = quality.shadowLights >= 4;
+    return FpLayout.shadowRefresh(list, { x: p.x, z: p.z }, {
+      range: TORCH_RANGE,
+      everyFrame: tween && high ? 2 : 1,
+      alternating: tween ? 1 : 0,
+      frame: shadowFrame
+    });
   }
 
   function frame(now) {
@@ -2285,10 +2341,7 @@ var FpRenderer = (function() {
     if (reacting) dirty = true;
     if (thirdPersonActive() && (animated || tween)) {
       owl.update(dt);
-      // the owl's shadow moves with it: refresh the static shadow maps at a few Hz
-      owlShadowClock += dt;
-      if (quality.shadowLights > 0 && owlShadowClock > (tween ? 0.1 : 0.25)) { shadowDirty = true; owlShadowClock = 0; }
-      dirty = true;
+      dirty = true;   // render() refreshes the shadow maps near the owl every frame
     }
     if (animated || tween || fades.length || brightening) {
       if (flameMaterial) flameMaterial.uniforms.time.value = clock;
@@ -2359,6 +2412,11 @@ var FpRenderer = (function() {
       slots: lightSlots.map(function(sl) { return sl.torch; }),
       focusTorches: torchList.filter(function(t) { return t.cellId === focusId; }).map(function(t) { return { glow: +t.glow.toFixed(2), target: t.target, delay: +t.delay.toFixed(2), y: +t.fy.toFixed(2) }; }),
       shadowCasters: quality ? quality.shadowLights : 0,
+      // chambers of the torches whose light casts shadows right now
+      castingNow: torchLights.map(function(L, i) {
+        return L.castShadow && L.intensity > 0.5 && lightSlots[i].torch >= 0 ? torchList[lightSlots[i].torch].cellId : null;
+      }).filter(function(id) { return id; }),
+      shadowRedraws: shadowRedraws,
       focus: focusId
     };
   }
