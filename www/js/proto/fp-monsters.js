@@ -30,7 +30,33 @@ var FpMonsters = (function() {
     mimic: { height: 1.5, motion: 'breathe', exit: 'vanish' },
     wolf: { height: 1.5, motion: 'breathe', yaw: -45, exit: 'runaway' },
     giant_snake: { height: 2.4, motion: 'sway', yaw: -30, exit: 'runaway' },
-    vampire_bunny: { height: 1.6, motion: 'hover', lift: 0.15, yaw: -60, exit: 'flyaway' }
+    vampire_bunny: { height: 1.6, motion: 'hover', lift: 0.15, yaw: -60, exit: 'flyaway' },
+    // level 2
+    hobgoblin: { height: 2.1, motion: 'breathe', exit: 'runaway' },
+    skeleton: { height: 2.2, motion: 'sway', exit: 'vanish' },
+    spider: { height: 1.3, motion: 'breathe', exit: 'runaway' },
+    ghost: { height: 2.0, motion: 'hover', lift: 0.3, exit: 'vanish' },
+    orc: { height: 2.4, motion: 'breathe', exit: 'runaway' },
+    skeleton_king: { height: 2.4, motion: 'breathe', exit: 'vanish' },
+    skeleton_queen: { height: 2.5, motion: 'sway', exit: 'vanish' },
+    lost_soul: { height: 1.8, motion: 'hover', lift: 0.4, exit: 'vanish' },
+    demilich: { height: 1.5, motion: 'hover', lift: 0.6, exit: 'vanish' },
+    dwarf: { height: 1.7, motion: 'breathe', exit: 'runaway' },
+    beholder: { height: 1.8, motion: 'hover', lift: 0.6, exit: 'flyaway' },
+    gog: { height: 1.9, motion: 'breathe', exit: 'vanish' },
+    // level 3
+    troll: { height: 2.9, motion: 'breathe', exit: 'runaway' },
+    golem: { height: 2.9, motion: 'breathe', exit: 'vanish' },
+    dark_knight: { height: 2.8, motion: 'breathe', exit: 'runaway' },
+    witch: { height: 2.3, motion: 'breathe', exit: 'flyaway' },
+    lich: { height: 2.6, motion: 'hover', lift: 0.2, exit: 'vanish' },
+    spirit_of_the_mine: { height: 2.1, motion: 'hover', lift: 0.3, exit: 'vanish' },
+    vampire_lord: { height: 2.6, motion: 'sway', exit: 'flyaway' },
+    frankenstein: { height: 2.8, motion: 'sway', exit: 'runaway' },
+    minotaur: { height: 3.0, motion: 'breathe', exit: 'runaway' },
+    // boss and the treasure chest (the chest stands still)
+    dragon: { height: 4.2, motion: 'breathe', exit: 'flyaway' },
+    treasure: { height: 1.1, motion: 'still', exit: 'vanish' }
   };
 
   // action durations (ms)
@@ -46,7 +72,7 @@ var FpMonsters = (function() {
 
   /**
    * Transform offsets for a monster at time t (seconds)
-   * @param {string} motion - 'breathe' | 'squash' | 'hover' | 'sway'
+   * @param {string} motion - 'breathe' | 'squash' | 'hover' | 'sway' | 'still'
    * @param {number} t - clock seconds
    * @param {number} phase - per-instance offset so neighbours are not in sync
    * @param {Object} ev - progress 0..1 (or -1 when not running) of each action:
@@ -70,6 +96,8 @@ var FpMonsters = (function() {
       case 'sway':
         out.rotZ = 0.06 * s;
         out.sy = 1 + 0.015 * Math.sin(p * 2);
+        break;
+      case 'still':
         break;
       default:
         out.sy = 1 + 0.025 * s;
