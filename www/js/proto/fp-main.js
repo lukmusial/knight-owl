@@ -59,16 +59,45 @@ var ProtoFp = (function() {
       ng.className = 'hud-btn';
       ng.title = 'New game. Nowa gra.';
       ng.innerHTML = '&#x27F3;';
-      side.appendChild(ng);
+      var row = document.createElement('div');
+      row.className = 'fp-dock-buttons';
+      row.appendChild(ng);
+      side.appendChild(row);
       ng.addEventListener('click', function() { newGame(true); });
     }
 
     Questions.init();
     if (typeof Matching !== 'undefined') Matching.init();
 
-    var ok = FpRenderer.init({ mount: document.getElementById('fp-view'), reducedMotion: reducedMotion() });
+    var ok = FpRenderer.init({ mount: document.getElementById('fp-view'), reducedMotion: reducedMotion(), quality: queryParam('quality') });
     if (!ok) {
       document.getElementById('fp-nogl').classList.remove('hidden');
+    }
+    FpRenderer.onRebuild(function() {
+      if (!world) return;
+      FpRenderer.setPose(FpWorld.getState().roomId, FpWorld.getFacing());
+      refreshVisibility();
+      restoreEntities();
+    });
+    if (side && ok) {
+      var qb = document.createElement('button');
+      qb.type = 'button';
+      qb.id = 'fp-quality';
+      qb.className = 'hud-btn';
+      qb.title = 'Graphics quality. Jakość grafiki.';
+      (document.querySelector('#hud-root .fp-dock-buttons') || side).appendChild(qb);
+      var label = function() {
+        var t = FpRenderer.getQuality() || 'medium';
+        qb.textContent = t === 'high' ? 'HQ' : (t === 'low' ? 'LQ' : 'MQ');
+      };
+      label();
+      qb.addEventListener('click', function() {
+        if (busy || FpRenderer.isBusy()) return;
+        var tiers = FpQuality.TIERS;
+        var next = tiers[(tiers.indexOf(FpRenderer.getQuality()) + 1) % tiers.length];
+        FpRenderer.setQuality(next);
+        label();
+      });
     }
 
     bindControls();
@@ -82,6 +111,11 @@ var ProtoFp = (function() {
       var veil = document.getElementById('fp-loading');
       if (veil) veil.classList.add('hidden');
     });
+  }
+
+  function queryParam(name) {
+    var m = new RegExp('[?&]' + name + '=([^&#]*)').exec(window.location.search || '');
+    return m ? decodeURIComponent(m[1]) : null;
   }
 
   function bindControls() {
@@ -447,7 +481,10 @@ var ProtoFp = (function() {
       world: FpWorld.getState(),
       pose: FpRenderer.getPose(),
       player: Player.getCurrentRoom(),
-      calls: FpRenderer.getRenderInfo() ? FpRenderer.getRenderInfo().calls : null
+      calls: FpRenderer.getRenderInfo() ? FpRenderer.getRenderInfo().calls : null,
+      triangles: FpRenderer.getRenderInfo() ? FpRenderer.getRenderInfo().triangles : null,
+      quality: FpRenderer.getQuality(),
+      lights: FpRenderer.getLightInfo()
     };
   }
 
