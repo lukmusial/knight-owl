@@ -21,6 +21,15 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         hideNavigationBar();
+        dispatchLifecycleEvent("app-resume");
+    }
+
+    @Override
+    public void onPause() {
+        // The WebView keeps Web Audio (music, effects) and TTS running in the
+        // background; AppLifecycle (www/js/modules/lifecycle.js) idles the game
+        dispatchLifecycleEvent("app-pause");
+        super.onPause();
     }
 
     @Override
@@ -28,6 +37,12 @@ public class MainActivity extends BridgeActivity {
         super.onWindowFocusChanged(hasFocus);
         // Dialogs, the keyboard or returning from another app can bring the bar back
         if (hasFocus) hideNavigationBar();
+    }
+
+    private void dispatchLifecycleEvent(String name) {
+        if (bridge == null || bridge.getWebView() == null) return;
+        bridge.getWebView().evaluateJavascript(
+            "window.dispatchEvent(new Event('" + name + "'));", null);
     }
 
     /**

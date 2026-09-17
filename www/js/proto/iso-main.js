@@ -130,10 +130,21 @@ var ProtoIso = (function() {
       },
       render: { antialias: true, pixelArt: false, roundPixels: true },
       input: { activePointers: 3 },
+      // Sounds go through SFX; Phaser's own AudioContext would stay open (and
+      // keep an Android audio stream alive in the background) for nothing
+      audio: { noAudio: true },
       scene: [IsoScenes.BootScene, IsoScenes.DungeonScene]
     });
 
     watchViewport();
+
+    // Idle in the background: no rendering, tweens or walk timers until the app returns
+    if (typeof AppLifecycle !== 'undefined') {
+      AppLifecycle.on({
+        pause: function() { if (game && typeof game.pause === 'function') game.pause(); },
+        resume: function() { if (game && typeof game.resume === 'function') game.resume(); }
+      });
+    }
 
     game.registry.set('isoCallbacks', {
       onReady: function(s) {

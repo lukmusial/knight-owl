@@ -24,6 +24,7 @@ var Music = (function() {
   var muted = false;
   var fadeTimer = null;
   var gestureArmed = false;
+  var backgrounded = false;    // app in the background (AppLifecycle): stay silent
   var GESTURE_EVENTS = ['pointerdown', 'touchend', 'keydown', 'click'];
 
   function hasAudioElement() {
@@ -82,7 +83,7 @@ var Music = (function() {
   }
 
   function startSource() {
-    if (!ctx || !running() || !wanted || muted) return;
+    if (!ctx || !running() || !wanted || muted || backgrounded) return;
     var buffer = buffers[currentUrl];
     if (!buffer || source) return;
     var pts = loopPoints(buffer);
@@ -133,7 +134,7 @@ var Music = (function() {
   }
 
   function playElement(url) {
-    if (!hasAudioElement() || !wanted || muted) return;
+    if (!hasAudioElement() || !wanted || muted || backgrounded) return;
     if (!audio || audio.src.indexOf(url) === -1) {
       if (audio) { try { audio.pause(); } catch (e) { /* ignore */ } }
       audio = new window.Audio(url);
@@ -188,7 +189,7 @@ var Music = (function() {
    * (Re)start playback of the wanted track on whichever path is available
    */
   function resume() {
-    if (!wanted || muted || !currentUrl) return;
+    if (!wanted || muted || !currentUrl || backgrounded) return;
     if (ensureContext()) {
       if (!running()) { armGesture(); return; }
       if (buffers[currentUrl]) startSource(); else loadBuffer(currentUrl);
@@ -239,11 +240,55 @@ var Music = (function() {
     }
   }
 
+  /**
+   * App went to the background: freeze the loop where it is. The wanted
+   * track is kept, so it continues on resumeFromBackground().
+   */
+  function suspend() {
+    backgrounded = true;
+    if (ctx && ctx.state === 'running' && typeof ctx.suspend === 'function') {
+      try {
+        var p = ctx.suspend();
+        if (p && typeof p.catch === 'function') p.catch(function() {});
+      } catch (e) { /* ignore */ }
+    }
+    if (audio) {
+      clearFade();
+      try { audio.pause(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  /**
+   * Back in the foreground: continue the track (if it is still wanted)
+   */
+  function resumeFromBackground() {
+    if (!backgrounded) return;
+    backgrounded = false;
+    if (!wanted || muted) return;
+    if (ctx && ctx.state !== 'running' && typeof ctx.resume === 'function') {
+      try {
+        ctx.resume().then(function() {
+          if (running()) resume(); else armGesture();
+        }, function() { armGesture(); });
+      } catch (e) {
+        armGesture();
+      }
+      return;
+    }
+    if (ctx) { resume(); return; }
+    playElement(currentUrl);
+  }
+
+  function isSuspended() {
+    return backgrounded;
+  }
+
   function isMuted() {
     return muted;
   }
 
   function isPlaying() {
+    if (backgrounded) return false;
     return !!source || (!!audio && !audio.paused);
   }
 
@@ -258,6 +303,9 @@ var Music = (function() {
     init: init,
     play: play,
     stop: stop,
+    suspend: suspend,
+    resumeFromBackground: resumeFromBackground,
+    isSuspended: isSuspended,
     setMuted: setMuted,
     isMuted: isMuted,
     isPlaying: isPlaying,
