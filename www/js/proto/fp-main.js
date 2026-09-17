@@ -73,6 +73,10 @@ var ProtoFp = (function() {
     if (!ok) {
       document.getElementById('fp-nogl').classList.remove('hidden');
     }
+    FpRenderer.onTorchIgnite(function(e) {
+      if (e.distance < 9) fx('torch-ignite', { volume: e.focus ? 0.55 : 0.25 });
+    });
+    if (ok && typeof FpAmbience !== 'undefined') FpAmbience.start(FpRenderer.getSoundscape);
     FpRenderer.onRebuild(function() {
       if (!world) return;
       FpRenderer.setPose(FpWorld.getState().roomId, FpWorld.getFacing());
@@ -103,8 +107,11 @@ var ProtoFp = (function() {
     // Idle in the background: stop the render loop until the app returns
     if (ok && typeof AppLifecycle !== 'undefined') {
       AppLifecycle.on({
-        pause: function() { FpRenderer.stop(); },
-        resume: function() { if (gameInProgress) FpRenderer.resume(); }
+        pause: function() { FpRenderer.stop(); if (typeof FpAmbience !== 'undefined') FpAmbience.stop(); },
+        resume: function() {
+          if (gameInProgress) FpRenderer.resume();
+          if (typeof FpAmbience !== 'undefined') FpAmbience.start(FpRenderer.getSoundscape);
+        }
       });
     }
 
@@ -269,6 +276,7 @@ var ProtoFp = (function() {
       return;
     }
     if (portal) fx('door'); else fx('step');
+    if (!portal && FpRenderer.isDoorClosed(from, to)) fx('door-creak');
     fx('step', { delay: 0.25, volume: 0.7 });
     FpRenderer.animateStep(to, facing, STEP_MS, function() { resolveRoom(to); });
   }
