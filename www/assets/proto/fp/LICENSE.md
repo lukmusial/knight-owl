@@ -1,6 +1,6 @@
 # First-person textures: credits and licence
 
-All textures in this folder are stylised PBR sets by João Paulo ("Gendo"),
+All textures in this folder (the `.jpg` files) are stylised PBR sets by João Paulo ("Gendo"),
 published on 3dtextures.me. The site's FAQ (https://3dtextures.me/about/)
 states: "All textures on this site are licensed as CC0."
 
@@ -18,3 +18,12 @@ required. We credit the author anyway.
 
 Downloaded on 17 Sep 2026 from the Google Drive folders linked on each page.
 Only the colour and normal maps are shipped; roughness is a per-material constant.
+
+## `mr_owl.glb` (Mr Owl 3D figure)
+
+Generated from the project's own Mr Owl illustration
+(`assets/proto/monsters/knight_owl.png`) with Microsoft TRELLIS
+(https://github.com/microsoft/TRELLIS, MIT licence, run on the
+trellis-community/TRELLIS Hugging Face Space). It was rigged, animated
+(Idle, Walk, Flap, Attack) and exported in Blender. The pipeline and scripts
+are in `tools/owl3d/`. No third-party artwork is included.

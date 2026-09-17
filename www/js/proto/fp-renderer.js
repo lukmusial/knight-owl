@@ -71,6 +71,10 @@ var FpRenderer = (function() {
   var running = false, animated = false, dirty = true, tween = null, rafId = null;
   var pose = { x: 0, z: 0, yaw: 0 };
   var bob = 0;
+  // Camera: 'first' (eyes) or 'third' (over Mr Owl's shoulder, FpOwl)
+  var viewMode = 'first';
+  var owl = null;            // FpOwl controller once the model has loaded
+  var owlShadowClock = 0;    // throttles shadow-map refreshes while the owl animates
   var reducedMotion = false;
   var clock = 0, lastNow = 0;
   var brightening = false;
@@ -157,6 +161,17 @@ var FpRenderer = (function() {
 
     setupLights();
 
+    viewMode = FpOwl.isMode(opts.viewMode) ? opts.viewMode : (FpOwl.storedMode() || 'first');
+    FpOwl.load().then(function(gltf) {
+      if (!gltf || !scene) return;
+      owl = FpOwl.create(gltf, { castShadow: quality.shadowLights > 0 });
+      scene.add(owl.object);
+      owl.setVisible(viewMode === 'third');
+      applyPose();
+      shadowDirty = true;
+      startLoop();
+    });
+
     resize();
     window.addEventListener('resize', resize);
     window.addEventListener('orientationchange', function() { setTimeout(resize, 200); });
@@ -217,6 +232,7 @@ var FpRenderer = (function() {
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.shadowMap.autoUpdate = false;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.maxDpr));
+    if (owl) owl.setCastShadow(quality.shadowLights > 0);
     shadowDirty = true;
   }
 
@@ -228,6 +244,7 @@ var FpRenderer = (function() {
     camera.aspect = w / h;
     camera.fov = h > w ? 92 : 68;
     camera.updateProjectionMatrix();
+    if (viewMode === 'third') applyPose();
     resizeMirror();
     dirty = true;
   }
@@ -1861,11 +1878,47 @@ var FpRenderer = (function() {
 
   function applyPose() {
     if (!camera) return;
+    if (viewMode === 'third' && owl) {
+      var rig = FpOwl.thirdPerson(pose, bob, { fov: camera.fov, aspect: camera.aspect });
+      owl.setPlacement(rig.owl);
+      camera.position.set(rig.camera.x, rig.camera.y, rig.camera.z);
+      camera.lookAt(rig.target.x, rig.target.y, rig.target.z);
+      dirty = true;
+      return;
+    }
     var y = rad(pose.yaw);
     var fx = -Math.sin(y), fz = -Math.cos(y);
     camera.position.set(pose.x - fx * BACK, EYE + bob, pose.z - fz * BACK);
     camera.rotation.set(0, y, 0);
     dirty = true;
+  }
+
+  function thirdPersonActive() {
+    return viewMode === 'third' && !!owl;
+  }
+
+  /**
+   * Switch between the first-person eyes and the over-the-shoulder camera
+   * @param {string} mode - 'first' | 'third' (persisted)
+   */
+  function setViewMode(mode) {
+    if (!FpOwl.isMode(mode)) return;
+    viewMode = mode;
+    FpOwl.storeMode(mode);
+    if (owl) owl.setVisible(mode === 'third');
+    applyPose();
+    if (camera) refreshGroups(true);
+    shadowDirty = true;
+    startLoop();
+  }
+
+  function getViewMode() { return viewMode; }
+
+  /** One-shot Mr Owl clip ('attack', 'knockback', 'bump', 'teleport') */
+  function playOwl(kind) {
+    if (!owl) return;
+    owl.play(kind);
+    startLoop();
   }
 
   function setFocus(roomId) {
@@ -1906,6 +1959,7 @@ var FpRenderer = (function() {
       return;
     }
     tween = { from: from, to: to, start: performance.now(), ms: ms, ease: ease, done: done, finalYaw: target.yaw, bobbing: !!bobbing };
+    if (owl) owl.setBase(bobbing ? 'step' : (Math.abs(to.yaw - from.yaw) > 1 ? 'turn' : 'idle'));
     startLoop();
   }
 
@@ -1922,6 +1976,7 @@ var FpRenderer = (function() {
       applyPose();
       var cb = tween.done;
       tween = null;
+      if (owl) owl.setBase('idle');
       if (cb) cb();
     }
   }
@@ -1958,6 +2013,7 @@ var FpRenderer = (function() {
     if (focusId) openDoor(focusId, toId);
     pose.yaw = FpWorld.YAW[facing];
     setFocus(toId);
+    if (owl) owl.play('knockback');
     startTween({ x: c.x, z: c.z, yaw: FpWorld.YAW[facing] }, typeof ms === 'number' ? ms : 520, easeOut, done, true);
   }
 
@@ -1970,6 +2026,7 @@ var FpRenderer = (function() {
     }
     fade.classList.add('active');
     enterCell(toId);
+    if (owl) owl.play('teleport');
     setTimeout(function() {
       setPose(toId, facing);
       render();
@@ -1982,6 +2039,7 @@ var FpRenderer = (function() {
     var f = FpWorld.getFacing();
     var d = FpWorld.DELTA[f];
     var origin = { x: pose.x, z: pose.z, yaw: pose.yaw };
+    if (owl) owl.play('bump');
     startTween({ x: pose.x + d[0] * 0.35, z: pose.z + d[1] * 0.35, yaw: pose.yaw }, 90, easeOut, function() {
       startTween(origin, 130, easeOut, done);
     });
@@ -2143,6 +2201,13 @@ var FpRenderer = (function() {
     if (doorsMoving) stepDoors(dt);
     if (torchesChanging) stepTorches(dt);
     if (tween) refreshGroups(false);
+    if (thirdPersonActive() && (animated || tween)) {
+      owl.update(dt);
+      // the owl's shadow moves with it: refresh the static shadow maps at a few Hz
+      owlShadowClock += dt;
+      if (quality.shadowLights > 0 && owlShadowClock > (tween ? 0.1 : 0.25)) { shadowDirty = true; owlShadowClock = 0; }
+      dirty = true;
+    }
     if (animated || tween || fades.length || brightening) {
       if (flameMaterial) flameMaterial.uniforms.time.value = clock;
       if (waterMaterial) waterMaterial.uniforms.time.value = clock;
@@ -2197,6 +2262,11 @@ var FpRenderer = (function() {
   }
 
   function onRebuild(fn) { rebuildHook = fn; }
+
+  function getOwlInfo() {
+    return { loaded: !!owl, mode: viewMode, clip: owl ? owl.currentClip() : null, clips: owl ? owl.clips() : [],
+      visible: !!(owl && owl.object.visible), position: owl ? owl.object.position.toArray().map(function(v) { return +v.toFixed(2); }) : null };
+  }
 
   function getPose() { return { x: pose.x, z: pose.z, yaw: pose.yaw, camX: camera ? camera.position.x : pose.x, camZ: camera ? camera.position.z : pose.z }; }
   function getRenderInfo() { return renderer ? renderer.info.render : null; }
@@ -2315,6 +2385,10 @@ var FpRenderer = (function() {
     render: render,
     resume: resume,
     pause: pause,
+    setViewMode: setViewMode,
+    getViewMode: getViewMode,
+    playOwl: playOwl,
+    getOwlInfo: getOwlInfo,
     stop: stop,
     markDirty: markDirty,
     tune: tune,
