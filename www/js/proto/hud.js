@@ -76,6 +76,16 @@ var ProtoHud = (function() {
     if (sfx) btns.appendChild(sfx);
     var back = el('a', 'hud-btn', '&#x2716;');
     back.href = 'index.html';
+    back.addEventListener('click', function(e) {
+      // Straight to the launch screen (no splash video), name prefilled
+      if (typeof ProtoSession === 'undefined') return;
+      e.preventDefault();
+      var name = (typeof Player !== 'undefined' && Player.getName) ? Player.getName() : '';
+      if (typeof ProtoSession.autoSave === 'function' && name) {
+        try { ProtoSession.autoSave(); } catch (err) { /* ignore */ }
+      }
+      window.location.href = ProtoSession.launcherUrl(name);
+    });
     back.setAttribute('aria-label', 'Back to classic view');
     btns.appendChild(back);
     top.appendChild(btns);
@@ -171,12 +181,58 @@ var ProtoHud = (function() {
     els.ribbon.innerHTML = '<span class="title-en">' + title.en + '</span><span class="title-pl">' + title.pl + '</span>';
   }
 
+  var facingDir = null;
+
   function setMinimap(svg) {
     if (els.mapContainer) els.mapContainer.innerHTML = svg;
+    drawFacingArrow();
   }
 
   function setCompass(facing) {
     if (els.compass) els.compass.textContent = facing;
+    facingDir = facing;
+    drawFacingArrow();
+  }
+
+  /**
+   * Arrow on the current room of the minimap pointing where the player faces
+   * (map +y is South, so N points up). Only drawn when a facing was set.
+   */
+  function drawFacingArrow() {
+    if (!els.mapContainer || !facingDir) return;
+    var svg = els.mapContainer.querySelector('svg');
+    var node = svg && svg.querySelector('.current-room');
+    if (!node) return;
+    var old = svg.querySelector('.facing-arrow');
+    if (old) old.parentNode.removeChild(old);
+    // Pad the viewBox once so an arrow on an edge room is not clipped
+    if (!svg.getAttribute('data-arrow-pad')) {
+      var vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(parseFloat);
+      if (vb.length === 4 && !vb.some(isNaN)) {
+        var pad = 60;
+        svg.setAttribute('viewBox', (vb[0] - pad) + ' ' + (vb[1] - pad) + ' ' + (vb[2] + pad * 2) + ' ' + (vb[3] + pad * 2));
+        svg.setAttribute('data-arrow-pad', '1');
+      }
+    }
+    var cx = parseFloat(node.getAttribute('cx'));
+    var cy = parseFloat(node.getAttribute('cy'));
+    var r = parseFloat(node.getAttribute('r')) || 20;
+    var angle = { N: 0, E: 90, S: 180, W: 270 }[facingDir];
+    if (angle === undefined || isNaN(cx) || isNaN(cy)) return;
+    var ns = 'http://www.w3.org/2000/svg';
+    var g = document.createElementNS(ns, 'g');
+    g.setAttribute('class', 'facing-arrow');
+    g.setAttribute('transform', 'translate(' + cx + ',' + cy + ') rotate(' + angle + ')');
+    // The minimap SVG is shown heavily scaled down, so the arrow is drawn large
+    var tip = r + 46, base = r + 6, half = 22;
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M 0 ' + (-tip) + ' L ' + half + ' ' + (-base) + ' L 0 ' + (-base - 10) + ' L ' + (-half) + ' ' + (-base) + ' Z');
+    path.setAttribute('fill', '#e8452f');
+    path.setAttribute('stroke', '#3a2a12');
+    path.setAttribute('stroke-width', '5');
+    path.setAttribute('stroke-linejoin', 'round');
+    g.appendChild(path);
+    svg.appendChild(g);
   }
 
   /**

@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/proto-hud.css">
   <link rel="stylesheet" href="css/start.css">
   <link rel="stylesheet" href="css/classic.css">
+  <link rel="stylesheet" href="css/rpggui.css">
 </head>
 <body>
   <!-- Splash Video Screen (shown before game container on native platforms) -->
@@ -52,7 +53,7 @@
       </div>
 
       <div class="start-form hud-frame">
-        <label for="player-name">Your Name / Twoje imię:</label>
+        <label for="player-name" class="bi"><span class="bi-en">Your Name</span><span class="bi-pl">Twoje imię</span></label>
         <input type="text" id="player-name" placeholder="Enter your name..." maxlength="20">
 
         <div class="start-buttons">
@@ -62,23 +63,23 @@
       </div>
 
       <div id="profile-stats" class="profile-stats start-panel hud-frame hidden">
-        <h3>Your Learning Progress / Twoje Postępy</h3>
+        <h3 class="bi"><span class="bi-en">Your Learning Progress</span><span class="bi-pl">Twoje postępy</span></h3>
         <div class="profile-stats-grid">
           <div class="profile-stat">
             <span class="profile-stat-value" id="profile-runs">0</span>
-            <span class="profile-stat-label">Runs / Przejścia</span>
+            <span class="profile-stat-label bi"><span class="bi-en">Runs</span><span class="bi-pl">Przejścia</span></span>
           </div>
           <div class="profile-stat">
             <span class="profile-stat-value" id="profile-mastered">0</span>
-            <span class="profile-stat-label">Mastered / Opanowane</span>
+            <span class="profile-stat-label bi"><span class="bi-en">Mastered</span><span class="bi-pl">Opanowane</span></span>
           </div>
           <div class="profile-stat">
             <span class="profile-stat-value" id="profile-seen">0</span>
-            <span class="profile-stat-label">Seen / Widziane</span>
+            <span class="profile-stat-label bi"><span class="bi-en">Seen</span><span class="bi-pl">Widziane</span></span>
           </div>
           <div class="profile-stat">
             <span class="profile-stat-value" id="profile-accuracy">0%</span>
-            <span class="profile-stat-label">Accuracy / Dokładność</span>
+            <span class="profile-stat-label bi"><span class="bi-en">Accuracy</span><span class="bi-pl">Dokładność</span></span>
           </div>
         </div>
       </div>
@@ -100,10 +101,29 @@
           <li>Defeat the dragon by answering 3 questions in a row!</li>
         </ul>
       </details>
+
+      <p class="start-footer">Art &amp; sound: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0) &middot; UI kit: <a href="https://opengameart.org/content/rpg-gui-construction-kit-v10" target="_blank" rel="noopener">RPG GUI construction kit by Lamoot</a> (CC-BY 3.0)</p>
     </div>
 
     <!-- Game Screen -->
     <div id="game-screen" class="screen hidden">
+      <!-- Top bar shared with the isometric and 3D views -->
+      <div id="classic-top" class="hud-top hud-frame">
+        <div class="hud-identity">
+          <div class="hud-portrait"><img alt="Mr Owl" src="assets/proto/monsters/knight_owl.png"></div>
+          <div class="hud-name" id="classic-name">Mr Owl</div>
+        </div>
+        <div class="hud-stats">
+          <span class="hud-stat" title="Monsters defeated / Pokonane potwory">&#x1F480; <b id="classic-stat-monsters">0</b></span>
+          <span class="hud-stat" title="Questions / Pytania">&#x1F4DC; <b id="classic-stat-questions">0/0</b></span>
+          <span class="hud-stat" title="Gold / Złoto">&#x1FA99; <b id="classic-stat-gold">0</b></span>
+        </div>
+        <div class="hud-iconbtns" id="classic-iconbtns">
+          <button type="button" class="hud-btn" id="classic-map-btn" aria-label="Map / Mapa">&#x1F5FA;</button>
+          <button type="button" class="hud-btn" id="classic-quit-btn" aria-label="End adventure / Zakończ">&#x2716;</button>
+        </div>
+      </div>
+
       <header class="game-header">
         <h1>Mr Owl's Dungeon</h1>
       </header>
@@ -150,10 +170,10 @@
       </main>
 
       <div id="direction-bar" class="direction-bar">
-        <button class="dir-btn dir-west" data-direction="West" disabled>&#x2190;</button>
-        <button class="dir-btn dir-north" data-direction="North" disabled>&#x2191;</button>
-        <button class="dir-btn dir-south" data-direction="South" disabled>&#x2193;</button>
-        <button class="dir-btn dir-east" data-direction="East" disabled>&#x2192;</button>
+        <button class="dir-btn rpg-arrow dir-west" data-direction="West" disabled>&#x2190;</button>
+        <button class="dir-btn rpg-arrow dir-north" data-direction="North" disabled>&#x2191;</button>
+        <button class="dir-btn rpg-arrow dir-south" data-direction="South" disabled>&#x2193;</button>
+        <button class="dir-btn rpg-arrow dir-east" data-direction="East" disabled>&#x2192;</button>
       </div>
     </div>
 
