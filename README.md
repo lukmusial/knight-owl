@@ -81,7 +81,7 @@ Two experimental presentations of the same dungeon live under `www/proto/` and a
 
 | Page | Engine | What it shows |
 |------|--------|---------------|
-| `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style vaulted chambers with arched doorways, torches and lava rivers: turn left/right, step forward/back; monsters stay hidden in the fog until you enter their chamber. |
+| `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style stone chambers with rounded corners, floor coves, vaulted ceilings and arched, coved passages, lit by real torch lights with shadows, plus lava rivers: turn left/right, step forward/back; monsters stay hidden in the fog until you enter their chamber. |
 | `proto/isometric.html` | Phaser 3.90 (WebGL, Canvas fallback) | Isometric dungeon with fog of war and dressed chambers (torches, banners, bones, gold, lava): unexplored rooms are dark, neighbours dimmed with a "?" marker; tap an adjacent room and Mr Owl walks there. |
 
 Both pages are built for phones: the engine canvas fills the screen and a 1990s-style HUD (stone-and-gold top bar with portrait and stats, framed minimap, parchment room ribbon, control dock) floats above it. Inside the 3D and isometric scenes monsters appear as extracted sprites (`www/assets/proto/monsters/`, produced by `tools/extract-sprites.py`); the encounter screens keep the full painted illustrations.
@@ -90,6 +90,11 @@ Both pages are built for phones: the engine canvas fills the screen and a 1990s-
   <img src="docs/screenshots/proto-fp-01-corridor.png" alt="First-person corridor" width="420">
   &nbsp;
   <img src="docs/screenshots/proto-fp-04-knockback.png" alt="First-person after a knockback" width="420">
+</p>
+<p align="center">
+  <img src="docs/screenshots/proto-fp-05-torches.png" alt="First-person torch-lit wall" width="280">
+  &nbsp;
+  <img src="docs/screenshots/proto-fp-06-dragon-shadow.png" alt="First-person dragon casting a torch shadow" width="560">
 </p>
 <p align="center">
   <img src="docs/screenshots/proto-iso-01-start.png" alt="Isometric start with fog of war" width="420">
@@ -106,7 +111,7 @@ npm run proto        # serves www/ on http://localhost:8080
 # open http://localhost:8080/proto/first-person.html or /proto/isometric.html
 ```
 
-Wall textures, tiles and props are drawn procedurally from the existing artwork's palette. Real art files can be dropped into `www/assets/proto/` (see [docs/art-prompts.md](docs/art-prompts.md) for the file list and generation prompts, and [docs/asset-libraries.md](docs/asset-libraries.md) for a survey of open-source medieval art packs and their licences). The engine bundles are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
+The first-person view uses stylised CC0 stone, brick, flagstone, wood and lava textures from 3dtextures.me (colour + normal maps, credits in `www/assets/proto/fp/LICENSE.md`), with procedural fallbacks. Each chamber has two wall torches (iron bracket, wooden handle, animated shader flame); a pool of point lights follows the torches nearest the player, and those in the current chamber cast shadows (walls, props, gate bars and monster silhouettes). Shadow maps only refresh when the lit set changes. Rendering quality adapts to the device: `low` (no shadows, 1x pixel ratio), `medium` (2 shadow-casting torches, 256 px maps, default on phones) and `high` (4, 512 px, default on desktop). It steps down automatically when frames are slow; force a tier with `?quality=low|medium|high` or the HQ/MQ/LQ button in the dock. The isometric view's tiles and props are drawn procedurally from the existing artwork's palette. Real art files can be dropped into `www/assets/proto/` (see [docs/art-prompts.md](docs/art-prompts.md) for the file list and generation prompts, and [docs/asset-libraries.md](docs/asset-libraries.md) for a survey of open-source medieval art packs and their licences). The engine bundles are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
 
 ## Third-party assets
 
