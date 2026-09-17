@@ -53,17 +53,9 @@ var ProtoFp = (function() {
     });
     var side = document.querySelector('#hud-root .hud-dock-side');
     if (side) {
-      var ng = document.createElement('button');
-      ng.type = 'button';
-      ng.id = 'fp-new-game';
-      ng.className = 'hud-btn';
-      ng.title = 'New game. Nowa gra.';
-      ng.innerHTML = '&#x27F3;';
       var row = document.createElement('div');
       row.className = 'fp-dock-buttons';
-      row.appendChild(ng);
       side.appendChild(row);
-      ng.addEventListener('click', function() { newGame(true); });
     }
 
     Questions.init();
@@ -83,27 +75,6 @@ var ProtoFp = (function() {
       refreshVisibility();
       restoreEntities();
     });
-    if (side && ok) {
-      var qb = document.createElement('button');
-      qb.type = 'button';
-      qb.id = 'fp-quality';
-      qb.className = 'hud-btn';
-      qb.title = 'Graphics quality. Jakość grafiki.';
-      (document.querySelector('#hud-root .fp-dock-buttons') || side).appendChild(qb);
-      var label = function() {
-        var t = FpRenderer.getQuality() || 'medium';
-        qb.textContent = t === 'high' ? 'HQ' : (t === 'low' ? 'LQ' : 'MQ');
-      };
-      label();
-      qb.addEventListener('click', function() {
-        if (busy || FpRenderer.isBusy()) return;
-        var tiers = FpQuality.TIERS;
-        var next = tiers[(tiers.indexOf(FpRenderer.getQuality()) + 1) % tiers.length];
-        FpRenderer.setQuality(next);
-        label();
-      });
-    }
-
     // First-person eyes or the over-the-shoulder camera behind Mr Owl
     if (side && ok) {
       var vb = document.createElement('button');

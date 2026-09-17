@@ -100,11 +100,14 @@ var FpOwl = (function() {
     }
   }
 
+  var DEFAULT_MODE = 'third';
+
+  /** Saved camera choice, or the default over-the-shoulder view */
   function storedMode() {
     try {
       var m = window.localStorage.getItem(STORAGE_KEY);
-      return isMode(m) ? m : null;
-    } catch (e) { return null; }
+      return isMode(m) ? m : DEFAULT_MODE;
+    } catch (e) { return DEFAULT_MODE; }
   }
 
   function storeMode(m) {
@@ -220,6 +223,7 @@ var FpOwl = (function() {
   return {
     MODEL_URL: MODEL_URL,
     MODES: MODES,
+    DEFAULT_MODE: DEFAULT_MODE,
     RIG: RIG,
     isMode: isMode,
     nextMode: nextMode,
