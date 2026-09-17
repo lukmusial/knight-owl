@@ -135,6 +135,14 @@ var ProtoIso = (function() {
 
     watchViewport();
 
+    // Idle in the background: no rendering, tweens or walk timers until the app returns
+    if (typeof AppLifecycle !== 'undefined') {
+      AppLifecycle.on({
+        pause: function() { if (game && typeof game.pause === 'function') game.pause(); },
+        resume: function() { if (game && typeof game.resume === 'function') game.resume(); }
+      });
+    }
+
     game.registry.set('isoCallbacks', {
       onReady: function(s) {
         scene = s;
