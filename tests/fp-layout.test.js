@@ -147,20 +147,117 @@ TestRunner.suite('FpLayout', () => {
     TestRunner.assertEqual(FpLayout.lavaAxis(cross), null, 'no axis without solid ends');
   });
 
-  TestRunner.test('propSpots is deterministic, at most two, and skips lava and boss chambers', () => {
-    var total = 0;
+  function allCells(fn) {
     for (var x = 0; x < 7; x++) {
       for (var y = 0; y < 6; y++) {
-        var c = cell(x, y, 'corridor', walls(true, false, true, false));
-        var p1 = FpLayout.propSpots(c, D), p2 = FpLayout.propSpots(c, D);
-        TestRunner.assertEqual(JSON.stringify(p1), JSON.stringify(p2), 'deterministic');
-        TestRunner.assert(p1.length <= 2, 'at most two props');
-        if (FpLayout.lavaAxis(c)) TestRunner.assertEqual(p1.length, 0, 'none in lava chambers');
-        total += p1.length;
+        var ws = walls((x + y) % 2 === 0, x % 3 !== 0, true, y % 2 === 1);
+        fn(cell(x, y, 'corridor', ws));
       }
     }
-    TestRunner.assert(total > 0, 'some chambers are dressed');
-    TestRunner.assertEqual(FpLayout.propSpots(cell(1, 1, 'boss', walls(true, true, true, false)), D).length, 0, 'boss chamber bare');
+  }
+
+  TestRunner.test('floorFeatures is deterministic, bounded, varied and stays off the lava river', () => {
+    var kinds = {};
+    allCells(function(c) {
+      var f1 = FpLayout.floorFeatures(c, D), f2 = FpLayout.floorFeatures(c, D);
+      TestRunner.assertEqual(JSON.stringify(f1), JSON.stringify(f2), 'deterministic');
+      TestRunner.assert(f1.length <= 4, 'at most four items');
+      var lava = FpLayout.lavaAxis(c);
+      f1.forEach(function(f) {
+        kinds[f.kind] = true;
+        TestRunner.assert(Math.abs(f.x) < D.CH - 0.5 && Math.abs(f.z) < D.CH - 0.5, 'inside the chamber');
+        if (lava === 'EW') TestRunner.assert(Math.abs(f.z) >= 1.75, 'clear of an east-west river');
+        if (lava === 'NS') TestRunner.assert(Math.abs(f.x) >= 1.75, 'clear of a north-south river');
+        if (f.kind === 'statue' || f.kind === 'column') TestRunner.assertEqual(f.slot, 'wall', f.kind + ' stands by a wall');
+        if (f.slot === 'wall') TestRunner.assert(c.walls[f.dir], 'wall items only in front of solid walls');
+      });
+      var unique = f1.filter(function(f) { return f.kind !== 'rubble'; }).map(function(f) { return f.kind; });
+      TestRunner.assertEqual(unique.length, unique.filter(function(k, i) { return unique.indexOf(k) === i; }).length, 'no repeated special items');
+    });
+    ['rubble', 'skeleton', 'armour', 'statue'].forEach(function(k) { TestRunner.assert(kinds[k], 'some ' + k + ' in the dungeon'); });
+    TestRunner.assertEqual(FpLayout.floorFeatures(cell(1, 1, 'boss', walls(true, true, true, false)), D).length, 0, 'boss chamber bare');
+  });
+
+  TestRunner.test('doorwayStyle and hasDoor are deterministic; doors are symmetric and never on portals', () => {
+    var styles = {}, doors = 0, edges = 0;
+    allCells(function(c) {
+      FpLayout.DIRS.forEach(function(d) { styles[FpLayout.doorwayStyle(c, d)] = true; });
+      var n = cell(c.x + 1, c.y, 'corridor', walls(true, true, true, true));
+      edges++;
+      if (FpLayout.hasDoor(c, n)) doors++;
+      TestRunner.assertEqual(FpLayout.hasDoor(c, n), FpLayout.hasDoor(n, c), 'symmetric');
+    });
+    ['plain', 'voussoir', 'timber', 'pillars'].forEach(function(k) { TestRunner.assert(styles[k], 'style ' + k + ' used'); });
+    TestRunner.assert(doors > 0 && doors < edges / 2, 'some doors but not most (' + doors + '/' + edges + ')');
+    var host = cell(0, 0, 'corridor', walls(true, false, true, true));
+    var boss = { id: 'boss_room', x: 1, y: 0, type: 'boss', walls: walls(true, true, true, false) };
+    host.portal = { dir: 'E', to: 'boss_room' };
+    TestRunner.assertEqual(FpLayout.hasDoor(host, boss), false, 'no door on the portal edge');
+  });
+
+  TestRunner.test('wallFeatures: inscriptions and cracks on solid walls, dry lava chambers, puddle under each crack', () => {
+    var ins = 0, cracks = 0;
+    allCells(function(c) {
+      var w = FpLayout.wallFeatures(c, D);
+      w.inscriptions.forEach(function(i) {
+        ins++;
+        TestRunner.assert(c.walls[i.dir], 'inscription on a solid wall');
+        TestRunner.assert(i.y > 1 && i.y < D.WALL_TOP, 'inscription at wall height');
+      });
+      if (w.crack) {
+        cracks++;
+        TestRunner.assert(c.walls[w.crack.dir], 'crack on a solid wall');
+        TestRunner.assert(Math.abs(w.crack.s) < D.CH - D.R, 'crack on the flat part');
+        TestRunner.assert(w.puddles.length >= 1, 'water pools under the crack');
+        var torches = FpLayout.torchSpots(c, D);
+        TestRunner.assert(torches[0].dir !== w.crack.dir || torches[0].s !== 0, 'crack not behind the torches');
+      }
+      if (FpLayout.lavaAxis(c)) {
+        TestRunner.assertEqual(w.crack, null, 'no water in lava chambers');
+        TestRunner.assertEqual(w.puddles.length, 0, 'no puddles in lava chambers');
+      }
+    });
+    TestRunner.assert(ins > 0 && cracks > 0, 'dungeon has inscriptions (' + ins + ') and cracks (' + cracks + ')');
+  });
+
+  TestRunner.test('blobOutline wobbles within bounds', () => {
+    var pts = FpLayout.blobOutline(1, 24, 0.37);
+    TestRunner.assertEqual(pts.length, 24, 'segment count');
+    var radii = pts.map(function(p) { return Math.sqrt(p[0] * p[0] + p[1] * p[1]); });
+    TestRunner.assert(Math.max.apply(null, radii) <= 1.25 && Math.min.apply(null, radii) >= 0.3, 'radius bounded');
+    TestRunner.assert(Math.max.apply(null, radii) - Math.min.apply(null, radii) > 0.1, 'not a circle');
+  });
+
+  TestRunner.test('riverBanks meander with irregular, ordered banks', () => {
+    var rows = FpLayout.riverBanks(4, 0.8, 16, 0.42);
+    TestRunner.assertEqual(rows.length, 17, 'rows');
+    TestRunner.assert(rows[0].t === -4 && rows[16].t === 4, 'spans the length');
+    var widths = rows.map(function(r) { return r.right - r.left; });
+    rows.forEach(function(r) {
+      TestRunner.assert(r.left < r.right, 'left bank left of right bank');
+      TestRunner.assert(r.right - r.left >= 0.8 * 1.4 && r.right - r.left <= 0.8 * 2.6, 'width bounded');
+      TestRunner.assert(r.crust > 0 && r.glow > 0, 'crust and glow widths');
+    });
+    TestRunner.assert(Math.max.apply(null, widths) - Math.min.apply(null, widths) > 0.05, 'width varies');
+  });
+
+  TestRunner.test('stableSlots keeps lights that stay chosen in their slots', () => {
+    TestRunner.assertEqual(FpLayout.stableSlots([3, 4, 7, 8], [4, 5, 7, 9], 2).join(','), '5,4,7,9', 'kept 4 and 7, filled the freed slots');
+    TestRunner.assertEqual(FpLayout.stableSlots([-1, -1, -1], [2, 1], 1).join(','), '2,1,-1', 'fills empty slots in order');
+    TestRunner.assertEqual(FpLayout.stableSlots([1, 2], [2, 1], 1).join(','), '2,1', 'shadow slot follows the new shadow caster');
+    TestRunner.assertEqual(FpLayout.stableSlots([5, 6], [], 1).join(','), '-1,-1', 'clears when nothing is chosen');
+  });
+
+  TestRunner.test('approach and ambienceGain', () => {
+    TestRunner.assertEqual(FpLayout.approach(0, 1, 2, 0.25), 0.5, 'steps toward the target');
+    TestRunner.assertEqual(FpLayout.approach(0.9, 1, 2, 0.25), 1, 'snaps when close');
+    TestRunner.assertEqual(FpLayout.approach(1, 0, 4, 0.1), 0.6, 'steps down');
+    TestRunner.assertEqual(FpLayout.ambienceGain(1, D), 1, 'full in the chamber');
+    TestRunner.assertEqual(FpLayout.ambienceGain(D.CELL * 2, D), 0, 'silent two chambers away');
+    var mid = FpLayout.ambienceGain(D.CELL, D);
+    TestRunner.assert(mid > 0 && mid < 0.5, 'quiet next door');
+    TestRunner.assertEqual(FpLayout.ambienceLevel(0, 0, [], D), 0, 'silence without sources');
+    TestRunner.assertEqual(FpLayout.ambienceLevel(0, 0, [{ x: 30, z: 0 }, { x: 1, z: 1 }], D), 1, 'loudest source wins');
   });
 
   TestRunner.test('assignLights gives shadow slots to the focus chamber and fills the rest by distance', () => {

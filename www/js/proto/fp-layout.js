@@ -356,24 +356,221 @@ var FpLayout = (function() {
   }
 
   /**
-   * Corner props (0 NE, 1 SE, 2 SW, 3 NW) avoiding lava chambers and the boss
-   * @returns {Array} [{ corner, kind: 'barrel'|'crate'|'rubble', x, z, rot }]
+   * Local point (x, z) for side `dir` at offset s along the wall and distance `out` from the centre
    */
-  function propSpots(cell, d) {
+  function sidePoint(dir, s, out) {
+    var ax = axes(dir);
+    return { x: ax.dx * out + ax.rx * s, z: ax.dz * out + ax.rz * s };
+  }
+
+  var FLOOR_KINDS = ['rubble', 'rubble', 'rubble', 'barrel', 'crate', 'statue', 'statue', 'skeleton', 'skeleton', 'armour', 'armour', 'column'];
+
+  /**
+   * Floor dressing: rubble, barrels, crates, broken statues, skeletons,
+   * armour and fallen columns in the corners and in front of solid walls,
+   * kept clear of the lava river. Deterministic per chamber.
+   * @returns {Array} [{ slot: 'corner'|'wall', kind, x, z, rot, seed, dir? }]
+   */
+  function floorFeatures(cell, d) {
     d = d || DIMS;
-    if (cell.type === 'boss' || lavaAxis(cell)) return [];
-    var kinds = ['barrel', 'crate', 'rubble'];
-    var out = [];
+    if (cell.type === 'boss') return [];
+    var lava = lavaAxis(cell);
+    var slots = [];
     var off = d.CH - d.R + d.R * 0.18;
     var CORNERS = [[1, -1], [1, 1], [-1, 1], [-1, -1]];
-    for (var k = 0; k < 4; k++) {
-      var h = hashCell(cell.x, cell.y, 10 + k);
-      if (h > 0.34) continue;
-      var kind = kinds[Math.floor(hashCell(cell.x, cell.y, 20 + k) * kinds.length) % kinds.length];
-      out.push({ corner: k, kind: kind, x: CORNERS[k][0] * off, z: CORNERS[k][1] * off, rot: hashCell(cell.x, cell.y, 30 + k) * Math.PI * 2 });
-      if (out.length >= 2) break;
+    var k;
+    for (k = 0; k < 4; k++) slots.push({ slot: 'corner', x: CORNERS[k][0] * off, z: CORNERS[k][1] * off, dir: null, salt: k });
+    for (k = 0; k < 4; k++) {
+      var dir = DIRS[k];
+      if (!cell.walls[dir]) continue;
+      for (var side = -1; side <= 1; side += 2) {
+        var p = sidePoint(dir, side * 1.4, d.CH - 1.0);
+        slots.push({ slot: 'wall', x: p.x, z: p.z, dir: dir, salt: 10 + k * 2 + (side > 0 ? 1 : 0) });
+      }
+    }
+    var riverHalf = 1.75;
+    var maxItems = cell.type === 'entrance' ? 2 : 4;
+    var out = [];
+    for (k = 0; k < slots.length && out.length < maxItems; k++) {
+      var sl = slots[k];
+      if (lava === 'EW' && Math.abs(sl.z) < riverHalf) continue;
+      if (lava === 'NS' && Math.abs(sl.x) < riverHalf) continue;
+      var chance = sl.slot === 'corner' ? 0.55 : 0.3;
+      if (hashCell(cell.x, cell.y, 40 + sl.salt) > chance) continue;
+      var kind = FLOOR_KINDS[Math.floor(hashCell(cell.x, cell.y, 60 + sl.salt) * FLOOR_KINDS.length) % FLOOR_KINDS.length];
+      if (sl.slot === 'corner' && kind === 'column') kind = 'skeleton';
+      // statues stand against walls facing the room
+      if (kind === 'statue' && sl.slot !== 'wall') kind = 'armour';
+      if (out.some(function(o) { return o.kind === kind && kind !== 'rubble'; })) kind = 'rubble';
+      var rot = sl.dir ? Math.atan2(-axes(sl.dir).dx, -axes(sl.dir).dz) : hashCell(cell.x, cell.y, 80 + sl.salt) * Math.PI * 2;
+      out.push({ slot: sl.slot, kind: kind, x: sl.x, z: sl.z, rot: rot, dir: sl.dir, seed: hashCell(cell.x, cell.y, 90 + sl.salt) });
     }
     return out;
+  }
+
+  /** Back-compat alias used by older callers */
+  function propSpots(cell, d) { return floorFeatures(cell, d); }
+
+  /**
+   * Doorway treatment for side `dir` of a chamber
+   * @returns {string} 'plain'|'voussoir'|'timber'|'pillars'
+   */
+  function doorwayStyle(cell, dir) {
+    var STYLES = ['plain', 'voussoir', 'voussoir', 'timber', 'pillars', 'pillars'];
+    var h = hashCell(cell.x, cell.y, 100 + DIRS.indexOf(dir));
+    return STYLES[Math.floor(h * STYLES.length) % STYLES.length];
+  }
+
+  /**
+   * Wooden door on the edge between two neighbouring chambers (symmetric).
+   * Never on portal edges.
+   */
+  function hasDoor(a, b) {
+    if (!a || !b) return false;
+    if ((a.portal && a.portal.to === b.id) || (b.portal && b.portal.to === a.id)) return false;
+    if (a.type === 'boss' || b.type === 'boss') return false;
+    var lo = (a.x < b.x || (a.x === b.x && a.y < b.y)) ? a : b;
+    var hi = lo === a ? b : a;
+    return hash3(lo.x * 31 + hi.x * 7 + 101, lo.y * 17 + hi.y * 5 + 13, 777) < 0.28;
+  }
+
+  /**
+   * Solid walls in preference order for wall decorations: walls without
+   * torches first, then the torch wall
+   */
+  function decorWalls(cell, torches) {
+    var torchDir = torches.length ? torches[0].dir : null;
+    var free = [], busy = [];
+    var start = Math.floor(hashCell(cell.x, cell.y, 5) * 4) % 4;
+    for (var i = 0; i < 4; i++) {
+      var dir = DIRS[(start + i) % 4];
+      if (!cell.walls[dir]) continue;
+      if (dir === torchDir && torches[0].s !== 0 && Math.abs(torches[0].s) > 1) busy.push(dir); else if (dir !== torchDir) free.push(dir);
+    }
+    return { free: free, torchWall: busy };
+  }
+
+  /**
+   * Wall decorations: glowing rune inscriptions and water trickling from a
+   * crack into a puddle, plus stray puddles. Chambers with lava stay dry.
+   * @returns {Object} { inscriptions: [{ dir, s, y, w, seed, hue }], crack: { dir, s } | null, puddles: [{ x, z, r, seed }] }
+   */
+  function wallFeatures(cell, d) {
+    d = d || DIMS;
+    var torches = torchSpots(cell, d);
+    var walls = decorWalls(cell, torches);
+    var res = { inscriptions: [], crack: null, puddles: [] };
+    var lava = lavaAxis(cell);
+    var free = walls.free.slice();
+    var HUES = ['cyan', 'violet', 'green'];
+    var hue = HUES[Math.floor(hashCell(cell.x, cell.y, 7) * HUES.length) % HUES.length];
+
+    if (cell.type === 'boss' || hashCell(cell.x, cell.y, 8) < 0.45) {
+      if (walls.torchWall.length) {
+        res.inscriptions.push({ dir: walls.torchWall[0], s: 0, y: 1.55, w: 2.3, seed: hashCell(cell.x, cell.y, 9), hue: hue });
+      } else if (free.length) {
+        res.inscriptions.push({ dir: free.shift(), s: 0, y: 2.0, w: 3.2, seed: hashCell(cell.x, cell.y, 9), hue: hue });
+      }
+    }
+    if (!lava && cell.type !== 'boss' && free.length && hashCell(cell.x, cell.y, 11) < 0.4) {
+      var cdir = free.shift();
+      var cs = (hashCell(cell.x, cell.y, 12) - 0.5) * 2.4;
+      res.crack = { dir: cdir, s: cs };
+      var foot = sidePoint(cdir, cs, d.CH - d.COVE - 0.45);
+      res.puddles.push({ x: foot.x, z: foot.z, r: 0.7, seed: hashCell(cell.x, cell.y, 13) });
+    }
+    if (!lava && cell.type !== 'boss' && hashCell(cell.x, cell.y, 14) < 0.3) {
+      var ang = hashCell(cell.x, cell.y, 15) * Math.PI * 2;
+      res.puddles.push({ x: Math.cos(ang) * 1.3, z: Math.sin(ang) * 1.3, r: 0.55 + hashCell(cell.x, cell.y, 16) * 0.4, seed: hashCell(cell.x, cell.y, 17) });
+    }
+    return res;
+  }
+
+  /**
+   * Organic closed outline (puddles): radius wobbles with smooth noise
+   * @returns {Array} [[x, z]] relative to the centre
+   */
+  function blobOutline(r, seg, seed) {
+    var pts = [];
+    for (var i = 0; i < seg; i++) {
+      var a = Math.PI * 2 * i / seg;
+      var n = noise3(Math.cos(a) * 1.3 + seed * 10, Math.sin(a) * 1.3, seed * 7);
+      pts.push([Math.cos(a) * r * (0.72 + 0.5 * n), Math.sin(a) * r * (0.62 + 0.5 * n)]);
+    }
+    return pts;
+  }
+
+  /**
+   * Lava river banks along the flow axis t in [-len, len]: a meandering
+   * centre line with an irregular width, plus crust and glow widths
+   * @returns {Array} [{ t, left, right, crust, glow }] (left < right, lateral offsets)
+   */
+  function riverBanks(len, half, seg, seed) {
+    var rows = [];
+    for (var i = 0; i <= seg; i++) {
+      var t = -len + 2 * len * i / seg;
+      var mid = (noise3(t * 0.45 + seed * 13, 3.7, seed) - 0.5) * 0.7;
+      var wl = half * (0.75 + 0.5 * noise3(t * 1.1 + 5, seed * 9, 1.3));
+      var wr = half * (0.75 + 0.5 * noise3(t * 1.1 + 17, seed * 9, 4.1));
+      rows.push({
+        t: t,
+        left: mid - wl,
+        right: mid + wr,
+        crust: 0.1 + 0.16 * noise3(t * 2.3, seed * 5, 8.8),
+        glow: 0.35 + 0.35 * noise3(t * 1.7, seed * 3, 2.2)
+      });
+    }
+    return rows;
+  }
+
+  /**
+   * Keep lights in their slots when they stay chosen, so only real changes fade
+   * @param {Array} prev - torch index per slot (-1 empty)
+   * @param {Array} chosen - assignLights result (shadow casters first)
+   * @param {number} shadowCount - leading slots that cast shadows
+   * @returns {Array} torch index per slot
+   */
+  function stableSlots(prev, chosen, shadowCount) {
+    var n = prev.length;
+    var next = [];
+    for (var i = 0; i < n; i++) next.push(-1);
+    var groups = [[0, Math.min(shadowCount, n)], [Math.min(shadowCount, n), n]];
+    var shadowPicks = chosen.slice(0, shadowCount);
+    var otherPicks = chosen.slice(shadowCount);
+    var picks = [shadowPicks, otherPicks];
+    for (var g = 0; g < 2; g++) {
+      var from = groups[g][0], to = groups[g][1];
+      var want = picks[g].slice(0, to - from);
+      var placed = {};
+      for (i = from; i < to; i++) {
+        if (prev[i] >= 0 && want.indexOf(prev[i]) !== -1) { next[i] = prev[i]; placed[prev[i]] = true; }
+      }
+      var queue = want.filter(function(t) { return !placed[t]; });
+      for (i = from; i < to && queue.length; i++) {
+        if (next[i] === -1) next[i] = queue.shift();
+      }
+    }
+    return next;
+  }
+
+  /** Move `cur` toward `target` by at most rate * dt */
+  function approach(cur, target, rate, dt) {
+    var step = rate * dt;
+    if (Math.abs(target - cur) <= step) return target;
+    return cur + (target > cur ? step : -step);
+  }
+
+  /**
+   * Ambient loop gain for a sound source at distance `dist` (world units):
+   * full inside the chamber, fading to silence two chambers away
+   */
+  function ambienceGain(dist, d) {
+    d = d || DIMS;
+    var near = d.CH + 1, far = d.CELL * 1.6;
+    if (dist <= near) return 1;
+    if (dist >= far) return 0;
+    var t = (dist - near) / (far - near);
+    return (1 - t) * (1 - t);
   }
 
   // ---------------------------------------------------------------------------
@@ -413,6 +610,19 @@ var FpLayout = (function() {
     return 0.93 + 0.08 * Math.sin(t * 7.3 + phase * 11.0) + 0.05 * Math.sin(t * 13.1 + phase * 23.0) + 0.03 * Math.sin(t * 29.7 + phase * 5.0);
   }
 
+  /**
+   * Loudest ambience gain among sources [{ x, z }] heard from (x, z)
+   */
+  function ambienceLevel(x, z, sources, d) {
+    var best = 0;
+    for (var i = 0; i < (sources || []).length; i++) {
+      var dx = sources[i].x - x, dz = sources[i].z - z;
+      var g = ambienceGain(Math.sqrt(dx * dx + dz * dz), d);
+      if (g > best) best = g;
+    }
+    return best;
+  }
+
   return {
     DIRS: DIRS,
     DIMS: DIMS,
@@ -431,6 +641,17 @@ var FpLayout = (function() {
     torchSpots: torchSpots,
     lavaAxis: lavaAxis,
     propSpots: propSpots,
+    floorFeatures: floorFeatures,
+    doorwayStyle: doorwayStyle,
+    hasDoor: hasDoor,
+    wallFeatures: wallFeatures,
+    blobOutline: blobOutline,
+    riverBanks: riverBanks,
+    stableSlots: stableSlots,
+    approach: approach,
+    ambienceGain: ambienceGain,
+    ambienceLevel: ambienceLevel,
+    sidePoint: sidePoint,
     assignLights: assignLights,
     flicker: flicker
   };

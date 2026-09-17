@@ -7,7 +7,7 @@
 TestRunner.suite('SFX Module', () => {
   var REQUIRED = ['tap', 'hit', 'wrong', 'correct', 'streak', 'defeat-monster', 'coin', 'coins',
     'attack', 'dragon-roar', 'victory', 'defeat-sting', 'step', 'turn', 'door', 'reveal',
-    'bump', 'knockback', 'pushback'];
+    'bump', 'knockback', 'pushback', 'torch-ignite', 'door-creak', 'drip', 'lava-bubble'];
 
   TestRunner.test('all required recipes exist', () => {
     REQUIRED.forEach(function(name) {
@@ -41,6 +41,7 @@ TestRunner.suite('SFX Module', () => {
     TestRunner.assertEqual(SFX.play('no-such-sound'), false, 'unknown sound returns false');
     SFX.duck(true);
     SFX.duck(false);
+    TestRunner.assertEqual(SFX.getAudioOutput(), null, 'no audio output without a running context');
   });
 
   TestRunner.test('mute state persists in localStorage', () => {
