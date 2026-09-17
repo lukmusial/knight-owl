@@ -92,8 +92,8 @@ var IsoScenes = (function() {
       if (this.textures.exists('palette_src')) {
         palette = IsoTextures.samplePalette(this.textures.get('palette_src').getSourceImage());
       }
-      IsoTextures.generateFallbacks(this, palette);
       var kenney = IsoTextures.KENNEY_REQUIRED.every(function(k) { return self.textures.exists(k); });
+      IsoTextures.generateFallbacks(this, palette, kenney ? IsoTextures.KENNEY_STONE_PALETTE : null);
       this.registry.set('kenneyTiles', kenney);
       console.log('IsoTextures: ' + (kenney ? 'Kenney dungeon tiles' : 'procedural tiles'));
 
@@ -145,6 +145,8 @@ var IsoScenes = (function() {
       this.model = IsoModel.build();
       this.roomSprites = {};   // roomId -> [gameObjects] (fog controlled)
       this.roomLights = {};    // roomId -> [gameObjects] (only in explored rooms)
+      this.roomContents = {};  // roomId -> [gameObjects] tied to the room type (only in explored rooms)
+      this.decorByTile = {};   // 'gx,gy' -> decor kind (see IsoModel.getRoomDecor)
       this.linkSprites = {};   // linkId -> [gameObjects]
       this.fogOverlays = {};   // roomId|linkId -> Graphics
       this.kenney = !!this.registry.get('kenneyTiles');
@@ -156,8 +158,12 @@ var IsoScenes = (function() {
       this.moving = false;
       this.inputEnabled = true;
 
+      Object.keys(this.model.rooms).forEach(function(rid) {
+        IsoModel.getRoomDecor(rid).forEach(function(d) { self.decorByTile[d.gx + ',' + d.gy] = d.kind; });
+      });
       this.buildTiles();
       this.buildProps();
+      this.buildDecor();
       this.buildFog();
       this.createPlayer();
       this.setupCamera();
@@ -175,6 +181,11 @@ var IsoScenes = (function() {
       var bucket = t.roomId ? this.roomSprites : this.linkSprites;
       if (!bucket[owner]) bucket[owner] = [];
       return bucket[owner];
+    },
+
+    contentsFor: function(roomId) {
+      if (!this.roomContents[roomId]) this.roomContents[roomId] = [];
+      return this.roomContents[roomId];
     },
 
     lightsFor: function(roomId) {
@@ -235,7 +246,10 @@ var IsoScenes = (function() {
       if (opts.flip) img.setFlipX(true);
       if (opts.alpha !== undefined) img.setAlpha(opts.alpha);
       if (opts.blend) img.setBlendMode(opts.blend);
-      (opts.light ? this.lightsFor(roomId) : this.roomSprites[roomId]).push(img);
+      var group = opts.light ? this.lightsFor(roomId)
+        : opts.contents ? this.contentsFor(roomId)
+        : (this.roomSprites[roomId] = this.roomSprites[roomId] || []);
+      group.push(img);
       return img;
     },
 
@@ -263,16 +277,9 @@ var IsoScenes = (function() {
         var rm = t.roomId ? model.rooms[t.roomId] : null;
         var dx = rm ? t.gx - rm.gx0 : 0, dy = rm ? t.gy - rm.gy0 : 0;
 
-        // Floor: lava in the corners of the dragon's lair
-        var isLava = room && room.type === 'boss' && ((dx === 0 || dx === 2) && (dy === 0 || dy === 2));
-        if (isLava) {
-          var lava = self.add.sprite(p.x, p.y, 'lava_0').setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.floor));
-          if (!REDUCED_MOTION) lava.play({ key: 'lava', startFrame: (dx + dy) % 3 });
-          bucket.push(lava);
-        } else {
-          var floorKey = 'floor_' + t.variant;
-          bucket.push(self.add.image(p.x, p.y, floorKey).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.floor)));
-        }
+        var floorKey = 'floor_' + t.variant;
+        bucket.push(self.add.image(p.x, p.y, floorKey).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.floor)));
+        if (room && room.type === 'boss' && self.isContentSlot(dx, dy)) self.addBossLava(t, p, dx + dy);
 
         var v = Math.floor(hash(t.gx, t.gy, 3) * 3);
         var wallDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.wall);
@@ -339,20 +346,18 @@ var IsoScenes = (function() {
         var frontDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.fx) - 0.5;
         var v = Math.floor(hash(t.gx, t.gy, 3) * 3);
 
-        var isLava = room && room.type === 'boss' && ((dx === 0 || dx === 2) && (dy === 0 || dy === 2));
-        if (isLava) {
-          var lava = self.add.sprite(p.x, p.y, 'lava_0').setDepth(floorDepth);
-          if (!REDUCED_MOTION) lava.play({ key: 'lava', startFrame: (dx + dy) % 3 });
-          bucket.push(lava);
-        } else if (t.kind === 'corridor') {
+        if (t.kind === 'corridor') {
           bucket.push(self.kTile(self.textures.exists('k_corridor_1') && v === 2 ? 'k_corridor_1' : 'k_corridor', p, floorDepth));
         } else {
           var fk = 'k_floor_' + (self.textures.exists('k_floor_3') ? Math.floor(hash(t.gx, t.gy, 5) * 4) : t.variant);
           if (!self.textures.exists(fk)) fk = 'k_floor_0';
           bucket.push(self.kTile(fk, p, floorDepth));
+          if (room && room.type === 'boss' && self.isContentSlot(dx, dy)) self.addBossLava(t, p, dx + dy);
         }
 
         function wallKey(side) {
+          // a cave-in breaks through the wall behind it
+          if (self.decorByTile[t.gx + ',' + t.gy] === 'cavein' && self.textures.exists('k_wall_hole_' + side)) return 'k_wall_hole_' + side;
           var k = 'k_wall_' + side + '_' + (v === 2 && hash(t.gx, t.gy, 7) > 0.5 ? 2 : (v === 1 ? 1 : 0));
           return self.textures.exists(k) ? k : 'k_wall_' + side + '_0';
         }
@@ -384,6 +389,20 @@ var IsoScenes = (function() {
       });
 
       this.buildPortals();
+    },
+
+    isContentSlot: function(dx, dy) {
+      return IsoModel.CONTENT_SLOTS.some(function(c) { return c.dx === dx && c.dy === dy; });
+    },
+
+    /**
+     * Lava floor of the dragon's lair; part of the contents, so a fogged lair
+     * looks like any other chamber
+     */
+    addBossLava: function(t, p, frame) {
+      var lava = this.add.sprite(p.x, p.y, 'lava_0').setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.floor) + 0.1);
+      if (!REDUCED_MOTION) lava.play({ key: 'lava', startFrame: frame % 3 });
+      this.contentsFor(t.roomId).push(lava);
     },
 
     buildPortals: function() {
@@ -447,32 +466,102 @@ var IsoScenes = (function() {
             self.roomSprites[rid].push(self.add.image(bp.x, bp.y, 'banner').setOrigin(0.5, 0).setDepth(IsoModel.depthKey(bt.gx, bt.gy, LAYERS.wall) + 0.5));
           }
           // (the corner tile g+2 carries the torch; a second banner would sit on top of it)
-        } else if (type === 'monster') {
-          // bones or rubble near the front, a second pile now and then
-          self.addProp(rid, seed > 0.5 ? g + 2 : g, h + 2, seed > 0.33 ? 'bones' : 'rubble', { dy: 8, dz: -0.5 });
+          return;
+        }
+
+        // Everything below reveals the chamber type, so it lives in the contents
+        // group (shown only once explored) and on the content slots only
+        var slotA = IsoModel.CONTENT_SLOTS[seed > 0.5 ? 0 : 1];
+        var slotB = IsoModel.CONTENT_SLOTS[seed > 0.5 ? 1 : 0];
+        if (type === 'monster') {
+          self.addProp(rid, g + slotA.dx, h + slotA.dy, seed > 0.33 ? 'bones' : 'rubble', { dy: 8, dz: -0.5, contents: true });
           if (self.kenney && self.textures.exists('k_barrels')) {
-            var bp0 = IsoModel.gridToIso(seed > 0.5 ? g : g + 2, h);
-            self.roomSprites[rid].push(self.kTile(seed > 0.75 ? 'k_crates' : 'k_barrels', bp0, IsoModel.depthKey(seed > 0.5 ? g : g + 2, h, LAYERS.token) + 0.2));
+            var bp0 = IsoModel.gridToIso(g + slotB.dx, h + slotB.dy);
+            self.contentsFor(rid).push(self.kTile(seed > 0.75 ? 'k_crates' : 'k_barrels', bp0, IsoModel.depthKey(g + slotB.dx, h + slotB.dy, LAYERS.token) + 0.2));
           } else if (seed > 0.6) {
-            self.addProp(rid, g + 2, h, 'rubble', { dy: 8, dz: -0.5, scale: 0.8 });
+            self.addProp(rid, g + slotB.dx, h + slotB.dy, 'rubble', { dy: 8, dz: -0.5, scale: 0.8, contents: true });
           }
         } else if (type === 'treasure') {
           self.addProp(rid, g + 1, h + 1, 'glow_gold', { oy: 0.5, dy: 4, layer: LAYERS.floor, dz: 0.5, blend: Phaser.BlendModes.ADD, alpha: 0.7, light: true });
-          self.addProp(rid, g + 2, h, 'gold_pile', { dy: 12 });
-          self.addProp(rid, g, h + 2, 'gold_pile', { dy: 12, scale: 0.8 });
+          self.addProp(rid, g + 2, h, 'gold_pile', { dy: 12, contents: true });
+          self.addProp(rid, g, h + 2, 'gold_pile', { dy: 12, scale: 0.8, contents: true });
         } else if (type === 'boss') {
           self.addProp(rid, g + 1, h + 1, 'glow_lava', { oy: 0.5, dy: 6, layer: LAYERS.floor, dz: 0.5, blend: Phaser.BlendModes.ADD, alpha: 0.8, light: true });
-          self.addProp(rid, g + 2, h, 'crystal', { dy: 10, dz: 0.3 });
-          self.addProp(rid, g, h + 2, 'crystal', { dy: 10, dz: 0.3, scale: 0.85, flip: true });
-          self.addProp(rid, g + 1, h, 'gold_pile', { dy: 12 });
-          self.addProp(rid, g, h + 1, 'gold_pile', { dy: 12, scale: 0.85 });
-          self.addProp(rid, g + 2, h + 1, 'gold_pile', { dy: 12, scale: 0.9 });
+          self.addProp(rid, g + 2, h, 'crystal', { dy: 10, dz: 0.3, contents: true });
+          self.addProp(rid, g, h + 2, 'crystal', { dy: 10, dz: 0.3, scale: 0.85, flip: true, contents: true });
+          // (back edge tiles may carry decor, so the hoard sits on the front edges)
+          self.addProp(rid, g + 2, h + 1, 'gold_pile', { dy: 12, scale: 0.9, contents: true });
+          self.addProp(rid, g + 1, h + 2, 'gold_pile', { dy: 12, scale: 0.85, contents: true });
           self.addProp(rid, g + 1, h + 1, 'glow_purple', { oy: 0.5, dy: -30, layer: LAYERS.fx, dz: 0.2, blend: Phaser.BlendModes.ADD, alpha: 0.35, light: true });
         } else {
-          // plain chamber: a little set dressing now and then
-          if (seed > 0.72) self.addProp(rid, g + 2, h + 2, 'rubble', { dy: 8, dz: -0.5 });
-          else if (seed < 0.18) self.addProp(rid, g, h + 2, 'bones', { dy: 8, dz: -0.5 });
+          // empty chamber: a little set dressing now and then
+          if (seed > 0.72) self.addProp(rid, g + slotA.dx, h + slotA.dy, 'rubble', { dy: 8, dz: -0.5, contents: true });
+          else if (seed < 0.18) self.addProp(rid, g + slotB.dx, h + slotB.dy, 'bones', { dy: 8, dz: -0.5, contents: true });
         }
+      });
+    },
+
+    /**
+     * Position-based chamber decor (IsoModel.getRoomDecor): visible through the
+     * fog, independent of what the chamber holds. Glows only light up once explored.
+     */
+    buildDecor: function() {
+      var self = this;
+      Object.keys(this.model.rooms).forEach(function(rid) {
+        IsoModel.getRoomDecor(rid).forEach(function(d) {
+          var p = IsoModel.gridToIso(d.gx, d.gy);
+          var floorDepth = IsoModel.depthKey(d.gx, d.gy, LAYERS.floor) + 0.3;
+          var tokenDepth = IsoModel.depthKey(d.gx, d.gy, LAYERS.token);
+          var sprites = self.roomSprites[rid] = self.roomSprites[rid] || [];
+          var glow = function(key, dy, scale, alpha) {
+            self.addProp(rid, d.gx, d.gy, key, { oy: 0.5, dy: dy, layer: LAYERS.floor, dz: 0.6, blend: Phaser.BlendModes.ADD, alpha: alpha, scale: scale, light: true });
+          };
+          var kOr = function(kKey, fallback, fallbackOpts, depth) {
+            if (self.kenney && self.textures.exists(kKey)) {
+              sprites.push(self.kTile(kKey, p, depth === undefined ? tokenDepth : depth));
+            } else if (fallback) {
+              self.addProp(rid, d.gx, d.gy, fallback, fallbackOpts || { dy: 10 });
+            }
+          };
+          switch (d.kind) {
+            case 'pool':
+            case 'lava_vent':
+              var liquid = d.kind === 'pool' ? 'water' : 'lava';
+              var pool = self.add.sprite(p.x, p.y, 'pool_' + liquid + '_0').setDepth(floorDepth);
+              if (!REDUCED_MOTION) pool.play({ key: 'pool_' + liquid, startFrame: Math.floor(hash(d.gx, d.gy) * 3) });
+              sprites.push(pool);
+              if (liquid === 'lava') glow('glow_lava', 2, 0.55, 0.6);
+              else glow('glow_cyan', 2, 0.5, 0.25);
+              break;
+            case 'broken_floor':
+              sprites.push(self.add.image(p.x, p.y, 'decor_pit').setDepth(floorDepth));
+              break;
+            case 'mushrooms':
+              self.addProp(rid, d.gx, d.gy, 'decor_mushrooms', { dy: 12, dz: -0.2 });
+              glow('glow_cyan', -8, 0.45, 0.45);
+              break;
+            case 'mushrooms_big':
+              self.addProp(rid, d.gx, d.gy, 'decor_mushrooms_big', { dy: 10 });
+              glow('glow_violet', -30, 0.7, 0.5);
+              break;
+            case 'plants':
+              self.addProp(rid, d.gx, d.gy, 'decor_plants', { dy: 12, dz: -0.2 });
+              break;
+            case 'statue':
+              self.addProp(rid, d.gx, d.gy, 'decor_statue', { dy: 16 });
+              break;
+            case 'cavein':
+              kOr('k_supports', null, null, tokenDepth - 0.2);
+              self.addProp(rid, d.gx, d.gy, 'decor_cavein', { dy: 18 });
+              break;
+            case 'barrels_stacked':
+              kOr('k_barrels_stacked', 'rubble', { dy: 8 });
+              break;
+            case 'furniture':
+              kOr('k_table_broken', 'bones', { dy: 8 });
+              break;
+          }
+        });
       });
     },
 
@@ -554,6 +643,7 @@ var IsoScenes = (function() {
       var target = vis === 'hidden' ? 0 : FOG_ALPHA[vis];
       this.setGroupVisible(sprites, vis !== 'hidden');
       if (this.roomLights[id]) this.setGroupVisible(this.roomLights[id], vis === 'visible');
+      if (this.roomContents[id]) this.setGroupVisible(this.roomContents[id], vis === 'visible');
       if (!overlay) return;
       if (immediate || REDUCED_MOTION) {
         overlay.setAlpha(target);
@@ -569,12 +659,10 @@ var IsoScenes = (function() {
     refreshFog: function(immediate) {
       var self = this;
       var model = this.model;
-      var revealed = false;
       Object.keys(model.rooms).forEach(function(rid) {
         var vis = IsoModel.getRoomVisibility(rid);
         if (self.lastVis[rid] !== vis) {
           var wasHidden = self.lastVis[rid] === 'hidden';
-          if (self.lastVis[rid] !== undefined) revealed = true;
           self.lastVis[rid] = vis;
           self.applyFog(rid, vis, self.roomSprites[rid], immediate, wasHidden);
         }
@@ -587,7 +675,6 @@ var IsoScenes = (function() {
           self.applyFog(link.id, vis, self.linkSprites[link.id], immediate, linkWasHidden);
         }
       });
-      if (revealed && !immediate) fx('reveal');
       this.refreshTokens();
     },
 
@@ -742,6 +829,8 @@ var IsoScenes = (function() {
         if (Math.abs(to.x - from.x) > 2) self.player.setFlipX(to.x < from.x);
         var dist = Phaser.Math.Distance.Between(from.x, from.y, to.x, to.y);
         var dur = Math.max(180, dist / WALK_SPEED);
+        // one door sound per crossing: as the owl steps into the next chamber
+        if (idx === segments.length) fx('door');
         fx('step');
         self.time.delayedCall(dur / 2, function() { fx('step', { volume: 0.7 }); });
         self.tweens.add({
