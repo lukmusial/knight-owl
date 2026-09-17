@@ -350,8 +350,8 @@ const UI = (function() {
   var resultTimers = [];
 
   // Continue button gates (ms). Failure keeps a longer gate so the explanation gets read.
-  var RESULT_DELAY_SUCCESS_MS = 5000;
-  var RESULT_DELAY_FAILURE_MS = 8000;
+  var RESULT_DELAY_SUCCESS_MS = 4000;
+  var RESULT_DELAY_FAILURE_MS = 6000;
   var RESULT_LOOT_DELAY_MS = 1200;
 
   /**
