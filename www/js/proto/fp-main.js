@@ -13,7 +13,9 @@ var ProtoFp = (function() {
   var textures = null;
   var STEP_MS = 520;
   var TURN_MS = 240;
-  var REVEAL_MS = 900;
+  var REVEAL_MS = 900;       // monster rising into view
+  var TAUNT_PAUSE_MS = 250;  // beat between the taunt and the quiz
+  var EXCHANGE_TAIL_MS = 350; // beat after the blow before the result screen
 
   function fx(name, opts) {
     if (typeof FX !== 'undefined' && FX.play) FX.play(name, opts);
@@ -315,19 +317,31 @@ var ProtoFp = (function() {
     if (Dungeon.hasMonsterEncounter(roomId)) {
       var kind = room.type === 'boss' ? 'dragon' : 'monster';
       var imageId = room.type === 'boss' ? 'dragon' : room.monster.id;
-      if (!FpRenderer.hasEntity(roomId)) {
-        FpRenderer.setEntity(roomId, { kind: kind, imageId: imageId, fromDir: entryDir(roomId), fadeMs: 700 });
-      }
-      if (kind === 'dragon') fx('dragon-roar', { delay: 0.3 }); else fx('reveal');
-      var delay = (firstVisit && !reducedMotion()) ? REVEAL_MS : 250;
-      setTimeout(function() {
+      var openEncounter = function() {
         FpRenderer.pause();
         if (room.encounterType === 'matching' && typeof Matching !== 'undefined') {
           startMatchingEncounter(room.monster, room.depth, room.matchingCategory);
         } else {
           startCombat(room.monster, room.depth);
         }
-      }, delay);
+      };
+      // The monster rises into view and taunts Mr Owl before the quiz covers the scene
+      var approach = function(appearing) {
+        if (reducedMotion()) { setTimeout(openEncounter, 250); return; }
+        setTimeout(function() {
+          if (kind !== 'dragon') fx('attack', { volume: 0.5 });
+          FpRenderer.entityAction(roomId, 'taunt', function() { setTimeout(openEncounter, TAUNT_PAUSE_MS); });
+        }, appearing ? REVEAL_MS : 250);
+      };
+      if (kind === 'dragon') fx('dragon-roar', { delay: 0.3 }); else fx('reveal');
+      if (!FpRenderer.hasEntity(roomId)) {
+        var started = false;
+        var begin = function() { if (!started) { started = true; approach(true); } };
+        FpRenderer.setEntity(roomId, { kind: kind, imageId: imageId, fromDir: entryDir(roomId), fadeMs: 700, onReady: begin });
+        setTimeout(begin, 2500);   // model or billboard slow to load: do not hold the encounter
+      } else {
+        approach(false);
+      }
     } else if (room.type === 'treasure' && !room.cleared) {
       if (!FpRenderer.hasEntity(roomId)) {
         FpRenderer.setEntity(roomId, { kind: 'treasure', imageId: 'treasure', fromDir: entryDir(roomId), fadeMs: 500 });
@@ -368,12 +382,8 @@ var ProtoFp = (function() {
     var monsterRoom = Player.getCurrentRoom();
     var result = Combat.submitAnswer(answerIndex);
     if (result.error) { console.error(result.error); return; }
-    // the 3D monster recoils from a correct answer and lunges at a wrong one
-    FpRenderer.reactEntity(monsterRoom, result.success ? 'flinch' : 'lunge');
 
     var fxDone = (typeof UI.playAnswerFx === 'function') ? UI.playAnswerFx(answerIndex, result) : Promise.resolve();
-    // Mr Owl swings his sword at the monster on a correct answer (third-person camera)
-    if (result.success) FpRenderer.playOwl('attack');
     fxDone.then(function() {
       if (result.dragonDefeated) {
         gameInProgress = false;
@@ -387,8 +397,39 @@ var ProtoFp = (function() {
         return;
       }
       UI.hideQuizModal();
-      UI.showResultModal(result, handleResultContinue);
+      playExchange(monsterRoom, result.success, function() {
+        UI.showResultModal(result, handleResultContinue);
+      });
     });
+  }
+
+  /**
+   * The blow in the 3D scene, with the quiz out of the way: on a correct
+   * answer Mr Owl swings his sword and the monster recoils; on a wrong one
+   * the monster winds up and lunges and Mr Owl staggers. Then `done`.
+   */
+  function playExchange(monsterRoom, success, done) {
+    FpRenderer.resume();
+    if (reducedMotion()) { setTimeout(done, 0); return; }
+    var hurt = FpMonsters.ACTIONS.hurt, attack = FpMonsters.ACTIONS.attack;
+    if (success) {
+      FpRenderer.playOwl('attack');
+      fx('attack', { volume: 0.7 });
+      setTimeout(function() {
+        fx('hit');
+        haptic('onCorrectAnswer');
+        FpRenderer.entityAction(monsterRoom, 'hurt');
+      }, 350);
+      setTimeout(done, 350 + hurt + EXCHANGE_TAIL_MS);
+    } else {
+      FpRenderer.entityAction(monsterRoom, 'attack');
+      setTimeout(function() {
+        fx('hit');
+        haptic('onWrongAnswer');
+        FpRenderer.playOwl('bump');
+      }, attack * 0.45);
+      setTimeout(done, attack + EXCHANGE_TAIL_MS);
+    }
   }
 
   function startMatchingEncounter(monster, depth, category) {
@@ -402,6 +443,7 @@ var ProtoFp = (function() {
 
   function handleMatchingComplete(success, monster, set) {
     UI.hideMatchingModal();
+    var monsterRoom = Player.getCurrentRoom();
     var result;
     if (success) {
       var loot = monster.loot || [];
@@ -423,7 +465,9 @@ var ProtoFp = (function() {
         explanation: set.explanation || ''
       };
     }
-    UI.showResultModal(result, handleResultContinue);
+    playExchange(monsterRoom, success, function() {
+      UI.showResultModal(result, handleResultContinue);
+    });
   }
 
   function startTreasureEncounter(roomId) {
@@ -450,21 +494,27 @@ var ProtoFp = (function() {
       var monsterRoom = Player.getPreviousRoom();
       var facing = FpWorld.facingBetween(cur, monsterRoom) || FpWorld.getFacing();
       FpWorld.setPosition(cur, facing);
-      fx('knockback');
-      FpRenderer.animateKnockback(cur, facing, 520, function() {
-        DungeonMap.exploreRoom(cur);
-        refreshVisibility();
-        updateHud();
-        ProtoHud.setCompass(FpWorld.getFacing());
-        ProtoSession.autoSave();
-        busy = false;
-      });
+      // the monster lunges again and Mr Owl is knocked back out of its chamber on the impact
+      var impact = reducedMotion() ? 0 : FpMonsters.ACTIONS.attack * 0.45;
+      FpRenderer.entityAction(monsterRoom, 'attack');
+      setTimeout(function() {
+        fx('knockback');
+        FpRenderer.animateKnockback(cur, facing, 520, function() {
+          DungeonMap.exploreRoom(cur);
+          refreshVisibility();
+          updateHud();
+          ProtoHud.setCompass(FpWorld.getFacing());
+          ProtoSession.autoSave();
+          busy = false;
+        });
+      }, impact);
       return;
     }
     ProtoSession.autoSave();
 
-    FpRenderer.removeEntity(Player.getCurrentRoom());
-    busy = false;
+    // the defeated monster runs away, flies off or vanishes
+    fx('defeat-monster', { volume: 0.6 });
+    FpRenderer.entityAction(Player.getCurrentRoom(), 'exit', function() { busy = false; });
   }
 
   function showVictory() {
