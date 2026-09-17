@@ -61,6 +61,7 @@ const ModuleName = (function() {
 | AppLifecycle | `js/modules/lifecycle.js` | Idles the game in the background (suspends music/SFX, stops TTS and render loops); Android sends `app-pause`/`app-resume` from `MainActivity` |
 | ProtoSharedDom | `js/proto/shared-dom.js` | Shared modal markup for the standalone prototype pages |
 | FpWorld / FpRenderer | `js/proto/fp-*.js` | First-person prototype (pure grid model + three.js renderer + bootstrap) |
+| FpMonsters | `js/proto/fp-monsters.js` | 3D models of the level-1 monsters (`assets/proto/fp/monsters/`, pipeline in `tools/monsters3d/`), procedural idle/flinch/lunge |
 | FpOwl | `js/proto/fp-owl.js` | Rigged 3D Mr Owl (`assets/proto/fp/mr_owl.glb`, pipeline in `tools/owl3d/`) and the third-person camera placement |
 | IsoModel / scenes | `js/proto/iso-*.js` | Isometric fog-of-war prototype (pure tile model + Phaser scenes + bootstrap) |
 

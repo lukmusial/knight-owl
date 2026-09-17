@@ -27,3 +27,12 @@ Generated from the project's own Mr Owl illustration
 trellis-community/TRELLIS Hugging Face Space). It was rigged, animated
 (Idle, Walk, Flap, Attack) and exported in Blender. The pipeline and scripts
 are in `tools/owl3d/`. No third-party artwork is included.
+
+## `monsters/*.glb` (level-1 monsters in 3D)
+
+Generated from the project's own monster illustrations
+(`assets/proto/monsters/<id>.png`) with Microsoft TRELLIS (MIT). The goblin,
+giant rat, vampire bunny and bat swarm were first restyled into shaded
+renders with Qwen-Image-Edit (Apache 2.0). All models were cleaned and
+decimated in Blender. The pipeline is in `tools/monsters3d/`. No third-party
+artwork is included.

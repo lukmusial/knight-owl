@@ -2080,8 +2080,59 @@ var FpRenderer = (function() {
     var px = c.x + ax.dx * dist, pz = c.z + ax.dz * dist;
     sprite.position.set(px, h / 2 + 0.02, pz);
     scene.add(sprite);
-    var entry = { sprite: sprite, imageId: info.imageId, ready: false, extras: [] };
+    var entry = { sprite: sprite, imageId: info.imageId, ready: false, extras: [], model: null };
     entities[roomId] = entry;
+    if (kind === 'monster' && typeof FpMonsters !== 'undefined' && FpMonsters.has(info.imageId)) {
+      FpMonsters.load(info.imageId).then(function(gltf) {
+        if (entities[roomId] !== entry) return;
+        if (gltf) placeModel(entry, info, gltf, px, pz, ax);
+        else placeBillboard(entry, roomId, info, h, px, pz, ax, mat);
+      });
+      return;
+    }
+    placeBillboard(entry, roomId, info, h, px, pz, ax, mat);
+  }
+
+  /**
+   * 3D monster (FpMonsters) facing the chamber entrance, with a contact
+   * shadow, torch shadows and the procedural idle driven by stepEntities()
+   */
+  function placeModel(entry, info, gltf, px, pz, ax) {
+    var inst = FpMonsters.instance(info.imageId, gltf, { castShadow: quality.shadowLights > 0 });
+    inst.root.position.x = px;
+    inst.root.position.z = pz;
+    inst.root.rotation.y = Math.atan2(-ax.dx, -ax.dz);   // model front (+z) toward the player
+    scene.add(inst.root);
+    entry.model = inst;
+    entry.motion = FpMonsters.config(info.imageId).motion;
+    entry.phase = (px * 7.3 + pz * 3.1) % 6.28;
+    entry.ready = true;
+
+    var w = Math.max(1.2, inst.footprint);
+    var blobMat = new THREE.MeshBasicMaterial({ map: getBlobTexture(), transparent: true, depthWrite: false, opacity: info.fadeMs ? 0 : 0.9, polygonOffset: true, polygonOffsetFactor: -2 });
+    var blob = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.1, w * 0.8), blobMat);
+    blob.rotation.x = -Math.PI / 2;
+    blob.rotation.z = inst.root.rotation.y;
+    blob.position.set(px, 0.03, pz);
+    scene.add(blob);
+    entry.extras.push(blob);
+
+    if (info.fadeMs && !reducedMotion) {
+      var now = performance.now();
+      inst.materials.forEach(function(m) {
+        m.transparent = true; m.opacity = 0;
+        fades.push({ mat: m, from: 0, to: 1, start: now, ms: info.fadeMs, done: function() { m.transparent = false; m.needsUpdate = true; } });
+      });
+      fades.push({ mat: blobMat, from: 0, to: 0.9, start: now, ms: info.fadeMs });
+    }
+    envDirty = true;
+    shadowDirty = true;
+    dirty = true;
+    startLoop();
+  }
+
+  function placeBillboard(entry, roomId, info, h, px, pz, ax, mat) {
+    var sprite = entry.sprite;
     FpTextures.billboard(info.imageId).then(function(b) {
       if (entities[roomId] !== entry) return;
       mat.map = b.texture;
@@ -2126,9 +2177,46 @@ var FpRenderer = (function() {
     });
   }
 
+  /**
+   * Monster reaction to an answer: 'flinch' (correct) or 'lunge' (wrong)
+   */
+  function reactEntity(roomId, kind) {
+    var e = entities[roomId];
+    if (!e || !e.model) return;
+    if (kind === 'flinch') e.flinchAt = performance.now();
+    else if (kind === 'lunge') e.lungeAt = performance.now();
+    startLoop();
+  }
+
+  /** Procedural idle + reactions of the 3D monsters; true while a reaction plays */
+  function stepEntities(now) {
+    var busyReacting = false;
+    Object.keys(entities).forEach(function(id) {
+      var e = entities[id];
+      if (!e.model) return;
+      var ev = {
+        flinch: FpMonsters.progress(e.flinchAt, now, FpMonsters.FLINCH_MS),
+        lunge: FpMonsters.progress(e.lungeAt, now, FpMonsters.LUNGE_MS)
+      };
+      if (ev.flinch >= 0 || ev.lunge >= 0) busyReacting = true;
+      var o = FpMonsters.pose(e.motion, reducedMotion ? 0 : clock, e.phase, ev);
+      var pv = e.model.pivot;
+      pv.position.set(0, o.y, o.forward);
+      pv.scale.set(o.sx, o.sy, o.sz);
+      pv.rotation.set(o.rotX, 0, o.rotZ);
+    });
+    return busyReacting;
+  }
+
   function removeEntity(roomId) {
     var e = entities[roomId];
     if (!e) return;
+    if (e.model) {
+      // geometry and textures are shared with the cached model; only the cloned materials are ours
+      scene.remove(e.model.root);
+      e.model.materials.forEach(function(m) { m.dispose(); });
+      shadowDirty = true;
+    }
     scene.remove(e.sprite);
     e.sprite.material.dispose();
     for (var i = 0; i < e.extras.length; i++) {
@@ -2144,7 +2232,8 @@ var FpRenderer = (function() {
   function hideEntity(roomId, hidden) {
     var e = entities[roomId];
     if (!e) return;
-    e.sprite.visible = e.ready && !hidden;
+    e.sprite.visible = e.ready && !hidden && !e.model;
+    if (e.model) e.model.root.visible = !hidden;
     for (var i = 0; i < e.extras.length; i++) e.extras[i].visible = e.ready && !hidden;
     shadowDirty = true;
     dirty = true;
@@ -2157,7 +2246,10 @@ var FpRenderer = (function() {
       var f = fades[i];
       var t = Math.min(1, (now - f.start) / f.ms);
       f.mat.opacity = f.from + (f.to - f.from) * easeOut(t);
-      if (t >= 1) fades.splice(i, 1);
+      if (t >= 1) {
+        fades.splice(i, 1);
+        if (f.done) f.done();
+      }
     }
     dirty = true;
   }
@@ -2189,6 +2281,8 @@ var FpRenderer = (function() {
     if (doorsMoving) stepDoors(dt);
     if (torchesChanging) stepTorches(dt);
     if (tween) refreshGroups(false);
+    var reacting = stepEntities(now);
+    if (reacting) dirty = true;
     if (thirdPersonActive() && (animated || tween)) {
       owl.update(dt);
       // the owl's shadow moves with it: refresh the static shadow maps at a few Hz
@@ -2220,7 +2314,7 @@ var FpRenderer = (function() {
         rebuild();
       }
     }
-    if (running && (animated || tween || fades.length || brightening || doorsMoving || torchesChanging || lightsFading)) rafId = requestAnimationFrame(frame);
+    if (running && (animated || tween || fades.length || brightening || doorsMoving || torchesChanging || lightsFading || reacting)) rafId = requestAnimationFrame(frame);
   }
 
   function startLoop() {
@@ -2374,6 +2468,7 @@ var FpRenderer = (function() {
     resume: resume,
     pause: pause,
     setViewMode: setViewMode,
+    reactEntity: reactEntity,
     getViewMode: getViewMode,
     playOwl: playOwl,
     getOwlInfo: getOwlInfo,
