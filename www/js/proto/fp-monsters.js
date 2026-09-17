@@ -6,8 +6,10 @@
  * ~9k triangles, 512 px texture. Monsters without a model keep the billboard.
  *
  * The models are static meshes; life comes from procedural motion here:
- * a breathing idle (with a hover for flyers and a squash for the slime),
- * a flinch when Mr Owl answers correctly and a lunge when he is wrong.
+ * a breathing idle (with a hover for flyers and a squash for the slime) and
+ * the encounter actions: appear (rise in), taunt (short lunge before the
+ * quiz), hurt (recoil from Mr Owl's sword), attack (wind-up and lunge) and
+ * exit (run away, fly off or vanish once defeated).
  *
  * Pure part (no three.js): model config, idle/flinch/lunge transforms.
  * three.js part: load() and instance().
@@ -18,20 +20,23 @@ var FpMonsters = (function() {
 
   // height in world units (Mr Owl is 1.35), motion style, lift off the floor,
   // yaw (degrees) turning a side-on model's face toward the player
+  // exit: how a defeated monster leaves ('runaway' | 'flyaway' | 'vanish')
   var MODELS = {
-    goblin: { height: 1.9, motion: 'breathe' },
-    giant_rat: { height: 1.6, motion: 'breathe' },
-    slime: { height: 1.5, motion: 'squash' },
-    bat_swarm: { height: 1.4, motion: 'hover', lift: 0.6 },
-    zombie: { height: 2.4, motion: 'sway' },
-    mimic: { height: 1.5, motion: 'breathe' },
-    wolf: { height: 1.5, motion: 'breathe', yaw: -45 },
-    giant_snake: { height: 2.4, motion: 'sway', yaw: -30 },
-    vampire_bunny: { height: 1.6, motion: 'hover', lift: 0.15, yaw: -60 }
+    goblin: { height: 1.9, motion: 'breathe', exit: 'runaway' },
+    giant_rat: { height: 1.6, motion: 'breathe', exit: 'runaway' },
+    slime: { height: 1.5, motion: 'squash', exit: 'vanish' },
+    bat_swarm: { height: 1.4, motion: 'hover', lift: 0.6, exit: 'flyaway' },
+    zombie: { height: 2.4, motion: 'sway', exit: 'vanish' },
+    mimic: { height: 1.5, motion: 'breathe', exit: 'vanish' },
+    wolf: { height: 1.5, motion: 'breathe', yaw: -45, exit: 'runaway' },
+    giant_snake: { height: 2.4, motion: 'sway', yaw: -30, exit: 'runaway' },
+    vampire_bunny: { height: 1.6, motion: 'hover', lift: 0.15, yaw: -60, exit: 'flyaway' }
   };
 
-  var FLINCH_MS = 450;
-  var LUNGE_MS = 650;
+  // action durations (ms)
+  var ACTIONS = { appear: 900, taunt: 700, hurt: 550, attack: 900, exit: 1200 };
+  var FLINCH_MS = ACTIONS.hurt;
+  var LUNGE_MS = ACTIONS.attack;
 
   function has(id) { return Object.prototype.hasOwnProperty.call(MODELS, id); }
 
@@ -44,13 +49,15 @@ var FpMonsters = (function() {
    * @param {string} motion - 'breathe' | 'squash' | 'hover' | 'sway'
    * @param {number} t - clock seconds
    * @param {number} phase - per-instance offset so neighbours are not in sync
-   * @param {Object} ev - { flinch: 0..1 progress or -1, lunge: 0..1 progress or -1 }
-   * @returns {Object} { y, sx, sy, sz, rotZ, rotX, forward } (forward: toward the player)
+   * @param {Object} ev - progress 0..1 (or -1 when not running) of each action:
+   *   { appear, taunt, flinch (hurt), lunge (attack), exit } plus exitStyle
+   * @returns {Object} { y, sx, sy, sz, rotX, rotY, rotZ, forward, fade }
+   *   (forward: toward the player; fade: opacity multiplier)
    */
   function pose(motion, t, phase, ev) {
     var p = t * 2 * Math.PI / 2.4 + (phase || 0);
     var s = Math.sin(p);
-    var out = { y: 0, sx: 1, sy: 1, sz: 1, rotZ: 0, rotX: 0, forward: 0 };
+    var out = { y: 0, sx: 1, sy: 1, sz: 1, rotX: 0, rotY: 0, rotZ: 0, forward: 0, fade: 1 };
     switch (motion) {
       case 'squash':
         out.sy = 1 + 0.07 * s;
@@ -84,7 +91,48 @@ var FpMonsters = (function() {
       out.rotX += 0.15 * Math.max(0, fwd);
       out.sy *= 1 + 0.08 * Math.max(0, fwd);
     }
+    if (ev.appear >= 0 && ev.appear <= 1) {
+      // rise out of the floor with a small overshoot
+      var a = ev.appear;
+      var grow = a < 0.7 ? Math.max(0.001, easeOutBack(a / 0.7)) : 1;
+      out.sx *= grow; out.sy *= grow; out.sz *= grow;
+      out.y -= 0.4 * (1 - Math.min(1, a / 0.6));
+      out.fade *= Math.min(1, a / 0.35);
+    }
+    if (ev.taunt >= 0 && ev.taunt <= 1) {
+      // quick hop toward the player: "come on then"
+      var h = Math.sin(ev.taunt * Math.PI);
+      out.forward += 0.45 * h;
+      out.y += 0.25 * Math.sin(ev.taunt * Math.PI * 2) * (ev.taunt < 0.5 ? 1 : 0);
+      out.sy *= 1 + 0.06 * h;
+    }
+    if (ev.exit >= 0 && ev.exit <= 1) {
+      var x = ev.exit;
+      if (ev.exitStyle === 'vanish') {
+        // spin, shrink and fade in a puff
+        var v = x * x;
+        out.rotY += v * Math.PI * 4;
+        var k = Math.max(0.001, 1 - v);
+        out.sx *= k; out.sy *= k; out.sz *= k;
+        out.y += 0.3 * x;
+        out.fade *= 1 - Math.max(0, (x - 0.5) / 0.5);
+      } else {
+        // turn round, then leave away from the player (flyers also climb)
+        var turnT = Math.min(1, x / 0.3);
+        out.rotY += Math.PI * turnT;
+        var go = Math.max(0, (x - 0.25) / 0.75);
+        out.forward -= 4.5 * go * go;
+        if (ev.exitStyle === 'flyaway') out.y += 2.2 * go * go;
+        else out.y += 0.12 * Math.abs(Math.sin(go * Math.PI * 5)) * (1 - go);
+        out.fade *= 1 - Math.max(0, (x - 0.6) / 0.4);
+      }
+    }
     return out;
+  }
+
+  function easeOutBack(t) {
+    var c = 1.7;
+    return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2);
   }
 
   /** Progress of a timed reaction (0..1) or -1 when not running */
@@ -155,6 +203,7 @@ var FpMonsters = (function() {
   return {
     DIR: DIR,
     MODELS: MODELS,
+    ACTIONS: ACTIONS,
     FLINCH_MS: FLINCH_MS,
     LUNGE_MS: LUNGE_MS,
     has: has,
