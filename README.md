@@ -81,33 +81,30 @@ Two experimental presentations of the same dungeon live under `www/proto/` and a
 
 | Page | Engine | What it shows |
 |------|--------|---------------|
-| `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style stone chambers with rounded corners, floor coves, vaulted ceilings and arched, coved passages, lit by real torch lights with shadows, plus lava rivers: turn left/right, step forward/back; monsters stay hidden in the fog until you enter their chamber. The camera starts in third person over Mr Owl's shoulder; the **1P/3P** dock button switches between that and first person. It shows a rigged 3D Mr Owl (generated from the illustration with Microsoft TRELLIS, animated in Blender, see `tools/owl3d/`) walks, flaps his wings when knocked back and swings his sword on a correct answer. The nine level-1 monsters are 3D models too (TRELLIS, see `tools/monsters3d/`): they breathe, hover or sway, recoil from a correct answer and lunge at a wrong one. |
+| `proto/first-person.html` | three.js (r162, WebGL 1/2) | Eye-of-the-Beholder style stone chambers with rounded corners, floor coves, vaulted ceilings and arched, coved passages, lit by real torch lights with shadows, plus lava rivers: turn left/right, step forward/back; monsters stay hidden in the fog until you enter their chamber. The camera starts in third person over Mr Owl's shoulder; the **1P/3P** dock button switches between that and first person. It shows a rigged 3D Mr Owl (generated from the illustration with Microsoft TRELLIS, animated in Blender, see `tools/owl3d/`) who walks, flaps his wings when knocked back and swings his sword on a correct answer. The nine level-1 monsters are 3D models too (TRELLIS, see `tools/monsters3d/`): they breathe, hover or sway, recoil from a correct answer and lunge at a wrong one. |
 | `proto/isometric.html` | Phaser 3.90 (WebGL, Canvas fallback) | Isometric dungeon with fog of war and dressed chambers (torches, banners, water and lava pools, glowing mushrooms, ferns, owl statues, cave-ins, broken floors): unexplored rooms are dark and neighbours dimmed; a chamber's monster, treasure or emptiness only shows once Mr Owl enters it. Tap an adjacent room and Mr Owl walks there; he is pre-rendered from the rigged 3D model (`tools/owl3d/render_iso.py` + `pack_sprites.py`, walk and idle facing toward and away from the viewer). Wall torches are a Blender model (`tools/iso/render_torch.py`) with an 8-frame flame and a warm pool of light on the floor; Mr Owl, monsters, chests and obstacles cast soft shadows away from the torches of their chamber (Mr Owl's follow him every frame, and he darkens between torches). |
 
-Both pages are built for phones: the engine canvas fills the screen and a 1990s-style HUD (stone-and-gold top bar with portrait and stats, framed minimap, parchment room ribbon, control dock) floats above it. Inside the 3D and isometric scenes monsters appear as extracted sprites (`www/assets/proto/monsters/`, produced by `tools/extract-sprites.py`); the encounter screens keep the full painted illustrations.
+Both pages are built for phones: the engine canvas fills the screen and a 1990s-style HUD (stone-and-gold top bar with portrait and stats, framed minimap, parchment room ribbon, control dock) floats above it. In the isometric scene monsters appear as extracted sprites (`www/assets/proto/monsters/`, produced by `tools/extract-sprites.py`), in the 3D scene the level-1 monsters are 3D models and the rest use those sprites as billboards; the encounter screens keep the full painted illustrations.
+
+Gameplay on a phone (Samsung Galaxy S25 Ultra), 3D view with the third-person camera:
 
 <p align="center">
-  <img src="docs/screenshots/proto-fp-01-corridor.png" alt="First-person corridor" width="420">
-  &nbsp;
-  <img src="docs/screenshots/proto-fp-04-knockback.png" alt="First-person after a knockback" width="420">
-</p>
-<p align="center">
-  <img src="docs/screenshots/proto-fp-05-torches.png" alt="First-person torch-lit wall" width="280">
-  &nbsp;
-  <img src="docs/screenshots/proto-fp-06-dragon-shadow.png" alt="First-person dragon casting a torch shadow" width="560">
-</p>
-<p align="center">
-  <img src="docs/screenshots/proto-fp-07-features.png" alt="First-person runes, water crack, door and timber frame" width="420">
-  &nbsp;
-  <img src="docs/screenshots/proto-fp-08-dressing.png" alt="First-person lava river, statue, skeleton and fallen column" width="420">
-</p>
-<p align="center">
-  <img src="docs/screenshots/proto-iso-01-start.png" alt="Isometric start with fog of war" width="420">
-  &nbsp;
-  <img src="docs/screenshots/proto-iso-06-fog-overview.png" alt="Isometric explored area" width="420">
+  <img src="docs/screenshots/3d-01-corridor.png" alt="3D view: Mr Owl in a torch-lit corridor" width="200">
+  <img src="docs/screenshots/3d-02-monster.png" alt="3D view: a mimic waiting between two wall torches" width="200">
+  <img src="docs/screenshots/3d-03-quiz.png" alt="3D view: vocabulary question from the green slime" width="200">
+  <img src="docs/screenshots/3d-04-wrong.png" alt="3D view: wrong answer with the correct word" width="200">
 </p>
 
-Example play recordings: [first-person](docs/videos/proto-first-person.mp4) and [isometric](docs/videos/proto-isometric.mp4). More stills in `docs/screenshots/proto-*.png` (encounter, result, wrong answer, push-back).
+Isometric view:
+
+<p align="center">
+  <img src="docs/screenshots/iso-01-start.png" alt="Isometric: torch-lit entrance with Mr Owl's shadows" width="200">
+  <img src="docs/screenshots/iso-02-chamber.png" alt="Isometric: fungal chamber with torchlight shadows" width="200">
+  <img src="docs/screenshots/iso-03-quiz.png" alt="Isometric: vocabulary question from the dungeon wolf" width="200">
+  <img src="docs/screenshots/iso-04-wrong.png" alt="Isometric: wrong answer, Mr Owl steps back" width="200">
+</p>
+
+45-second play recordings with sound: [3D view](docs/videos/3d-play.mp4) and [isometric view](docs/videos/iso-play.mp4).
 
 Run them from an http server (canvas image processing is blocked on `file://`):
 
