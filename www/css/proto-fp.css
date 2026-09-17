@@ -28,3 +28,14 @@ body.proto-fp .hud-stage::after {
 body.proto-fp .hud-dock-side .hud-btn {
   align-self: flex-start;
 }
+
+body.proto-fp .fp-dock-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+body.proto-fp #fp-quality {
+  font-size: 0.7rem;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}

@@ -1,19 +1,23 @@
 /**
  * FpTextures
- * Builds three.js textures for the first-person prototype without shipping
- * new art: real files from assets/proto/ are used when present, otherwise
- * regions of the existing corridor illustration are cropped and tiled, and
- * as a last resort stone patterns are drawn procedurally. Also generates
- * the animated lava, torch flame atlas and hanging-vine decals, and turns
- * the extracted monster cutouts (assets/proto/monsters) into billboards.
+ * Texture sets for the first-person prototype. Stylised CC0 PBR textures
+ * (colour + normal maps, assets/proto/fp/, see LICENSE.md there) are used
+ * when they load and can be uploaded to WebGL; otherwise stone patterns
+ * are drawn procedurally. Also generates the fallback lava, hanging-vine
+ * decals and the dragon-gate rune, and turns the extracted monster cutouts
+ * (assets/proto/monsters) into billboards.
  */
 
 var FpTextures = (function() {
   var SIZE = 256;
-  var SEED_IMAGE = 'assets/directions/n_s.png';
-  // Crop regions of the 800x427 seed illustration (wall face right of the arch, floor band)
-  var WALL_CROP = { x: 470, y: 120, w: 300, h: 210 };
-  var FLOOR_CROP = { x: 250, y: 370, w: 300, h: 60 };
+  var DIR = 'assets/proto/fp/';
+  // surface -> file stem (colour: <stem>_color.jpg, normal: <stem>_normal.jpg)
+  var FILES = {
+    wall: 'stone_wall',
+    moss: 'mossy_bricks',
+    floor: 'flagstone_floor',
+    wood: 'wood_planks'
+  };
 
   var billboardCache = {};
 
@@ -197,30 +201,6 @@ var FpTextures = (function() {
   }
 
   /**
-   * 4-frame flame atlas (256x64), each frame a wobbling teardrop
-   */
-  function flameAtlas() {
-    var c = makeCanvas(256, 64);
-    var ctx = c.getContext('2d');
-    for (var f = 0; f < 4; f++) {
-      var ox = f * 64 + 32;
-      var wob = (f % 2 ? 1 : -1) * 3;
-      var g = ctx.createRadialGradient(ox, 40, 2, ox, 36, 22);
-      g.addColorStop(0, 'rgba(255, 250, 200, 1)');
-      g.addColorStop(0.3, 'rgba(255, 200, 60, 0.95)');
-      g.addColorStop(0.65, 'rgba(255, 110, 20, 0.6)');
-      g.addColorStop(1, 'rgba(200, 40, 0, 0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(ox, 6 + (f === 2 ? 4 : 0));
-      ctx.quadraticCurveTo(ox + 18 + wob, 30, ox, 60);
-      ctx.quadraticCurveTo(ox - 18 - wob, 30, ox, 6 + (f === 2 ? 4 : 0));
-      ctx.fill();
-    }
-    return c;
-  }
-
-  /**
    * Hanging roots/vines on a transparent 128x256 canvas
    */
   function vineCanvas(seed) {
@@ -271,72 +251,97 @@ var FpTextures = (function() {
     return c;
   }
 
-  // ---------------------------------------------------------------------------
-  // Crops of the existing corridor art
-  // ---------------------------------------------------------------------------
-  function cropTiled(img, crop, darken) {
+  function proceduralWood() {
     var c = makeCanvas(SIZE, SIZE);
     var ctx = c.getContext('2d');
-    var half = SIZE / 2;
-    for (var ty = 0; ty < 2; ty++) {
-      for (var tx = 0; tx < 2; tx++) {
-        ctx.save();
-        ctx.translate(tx * half + (tx ? half : 0), ty * half + (ty ? half : 0));
-        ctx.scale(tx ? -1 : 1, ty ? -1 : 1);
-        ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, half, half);
-        ctx.restore();
-      }
+    var rnd = seededRandom(17);
+    ctx.fillStyle = '#6b4424';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    for (var i = 0; i < 60; i++) {
+      ctx.strokeStyle = 'rgba(' + (40 + Math.round(rnd() * 40)) + ',' + (24 + Math.round(rnd() * 20)) + ',10,0.5)';
+      ctx.lineWidth = 1 + rnd() * 3;
+      var y = rnd() * SIZE;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(SIZE * 0.3, y + (rnd() - 0.5) * 12, SIZE * 0.6, y + (rnd() - 0.5) * 12, SIZE, y);
+      ctx.stroke();
     }
-    if (darken) {
-      ctx.fillStyle = 'rgba(0,0,0,' + darken + ')';
-      ctx.fillRect(0, 0, SIZE, SIZE);
-    }
-    return canvasUsable(c) ? c : null;
+    return c;
   }
 
-  function fileOrNull(url) {
+  // ---------------------------------------------------------------------------
+  // Files
+  // ---------------------------------------------------------------------------
+  function repeatTexture(tex, color) {
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    tex.anisotropy = 4;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  /**
+   * Image as a repeating texture, or null when missing or not uploadable
+   * (tainted on file://)
+   */
+  function fileTexture(url, color) {
     return loadImage(url).then(function(img) {
       if (!img) return null;
-      var c = makeCanvas(SIZE, SIZE);
-      c.getContext('2d').drawImage(img, 0, 0, SIZE, SIZE);
-      return canvasUsable(c) ? c : null;
+      var probe = makeCanvas(1, 1);
+      probe.getContext('2d').drawImage(img, 0, 0, 1, 1);
+      if (!canvasUsable(probe)) return null;
+      return repeatTexture(new THREE.Texture(img), color);
     });
   }
 
-  function assemble(wallC, floorC, ceilC, source) {
-    var lava = tileTexture(lavaCanvas());
+  function surface(map, normalMap) {
+    return { map: map, normalMap: normalMap || null };
+  }
+
+  function proceduralSet() {
+    var wallC = proceduralWall();
     return {
-      wall: tileTexture(wallC),
-      wallMoss: tileTexture(mossify(wallC, 21)),
-      floor: tileTexture(floorC),
-      ceiling: tileTexture(ceilC),
-      lava: lava,
-      flame: clampTexture(flameAtlas()),
+      wall: surface(tileTexture(wallC)),
+      moss: surface(tileTexture(mossify(wallC, 21))),
+      floor: surface(tileTexture(proceduralFloor())),
+      ceiling: surface(tileTexture(proceduralCeiling())),
+      wood: surface(tileTexture(proceduralWood())),
+      lava: tileTexture(lavaCanvas()),
       vine: clampTexture(vineCanvas(3)),
       rune: clampTexture(runeCanvas()),
-      source: source
+      source: 'procedural'
     };
   }
 
   /**
-   * Resolve all textures (real files > seed crops > procedural)
-   * @returns {Promise<Object>}
+   * Resolve all textures: CC0 files per surface, procedural where a file fails
+   * @returns {Promise<Object>} { wall, moss, floor, ceiling, wood: {map, normalMap}, lava, vine, rune, source }
    */
   function load() {
-    return Promise.all([
-      fileOrNull('assets/proto/wall.png'),
-      fileOrNull('assets/proto/floor.png'),
-      fileOrNull('assets/proto/ceiling.png'),
-      loadImage(SEED_IMAGE)
-    ]).then(function(res) {
-      var seed = res[3];
-      var wallFromSeed = seed ? cropTiled(seed, WALL_CROP, 0) : null;
-      var floorFromSeed = seed ? cropTiled(seed, FLOOR_CROP, 0.15) : null;
-      var ceilFromSeed = seed ? cropTiled(seed, WALL_CROP, 0.5) : null;
-      var wallC = res[0] || wallFromSeed || proceduralWall();
-      var floorC = res[1] || floorFromSeed || proceduralFloor();
-      var ceilC = res[2] || ceilFromSeed || proceduralCeiling();
-      return assemble(wallC, floorC, ceilC, res[0] ? 'file' : (wallFromSeed ? 'seed' : 'procedural'));
+    var keys = Object.keys(FILES);
+    var jobs = [];
+    keys.forEach(function(k) {
+      jobs.push(fileTexture(DIR + FILES[k] + '_color.jpg', true));
+      jobs.push(fileTexture(DIR + FILES[k] + '_normal.jpg', false));
+    });
+    jobs.push(fileTexture(DIR + 'lava_color.jpg', true));
+    return Promise.all(jobs).then(function(res) {
+      var set = proceduralSet();
+      var files = 0;
+      keys.forEach(function(k, i) {
+        var map = res[i * 2], normal = res[i * 2 + 1];
+        if (map) {
+          set[k] = surface(map, normal);
+          files++;
+        }
+      });
+      // the vault reuses the plain stone wall set (tinted darker by the material)
+      if (res[0]) set.ceiling = surface(res[0], res[1]);
+      var lava = res[keys.length * 2];
+      if (lava) { set.lava = lava; files++; }
+      set.source = files === keys.length + 1 ? 'file' : (files ? 'mixed' : 'procedural');
+      return set;
     });
   }
 
@@ -344,7 +349,7 @@ var FpTextures = (function() {
    * Procedural textures only (synchronous), used until load() resolves
    */
   function procedural() {
-    return assemble(proceduralWall(), proceduralFloor(), proceduralCeiling(), 'procedural');
+    return proceduralSet();
   }
 
   // ---------------------------------------------------------------------------
