@@ -223,6 +223,7 @@ loadScript('www/js/modules/fx.js');
 loadScript('www/js/proto/shared-dom.js');
 loadScript('www/js/proto/session.js');
 loadScript('www/js/modules/music.js');
+loadScript('www/js/modules/lifecycle.js');
 loadScript('www/js/proto/fp-world.js');
 loadScript('www/js/proto/fp-layout.js');
 loadScript('www/js/proto/fp-quality.js');
@@ -253,6 +254,7 @@ loadScript('tests/session.test.js');
 loadScript('tests/fp-world.test.js');
 loadScript('tests/fp-layout.test.js');
 loadScript('tests/iso-model.test.js');
+loadScript('tests/lifecycle.test.js');
 loadScript('tests/integration.test.js');
 
 // Load adapter and E2E tests

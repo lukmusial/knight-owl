@@ -3,7 +3,8 @@
  * Procedural dungeon art for the isometric prototype, painted on canvases at
  * boot: mossy flagstone floors, stone walls with vines and cracks, arched
  * doorways, torches with animated flames, lava, pillars, bones, gold, crystals,
- * banners, stairs, chests. Colours are sampled from the original illustrations
+ * banners, stairs, chests, and chamber decor (water/lava pools, mushrooms,
+ * ferns, owl statues, cave-ins, broken floors). Colours are sampled from the original illustrations
  * (assets/directions/*.png) so the tiles match the painted scenes.
  * Real art from assets/proto/iso/ replaces any key that already exists.
  * Also builds the owl walk cycle and standing monster sprites from the
@@ -24,6 +25,18 @@ var IsoTextures = (function() {
     edge: '#26262f',
     moss: '#5f7d3c',
     mossDark: '#3f5a29'
+  };
+
+  // Stone colours for procedural decor drawn next to the (tinted) Kenney sandstone
+  var KENNEY_STONE_PALETTE = {
+    floor: '#b3aa9c',
+    floorDark: '#877f73',
+    floorLight: '#cfc6b6',
+    wall: '#a79e90',
+    wallDark: '#766e63',
+    edge: '#3e3830',
+    moss: '#6f8f45',
+    mossDark: '#4a6630'
   };
 
   // Optional real art files (key -> filename under assets/proto/iso/)
@@ -59,7 +72,11 @@ var IsoTextures = (function() {
     k_rim_n: 'stoneWallHalf_S', k_rim_w: 'stoneWallHalf_E', k_rim_s: 'stoneWallHalf_N', k_rim_e: 'stoneWallHalf_W',
     k_stairs: 'stairs_S', k_chest: 'chestClosed_E', k_chest_open: 'chestOpen_E',
     k_barrel: 'barrel_E', k_barrels: 'barrels_E', k_crate: 'woodenCrate_E', k_crates: 'woodenCrates_E',
-    k_column: 'stoneColumn_E'
+    k_column: 'stoneColumn_E',
+    // chamber decor (optional; procedural stand-ins are used when missing)
+    k_supports: 'woodenSupportsBeam_E',
+    k_table_broken: 'tableChairsBroken_E', k_barrels_stacked: 'barrelsStacked_E',
+    k_wall_hole_n: 'stoneWallHole_S', k_wall_hole_w: 'stoneWallHole_E'
   };
   // Keys that must all be present for the scene to switch to the Kenney set
   var KENNEY_REQUIRED = ['k_floor_0', 'k_floor_1', 'k_floor_2', 'k_corridor', 'k_wall_n_0', 'k_wall_w_0',
@@ -277,6 +294,264 @@ var IsoTextures = (function() {
       ctx.stroke();
     }
     ctx.restore();
+  }
+
+  /**
+   * Sunken pool on a floor tile: stone lip around water or lava (128x64)
+   */
+  function drawPool(ctx, palette, liquid, frame) {
+    // lip
+    diamondPath(ctx, 64, 34, 54, 27);
+    ctx.fillStyle = palette.wallDark;
+    ctx.fill();
+    ctx.strokeStyle = palette.edge;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    diamondPath(ctx, 64, 32, 50, 25);
+    ctx.fillStyle = palette.wall;
+    ctx.fill();
+    // liquid surface, lower than the lip
+    diamondPath(ctx, 64, 34, 42, 21);
+    var g = ctx.createRadialGradient(58, 30, 3, 64, 34, 48);
+    if (liquid === 'lava') {
+      g.addColorStop(0, '#ffc15a'); g.addColorStop(0.55, '#ff6a1a'); g.addColorStop(1, '#7a1604');
+    } else {
+      g.addColorStop(0, '#5fb4c9'); g.addColorStop(0.6, '#23677f'); g.addColorStop(1, '#0c2b3d');
+    }
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.save();
+    diamondPath(ctx, 64, 34, 42, 21);
+    ctx.clip();
+    var r = rng((liquid === 'lava' ? 700 : 500) + frame);
+    if (liquid === 'lava') {
+      ctx.fillStyle = 'rgba(60,10,0,0.7)';
+      for (var i = 0; i < 4; i++) {
+        ctx.beginPath(); ctx.ellipse(34 + r() * 60 + frame * 4, 22 + r() * 24, 7 + r() * 5, 3 + r() * 2, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(255,240,150,0.85)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(36 + frame * 4, 24); ctx.quadraticCurveTo(64, 36 + (frame - 1) * 4, 92 - frame * 3, 40); ctx.stroke();
+    } else {
+      // concentric ripples drifting outwards per frame
+      ctx.strokeStyle = 'rgba(200,240,255,0.45)';
+      ctx.lineWidth = 1.2;
+      [[52, 30], [76, 38]].forEach(function(c, k) {
+        var rad = 6 + ((frame + k) % 3) * 6;
+        ctx.globalAlpha = 1 - ((frame + k) % 3) * 0.3;
+        ctx.beginPath(); ctx.ellipse(c[0], c[1], rad, rad / 2, 0, 0, Math.PI * 2); ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      for (var j = 0; j < 3; j++) {
+        ctx.beginPath(); ctx.ellipse(40 + r() * 48, 26 + r() * 16, 4, 1, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.restore();
+    // inner shadow along the back edges
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(22, 34); ctx.lineTo(64, 13); ctx.lineTo(106, 34); ctx.stroke();
+  }
+
+  /**
+   * Broken floor: dark pit with cracked slabs around it (128x64)
+   */
+  function drawPit(ctx, palette) {
+    var r = rng(77);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(64, 34, 40, 18, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#07070b';
+    ctx.beginPath();
+    for (var i = 0; i < 12; i++) {
+      var a = i / 12 * Math.PI * 2, rad = 0.7 + r() * 0.3;
+      var x = 64 + Math.cos(a) * 30 * rad, y = 34 + Math.sin(a) * 14 * rad;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = palette.edge; ctx.lineWidth = 1.2;
+    for (var k = 0; k < 5; k++) {
+      var a2 = r() * Math.PI * 2;
+      ctx.beginPath(); ctx.moveTo(64 + Math.cos(a2) * 28, 34 + Math.sin(a2) * 13);
+      ctx.lineTo(64 + Math.cos(a2) * 50, 34 + Math.sin(a2) * 24); ctx.stroke();
+    }
+    // tilted slab falling in
+    ctx.fillStyle = palette.floorDark;
+    ctx.beginPath(); ctx.moveTo(50, 30); ctx.lineTo(70, 26); ctx.lineTo(76, 36); ctx.lineTo(54, 40); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  /**
+   * Glowing mushroom cluster; big=true for the tall back-corner version
+   */
+  function drawMushrooms(ctx, big) {
+    var W = big ? 84 : 64, H = big ? 100 : 52;
+    var base = H - 6;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(W / 2, base + 1, W / 2 - 4, 6, 0, 0, Math.PI * 2); ctx.fill();
+    var caps = big
+      ? [[26, 56, 12, 18, '#7e57c2', '#d1c4e9'], [52, 70, 16, 22, '#26a69a', '#b2dfdb'], [40, 34, 8, 13, '#7e57c2', '#e1bee7'], [70, 30, 6, 10, '#26a69a', '#b2ebf2'], [14, 26, 6, 9, '#ef6c00', '#ffe0b2']]
+      : [[20, 26, 7, 12, '#26a69a', '#b2ebf2'], [38, 36, 9, 16, '#7e57c2', '#e1bee7'], [52, 18, 5, 9, '#ef6c00', '#ffe0b2'], [12, 14, 4, 7, '#7e57c2', '#d1c4e9']];
+    caps.forEach(function(c) {
+      var x = c[0], h = c[1], stemW = c[2] * 0.45, capR = c[3];
+      var top = base - h;
+      // stem
+      var sg = ctx.createLinearGradient(x - stemW, 0, x + stemW, 0);
+      sg.addColorStop(0, '#b9ae98'); sg.addColorStop(0.5, '#f1ead8'); sg.addColorStop(1, '#a89c84');
+      ctx.fillStyle = sg;
+      ctx.beginPath();
+      ctx.moveTo(x - stemW, base); ctx.quadraticCurveTo(x - stemW * 0.6, top + h * 0.5, x - stemW * 0.7, top + 2);
+      ctx.lineTo(x + stemW * 0.7, top + 2); ctx.quadraticCurveTo(x + stemW * 0.6, top + h * 0.5, x + stemW, base);
+      ctx.closePath(); ctx.fill();
+      // glow halo
+      var gg = ctx.createRadialGradient(x, top, 1, x, top, capR * 1.8);
+      gg.addColorStop(0, 'rgba(255,255,255,0.28)'); gg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(x, top, capR * 1.8, 0, Math.PI * 2); ctx.fill();
+      // cap
+      var cg = ctx.createRadialGradient(x - capR * 0.3, top - capR * 0.4, 1, x, top, capR * 1.2);
+      cg.addColorStop(0, c[5]); cg.addColorStop(0.5, c[4]); cg.addColorStop(1, 'rgba(20,10,30,1)');
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.moveTo(x - capR, top + 3);
+      ctx.bezierCurveTo(x - capR, top - capR * 0.9, x + capR, top - capR * 0.9, x + capR, top + 3);
+      ctx.quadraticCurveTo(x, top + capR * 0.3, x - capR, top + 3);
+      ctx.closePath(); ctx.fill();
+      // spots
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.beginPath(); ctx.arc(x - capR * 0.35, top - capR * 0.3, Math.max(1.2, capR * 0.12), 0, Math.PI * 2);
+      ctx.arc(x + capR * 0.3, top - capR * 0.45, Math.max(1, capR * 0.09), 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  /**
+   * Ferns, grass tufts and pale roots growing between the slabs (72x56)
+   */
+  function drawPlants(ctx, palette) {
+    var r = rng(55);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath(); ctx.ellipse(36, 50, 30, 6, 0, 0, Math.PI * 2); ctx.fill();
+    drawMossPatch(ctx, palette, 36, 48, 30, 8, 0.8);
+    function frond(x, y, len, angle, color) {
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.6;
+      var ex = x + Math.cos(angle) * len, ey = y + Math.sin(angle) * len;
+      var cx = x + Math.cos(angle + 0.35) * len * 0.6, cy = y + Math.sin(angle + 0.35) * len * 0.6;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(cx, cy, ex, ey); ctx.stroke();
+      for (var i = 1; i < 7; i++) {
+        var t = i / 7;
+        var px = (1 - t) * (1 - t) * x + 2 * (1 - t) * t * cx + t * t * ex;
+        var py = (1 - t) * (1 - t) * y + 2 * (1 - t) * t * cy + t * t * ey;
+        var leaf = (1 - t) * 7 + 2;
+        [-1, 1].forEach(function(sgn) {
+          ctx.beginPath();
+          ctx.ellipse(px + Math.cos(angle + sgn * 1.3) * leaf * 0.6, py + Math.sin(angle + sgn * 1.3) * leaf * 0.6, leaf * 0.6, 1.6, angle + sgn * 1.1, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+    }
+    frond(36, 48, 34, -1.9, palette.mossDark);
+    frond(36, 48, 30, -1.2, palette.moss);
+    frond(34, 48, 26, -2.6, palette.moss);
+    frond(38, 48, 24, -0.6, palette.mossDark);
+    // grass blades
+    ctx.strokeStyle = '#8bab52'; ctx.lineWidth = 1.2;
+    for (var b = 0; b < 14; b++) {
+      var bx = 8 + r() * 56, bh = 6 + r() * 12;
+      ctx.beginPath(); ctx.moveTo(bx, 50); ctx.quadraticCurveTo(bx + (r() - 0.5) * 6, 50 - bh * 0.6, bx + (r() - 0.5) * 8, 50 - bh); ctx.stroke();
+    }
+    // tiny pale flowers
+    ctx.fillStyle = '#f3e9b0';
+    for (var f = 0; f < 4; f++) {
+      ctx.beginPath(); ctx.arc(14 + r() * 44, 34 + r() * 12, 1.8, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  /**
+   * Weathered owl statue on a stone plinth (64x132)
+   */
+  function drawStatue(ctx, palette) {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(32, 124, 28, 7, 0, 0, Math.PI * 2); ctx.fill();
+    // plinth: iso block
+    ctx.strokeStyle = palette.edge; ctx.lineWidth = 1;
+    ctx.fillStyle = palette.floorLight;
+    ctx.beginPath(); ctx.moveTo(32, 78); ctx.lineTo(56, 90); ctx.lineTo(32, 102); ctx.lineTo(8, 90); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = palette.wall;
+    ctx.beginPath(); ctx.moveTo(8, 90); ctx.lineTo(32, 102); ctx.lineTo(32, 126); ctx.lineTo(8, 114); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = palette.wallDark;
+    ctx.beginPath(); ctx.moveTo(56, 90); ctx.lineTo(32, 102); ctx.lineTo(32, 126); ctx.lineTo(56, 114); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // owl body
+    var g = ctx.createLinearGradient(12, 0, 52, 0);
+    g.addColorStop(0, '#9b98a6'); g.addColorStop(0.45, '#c9c6d2'); g.addColorStop(1, '#6e6b7a');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(18, 92);
+    ctx.bezierCurveTo(8, 70, 12, 38, 20, 22);   // left side up to ear
+    ctx.lineTo(16, 8); ctx.lineTo(27, 18);       // left ear tuft
+    ctx.quadraticCurveTo(32, 16, 37, 18);
+    ctx.lineTo(48, 8); ctx.lineTo(44, 22);       // right ear tuft
+    ctx.bezierCurveTo(52, 38, 56, 70, 46, 92);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // wings
+    ctx.fillStyle = 'rgba(60,58,72,0.35)';
+    ctx.beginPath(); ctx.moveTo(14, 50); ctx.quadraticCurveTo(10, 76, 22, 90); ctx.quadraticCurveTo(22, 66, 14, 50); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(50, 50); ctx.quadraticCurveTo(54, 76, 42, 90); ctx.quadraticCurveTo(42, 66, 50, 50); ctx.fill();
+    // face disc and eyes
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.beginPath(); ctx.ellipse(25, 34, 8, 9, 0, 0, Math.PI * 2); ctx.ellipse(39, 34, 8, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3a3846';
+    ctx.beginPath(); ctx.arc(25, 34, 3.5, 0, Math.PI * 2); ctx.arc(39, 34, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#8a8796';
+    ctx.beginPath(); ctx.moveTo(32, 38); ctx.lineTo(29, 44); ctx.lineTo(32, 49); ctx.lineTo(35, 44); ctx.closePath(); ctx.fill();
+    // carved chest feathers
+    ctx.strokeStyle = 'rgba(40,38,50,0.45)'; ctx.lineWidth = 1;
+    for (var row = 0; row < 4; row++) {
+      for (var c = 0; c < 3; c++) {
+        var fx0 = 24 + c * 8 - (row % 2) * 4, fy0 = 58 + row * 8;
+        ctx.beginPath(); ctx.arc(fx0, fy0, 3.5, 0.2, Math.PI - 0.2); ctx.stroke();
+      }
+    }
+    // crack and moss
+    ctx.strokeStyle = 'rgba(30,28,38,0.7)';
+    ctx.beginPath(); ctx.moveTo(44, 24); ctx.lineTo(40, 40); ctx.lineTo(46, 52); ctx.stroke();
+    ctx.fillStyle = palette.moss;
+    ctx.globalAlpha = 0.75;
+    ctx.beginPath(); ctx.ellipse(20, 90, 8, 4, 0, 0, Math.PI * 2); ctx.ellipse(12, 110, 5, 7, 0, 0, Math.PI * 2); ctx.ellipse(40, 16, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * Cave-in: heap of fallen blocks and a snapped beam (120x84)
+   */
+  function drawCaveIn(ctx, palette) {
+    var r = rng(88);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(60, 74, 54, 10, 0, 0, Math.PI * 2); ctx.fill();
+    // dust mound
+    var mg = ctx.createLinearGradient(0, 30, 0, 80);
+    mg.addColorStop(0, palette.floorLight); mg.addColorStop(1, palette.floorDark);
+    ctx.fillStyle = mg;
+    ctx.beginPath(); ctx.moveTo(8, 76); ctx.quadraticCurveTo(40, 26, 70, 34); ctx.quadraticCurveTo(100, 40, 114, 76); ctx.closePath(); ctx.fill();
+    // snapped beam
+    ctx.save();
+    ctx.translate(58, 44); ctx.rotate(-0.42);
+    ctx.fillStyle = '#6b4a2b'; ctx.fillRect(-46, -5, 60, 10);
+    ctx.fillStyle = '#8a6238'; ctx.fillRect(-46, -5, 60, 3);
+    ctx.fillStyle = '#6b4a2b';
+    ctx.beginPath(); ctx.moveTo(14, -5); ctx.lineTo(20, -2); ctx.lineTo(16, 1); ctx.lineTo(22, 5); ctx.lineTo(14, 5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    // blocks
+    for (var i = 0; i < 16; i++) {
+      var x = 14 + r() * 92, y = 40 + r() * 34, sz = 5 + r() * 10;
+      if (y < 76 - (1 - Math.abs(x - 60) / 60) * 40) y += 14;
+      ctx.fillStyle = [palette.wall, palette.wallDark, palette.floorLight][i % 3];
+      ctx.strokeStyle = palette.edge; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - sz, y + sz * 0.4); ctx.lineTo(x - sz * 0.4, y - sz * 0.6); ctx.lineTo(x + sz * 0.7, y - sz * 0.5);
+      ctx.lineTo(x + sz, y + sz * 0.3); ctx.lineTo(x + sz * 0.2, y + sz * 0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    // dust specks
+    ctx.fillStyle = 'rgba(220,210,190,0.35)';
+    for (var d = 0; d < 10; d++) { ctx.beginPath(); ctx.arc(10 + r() * 100, 60 + r() * 16, 1.3, 0, Math.PI * 2); ctx.fill(); }
   }
 
   // ---------------------------------------------------------------------------
@@ -794,15 +1069,26 @@ var IsoTextures = (function() {
   /**
    * Generate every fallback texture that no real file provided
    */
-  function generateFallbacks(scene, palette) {
+  function generateFallbacks(scene, palette, decorPalette) {
     palette = palette || FALLBACK_PALETTE;
+    var dp = decorPalette || palette;
     [0, 1, 2].forEach(function(v) {
       canvasTexture(scene, 'floor_' + v, TILE_W, TILE_H, function(ctx) { drawFloor(ctx, palette, v); });
       canvasTexture(scene, 'lava_' + v, TILE_W, TILE_H, function(ctx) { drawLava(ctx, v); });
       canvasTexture(scene, 'wall_n_' + v, TILE_W, 96, function(ctx) { drawWall(ctx, palette, 'n', v); });
       canvasTexture(scene, 'wall_w_' + v, TILE_W, 96, function(ctx) { drawWall(ctx, palette, 'w', v); });
       canvasTexture(scene, 'flame_' + v, 28, 40, function(ctx) { drawFlame(ctx, v); });
+      canvasTexture(scene, 'pool_water_' + v, TILE_W, TILE_H, function(ctx) { drawPool(ctx, dp, 'water', v); });
+      canvasTexture(scene, 'pool_lava_' + v, TILE_W, TILE_H, function(ctx) { drawPool(ctx, dp, 'lava', v); });
     });
+    canvasTexture(scene, 'decor_pit', TILE_W, TILE_H, function(ctx) { drawPit(ctx, dp); });
+    canvasTexture(scene, 'decor_mushrooms', 64, 52, function(ctx) { drawMushrooms(ctx, false); });
+    canvasTexture(scene, 'decor_mushrooms_big', 84, 100, function(ctx) { drawMushrooms(ctx, true); });
+    canvasTexture(scene, 'decor_plants', 72, 56, function(ctx) { drawPlants(ctx, dp); });
+    canvasTexture(scene, 'decor_statue', 64, 132, function(ctx) { drawStatue(ctx, dp); });
+    canvasTexture(scene, 'decor_cavein', 120, 84, function(ctx) { drawCaveIn(ctx, dp); });
+    canvasTexture(scene, 'glow_cyan', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(120,230,255,0.45)'); });
+    canvasTexture(scene, 'glow_violet', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(170,120,255,0.45)'); });
     canvasTexture(scene, 'corridor', TILE_W, TILE_H, function(ctx) { drawCorridor(ctx, palette); });
     canvasTexture(scene, 'arch_n', TILE_W, 96, function(ctx) { drawArch(ctx, palette, 'n'); });
     canvasTexture(scene, 'arch_w', TILE_W, 96, function(ctx) { drawArch(ctx, palette, 'w'); });
@@ -839,6 +1125,15 @@ var IsoTextures = (function() {
         repeat: -1
       });
     }
+    ['water', 'lava'].forEach(function(liquid) {
+      if (scene.anims.exists('pool_' + liquid)) return;
+      scene.anims.create({
+        key: 'pool_' + liquid,
+        frames: [{ key: 'pool_' + liquid + '_0' }, { key: 'pool_' + liquid + '_1' }, { key: 'pool_' + liquid + '_2' }],
+        frameRate: liquid === 'water' ? 4 : 3,
+        repeat: -1
+      });
+    });
     if (!scene.anims.exists('lava')) {
       scene.anims.create({
         key: 'lava',
@@ -964,6 +1259,7 @@ var IsoTextures = (function() {
     TILE_H: TILE_H,
     WALL_H: WALL_H,
     FALLBACK_PALETTE: FALLBACK_PALETTE,
+    KENNEY_STONE_PALETTE: KENNEY_STONE_PALETTE,
     OPTIONAL_FILES: OPTIONAL_FILES,
     KENNEY_DIR: KENNEY_DIR,
     KENNEY_FILES: KENNEY_FILES,
