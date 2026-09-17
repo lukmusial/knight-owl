@@ -15,6 +15,26 @@
   animation: fx-modal-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
 }
 
+/* Effects on the panel itself (monster attack shake, defeat shake + red flash)
+   keep the entrance animation first in the list. A class that replaced it
+   would restart fx-modal-in from opacity 0 when it is removed, so the panel
+   blinked out after a wrong answer. */
+.modal-content.fx-screen-shake {
+  animation: fx-modal-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.15), fx-screen-shake 400ms ease-in-out;
+}
+
+.modal-content.fx-shake-x {
+  animation: fx-modal-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.15), fx-shake-x 400ms ease-in-out;
+}
+
+.modal-content.fx-flash-red {
+  animation: fx-modal-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.15), fx-flash-red 400ms ease-out;
+}
+
+.modal-content.fx-shake-x.fx-flash-red {
+  animation: fx-modal-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.15), fx-shake-x 400ms ease-in-out, fx-flash-red 400ms ease-out;
+}
+
 @keyframes fx-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

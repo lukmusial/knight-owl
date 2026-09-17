@@ -72,7 +72,8 @@ var FX = (function() {
       }
 
       function onEnd(e) {
-        if (e.target === el) finish();
+        // the panel's own entrance animation ending is not the effect ending
+        if (e.target === el && e.animationName !== 'fx-modal-in') finish();
       }
 
       el.addEventListener('animationend', onEnd);
