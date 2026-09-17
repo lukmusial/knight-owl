@@ -93,27 +93,15 @@ var FpRenderer = (function() {
   // ---------------------------------------------------------------------------
   // Quality
   // ---------------------------------------------------------------------------
-  function storedTier() {
-    try { return window.localStorage.getItem(QUALITY_KEY); } catch (e) { return null; }
-  }
-
   function storeTier(t) {
     try { window.localStorage.setItem(QUALITY_KEY, t); } catch (e) { /* private mode */ }
   }
 
   function chooseQuality(override) {
-    var nav = window.navigator || {};
-    var tier = FpQuality.pick({
-      override: override,
-      stored: storedTier(),
-      width: window.innerWidth,
-      height: window.innerHeight,
-      dpr: window.devicePixelRatio || 1,
-      cores: nav.hardwareConcurrency,
-      memory: nav.deviceMemory,
-      touch: ('ontouchstart' in window) || (nav.maxTouchPoints > 0)
-    });
-    qualityLocked = FpQuality.TIERS.indexOf(override) !== -1;
+    // Always high quality (no in-game switch, no automatic step-down);
+    // ?quality=low|medium remains for debugging
+    var tier = FpQuality.TIERS.indexOf(override) !== -1 ? override : 'high';
+    qualityLocked = true;
     quality = FpQuality.settings(tier);
     monitor = FpQuality.createMonitor({});
   }
@@ -161,7 +149,7 @@ var FpRenderer = (function() {
 
     setupLights();
 
-    viewMode = FpOwl.isMode(opts.viewMode) ? opts.viewMode : (FpOwl.storedMode() || 'first');
+    viewMode = FpOwl.isMode(opts.viewMode) ? opts.viewMode : FpOwl.storedMode();
     FpOwl.load().then(function(gltf) {
       if (!gltf || !scene) return;
       owl = FpOwl.create(gltf, { castShadow: quality.shadowLights > 0 });

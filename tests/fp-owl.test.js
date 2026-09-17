@@ -5,6 +5,11 @@
 TestRunner.suite('FpOwl', () => {
   function dist2(a, b) { return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z)); }
 
+  TestRunner.test('third person is the default camera', () => {
+    TestRunner.assertEqual(FpOwl.DEFAULT_MODE, 'third', 'default mode');
+    TestRunner.assertEqual(FpOwl.storedMode(), 'third', 'nothing stored (no localStorage in node) gives third person');
+  });
+
   TestRunner.test('view modes cycle first -> third -> first', () => {
     TestRunner.assertEqual(FpOwl.nextMode('first'), 'third', 'first to third');
     TestRunner.assertEqual(FpOwl.nextMode('third'), 'first', 'third to first');
