@@ -365,8 +365,11 @@ var ProtoFp = (function() {
   }
 
   function handleAnswer(answerIndex) {
+    var monsterRoom = Player.getCurrentRoom();
     var result = Combat.submitAnswer(answerIndex);
     if (result.error) { console.error(result.error); return; }
+    // the 3D monster recoils from a correct answer and lunges at a wrong one
+    FpRenderer.reactEntity(monsterRoom, result.success ? 'flinch' : 'lunge');
 
     var fxDone = (typeof UI.playAnswerFx === 'function') ? UI.playAnswerFx(answerIndex, result) : Promise.resolve();
     // Mr Owl swings his sword at the monster on a correct answer (third-person camera)
