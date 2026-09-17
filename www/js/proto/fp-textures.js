@@ -251,6 +251,197 @@ var FpTextures = (function() {
     return c;
   }
 
+  /**
+   * Soot plume above a torch: black, alpha fading up and out (128x256)
+   */
+  function sootCanvas() {
+    var c = makeCanvas(128, 256);
+    var ctx = c.getContext('2d');
+    var rnd = seededRandom(29);
+    for (var i = 0; i < 26; i++) {
+      var t = i / 25;
+      var y = 250 - t * 220;
+      var x = 64 + (rnd() - 0.5) * 18 * t;
+      var r = 14 + t * 42;
+      var g = ctx.createRadialGradient(x, y, 1, x, y, r);
+      g.addColorStop(0, 'rgba(8,6,4,' + (0.34 * (1 - t * 0.6)) + ')');
+      g.addColorStop(1, 'rgba(8,6,4,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 128, 256);
+    }
+    return c;
+  }
+
+  /**
+   * Glowing rune inscriptions: 4 rows of 1024x64 glyph strips (white glyphs
+   * with a soft halo on transparent), sampled with per-decal colour tints
+   */
+  function runeAtlas() {
+    var W = 1024, H = 256, ROW = 64;
+    var c = makeCanvas(W, H);
+    var ctx = c.getContext('2d');
+    var rnd = seededRandom(41);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    function glyph(x, y, h) {
+      var w = h * (0.45 + rnd() * 0.3);
+      ctx.beginPath();
+      var kind = Math.floor(rnd() * 6);
+      // stave
+      if (kind !== 4) { ctx.moveTo(x, y - h / 2); ctx.lineTo(x, y + h / 2); }
+      if (kind === 0) { ctx.moveTo(x, y - h / 2); ctx.lineTo(x + w, y - h / 6); ctx.moveTo(x, y); ctx.lineTo(x + w, y + h / 3); }
+      if (kind === 1) { ctx.moveTo(x - w / 2, y - h / 3); ctx.lineTo(x + w / 2, y + h / 3); ctx.moveTo(x + w / 2, y - h / 3); ctx.lineTo(x - w / 2, y + h / 3); }
+      if (kind === 2) { ctx.moveTo(x, y - h / 2); ctx.lineTo(x + w / 2, y - h / 5); ctx.lineTo(x, y + h / 10); }
+      if (kind === 3) { ctx.moveTo(x - w / 2, y - h / 2); ctx.lineTo(x, y - h / 5); ctx.lineTo(x + w / 2, y - h / 2); }
+      if (kind === 4) { ctx.moveTo(x + w / 2, y); ctx.arc(x, y, w / 2, 0, Math.PI * 2); ctx.moveTo(x, y - h / 2); ctx.lineTo(x, y + h / 2); }
+      if (kind === 5) { ctx.moveTo(x - w / 2, y + h / 2); ctx.lineTo(x, y - h / 2); ctx.lineTo(x + w / 2, y + h / 2); ctx.moveTo(x - w / 4, y + h / 8); ctx.lineTo(x + w / 4, y + h / 8); }
+      ctx.stroke();
+      if (rnd() < 0.3) { ctx.beginPath(); ctx.arc(x + w * 0.7, y + h / 2 - 3, 2.2, 0, Math.PI * 2); ctx.fill(); }
+      return w;
+    }
+    for (var row = 0; row < 4; row++) {
+      var cy = row * ROW + ROW / 2;
+      for (var pass = 0; pass < 2; pass++) {
+        rnd = seededRandom(41 + row * 7);
+        ctx.strokeStyle = pass ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.35)';
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.lineWidth = pass ? 3.2 : 9;
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = pass ? 6 : 14;
+        var x = 26;
+        while (x < W - 40) {
+          x += glyph(x, cy, 40) + 18 + rnd() * 12;
+          if (rnd() < 0.12) x += 22;
+        }
+      }
+    }
+    ctx.shadowBlur = 0;
+    return c;
+  }
+
+  /**
+   * Wall crack with a wet stain (256x512): transparent, dark jagged lines
+   * branching down, damp darkening below
+   */
+  function crackCanvas() {
+    var c = makeCanvas(256, 512);
+    var ctx = c.getContext('2d');
+    var rnd = seededRandom(53);
+    var g = ctx.createLinearGradient(0, 120, 0, 512);
+    g.addColorStop(0, 'rgba(10,14,18,0)');
+    g.addColorStop(0.25, 'rgba(10,14,18,0.35)');
+    g.addColorStop(1, 'rgba(10,14,18,0.5)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(128, 330, 70, 190, 0, 0, Math.PI * 2);
+    ctx.fill();
+    function crack(x, y, len, w, depth) {
+      ctx.lineWidth = w;
+      ctx.strokeStyle = 'rgba(12,8,6,0.95)';
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (var i = 0; i < len; i++) {
+        x += (rnd() - 0.5) * 22;
+        y += 10 + rnd() * 8;
+        ctx.lineTo(x, y);
+        if (depth < 2 && rnd() < 0.18) {
+          ctx.stroke();
+          crack(x, y, Math.floor(len / 3), w * 0.55, depth + 1);
+          ctx.lineWidth = w;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+        }
+      }
+      ctx.stroke();
+    }
+    crack(128, 30, 16, 10, 0);
+    crack(116, 24, 6, 6, 1);
+    return c;
+  }
+
+  /** Tileable ripple normal map (256x256) for puddles */
+  function rippleNormalCanvas() {
+    var S = 256;
+    var c = makeCanvas(S, S);
+    var ctx = c.getContext('2d');
+    var img = ctx.createImageData(S, S);
+    var TAU = Math.PI * 2;
+    for (var y = 0; y < S; y++) {
+      for (var x = 0; x < S; x++) {
+        var u = x / S, v = y / S;
+        var dx = 0.5 * Math.cos(TAU * (3 * u + 2 * v)) * 3 + 0.4 * Math.cos(TAU * (-2 * u + 5 * v)) * -2 + 0.3 * Math.cos(TAU * (7 * u - v)) * 7;
+        var dy = 0.5 * Math.cos(TAU * (3 * u + 2 * v)) * 2 + 0.4 * Math.cos(TAU * (-2 * u + 5 * v)) * 5 + 0.3 * Math.cos(TAU * (7 * u - v)) * -1;
+        var nx = -dx * 0.03, ny = -dy * 0.03, nz = 1;
+        var l = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        var i = (y * S + x) * 4;
+        img.data[i] = (nx / l * 0.5 + 0.5) * 255;
+        img.data[i + 1] = (ny / l * 0.5 + 0.5) * 255;
+        img.data[i + 2] = (nz / l * 0.5 + 0.5) * 255;
+        img.data[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c;
+  }
+
+  /** Dim equirectangular reflection of a torch-lit vault (256x128) */
+  function envCanvas() {
+    var c = makeCanvas(256, 128);
+    var ctx = c.getContext('2d');
+    var g = ctx.createLinearGradient(0, 0, 0, 128);
+    g.addColorStop(0, '#2a2018');
+    g.addColorStop(0.5, '#4a3524');
+    g.addColorStop(1, '#0c0908');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 128);
+    for (var i = 0; i < 4; i++) {
+      var x = 32 + i * 64, y = 50;
+      var r = ctx.createRadialGradient(x, y, 1, x, y, 22);
+      r.addColorStop(0, 'rgba(255,220,150,1)');
+      r.addColorStop(0.3, 'rgba(255,150,60,0.6)');
+      r.addColorStop(1, 'rgba(255,120,40,0)');
+      ctx.fillStyle = r;
+      ctx.fillRect(x - 22, y - 22, 44, 44);
+    }
+    return c;
+  }
+
+  /** Horizontal glow falloff (u = 0 hot edge, u = 1 transparent) for lava banks */
+  function glowCanvas() {
+    var c = makeCanvas(64, 4);
+    var ctx = c.getContext('2d');
+    var g = ctx.createLinearGradient(0, 0, 64, 0);
+    g.addColorStop(0, 'rgba(255,150,40,1)');
+    g.addColorStop(0.35, 'rgba(230,80,15,0.55)');
+    g.addColorStop(1, 'rgba(120,20,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 4);
+    return c;
+  }
+
+  var decalCache = null;
+
+  function decalTextures() {
+    if (decalCache) return decalCache;
+    var ripple = new THREE.CanvasTexture(rippleNormalCanvas());
+    ripple.wrapS = ripple.wrapT = THREE.RepeatWrapping;
+    var env = new THREE.CanvasTexture(envCanvas());
+    env.mapping = THREE.EquirectangularReflectionMapping;
+    env.colorSpace = THREE.SRGBColorSpace;
+    var runes = clampTexture(runeAtlas());
+    runes.generateMipmaps = true;
+    runes.minFilter = THREE.LinearMipmapLinearFilter;
+    decalCache = {
+      soot: clampTexture(sootCanvas()),
+      runes: runes,
+      crack: clampTexture(crackCanvas()),
+      ripple: ripple,
+      env: env,
+      glow: clampTexture(glowCanvas())
+    };
+    return decalCache;
+  }
+
   function proceduralWood() {
     var c = makeCanvas(SIZE, SIZE);
     var ctx = c.getContext('2d');
@@ -310,6 +501,7 @@ var FpTextures = (function() {
       lava: tileTexture(lavaCanvas()),
       vine: clampTexture(vineCanvas(3)),
       rune: clampTexture(runeCanvas()),
+      decals: decalTextures(),
       source: 'procedural'
     };
   }

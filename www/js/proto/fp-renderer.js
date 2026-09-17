@@ -5,8 +5,15 @@
  * meets the slightly uneven walls, an elliptical cloister vault, and arched
  * doorways with rounded reveals leading into coved, barrel-vaulted passages.
  *
- * Lighting: wall torches (iron bracket, wooden handle, pitch wrap and an
- * animated shader flame) are the real light sources. A pool of point lights
+ * Dressing: organic lava rivers (crust + heat glow), water trickling from wall
+ * cracks into reflective puddles, glowing rune inscriptions, doorway frames
+ * (arch stones, timber, pillars), wooden doors that swing open, and floor
+ * props from FpProps (rubble, statues, skeletons, armour, columns, barrels).
+ *
+ * Lighting: wall torches (iron bracket, wooden handle, pitch wrap, soot plume
+ * and an animated shader flame) are the real light sources. They stay dark
+ * until their chamber is entered, then catch one after another; the light
+ * pool slots fade out/in when they move so nothing pops. A pool of point lights
  * follows the torches nearest the player; the first slots (the torches of
  * the chamber the player is in) cast shadows. Shadow maps are static and
  * refreshed only when the light slots, visible chambers or monsters change,
@@ -40,7 +47,7 @@ var FpRenderer = (function() {
   var FOG_DENSITY = 0.045;
   var TORCH_INTENSITY = 42;
   var TORCH_RANGE = 14;
-  var CULL_DIST = 46;
+  var CULL_DIST = 36;
   var QUALITY_KEY = 'fpQualityAuto';
 
   var renderer = null, scene = null, camera = null, mount = null;
@@ -172,7 +179,7 @@ var FpRenderer = (function() {
     }
     if (quality.headLight && !headLight.parent) camera.add(headLight);
     if (!quality.headLight && headLight.parent) camera.remove(headLight);
-    hemi.intensity = quality.headLight ? 0.16 : 0.28;
+    hemi.intensity = quality.headLight ? 0.22 : 0.32;
     for (i = 0; i < torchLights.length; i++) {
       scene.remove(torchLights[i]);
       if (torchLights[i].shadow && torchLights[i].shadow.map) torchLights[i].shadow.map.dispose();
@@ -193,7 +200,7 @@ var FpRenderer = (function() {
       l.position.set(0, -50, 0);
       scene.add(l);
       torchLights.push(l);
-      lightSlots.push(-1);
+      lightSlots.push({ torch: -1, pending: -1, fade: 0 });
     }
     renderer.shadowMap.enabled = quality.shadowLights > 0;
     renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -217,7 +224,7 @@ var FpRenderer = (function() {
   // Geometry builder (positions, normals, uvs, per-vertex fog-of-war colour)
   // ---------------------------------------------------------------------------
   function Builder() {
-    this.pos = []; this.norm = []; this.uv = []; this.idx = [];
+    this.pos = []; this.norm = []; this.uv = []; this.idx = []; this.uv1 = [];
   }
 
   Builder.prototype.vertex = function(p, n, uv) {
@@ -334,6 +341,7 @@ var FpRenderer = (function() {
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.norm, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
+    if (this.uv1.length) g.setAttribute('uv1', new THREE.Float32BufferAttribute(this.uv1, 2));
     g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(this.pos.length), 3));
     g.setIndex(this.idx);
     g.computeBoundingSphere();
@@ -390,8 +398,8 @@ var FpRenderer = (function() {
     b.floor.poly(floorPts, floorPts.map(floorUv), [c.x, 5, c.z]);
   }
 
-  /** Rounded reveal around an opening, jamb caps over the cove, passage to the cell edge */
-  function pushDoorway(b, c, ax, wallKey) {
+  /** Rounded reveal around an opening, jamb caps over the cove, passage to the cell edge, optional frame */
+  function pushDoorway(b, c, ax, wallKey, style, seed) {
     var J = FpLayout.doorHalf(D);
     var SEG = 10, BULL = 3;
     var points = [], uvs = [];
@@ -460,27 +468,64 @@ var FpRenderer = (function() {
       }
       b[wallKey].poly(tri, tri.map(function(p, n) { return [n * 0.05, p[1] / UVS]; }), wallPoint(c, ax, 0, 0.5, CH - 1));
     }
+
+    // doorway treatment in a right-handed frame: X along the wall, Y up, Z into the room
+    if (style && style !== 'plain') {
+      var frame = new THREE.Matrix4().makeBasis(
+        new THREE.Vector3(ax.rx, 0, ax.rz), new THREE.Vector3(0, 1, 0), new THREE.Vector3(-ax.dx, 0, -ax.dz));
+      var fo = wallPoint(c, ax, 0, 0, CH - D.ROUGH);
+      frame.setPosition(fo[0], fo[1], fo[2]);
+      if (style === 'voussoir') FpProps.voussoirs(b, frame, J, D.PH, seed);
+      else if (style === 'timber') FpProps.timberFrame(b, frame, J, D.PH + J + 0.08, seed);
+      else if (style === 'pillars') FpProps.pillars(b, frame, J, D.WALL_TOP - 0.02, seed);
+    }
   }
 
-  function pushLava(b, c, axis) {
+  /**
+   * Lava river with meandering, irregular banks: molten core, a raised dark
+   * crust along each bank and an additive heat glow spilling onto the floor
+   */
+  function pushLava(b, c, axis, seed) {
     var ax = axes(axis === 'EW' ? 'E' : 'S');
-    var half = 0.8, len = CH + 0.3;
-    var y = 0.035;
-    var inside = [c.x, EYE, c.z];
-    var river = [wallPoint(c, ax, -half, y, -len), wallPoint(c, ax, half, y, -len), wallPoint(c, ax, half, y, len), wallPoint(c, ax, -half, y, len)];
-    b.lava.poly(river, [[0, 0], [0.55, 0], [0.55, len * 2 / 4], [0, len * 2 / 4]], inside);
+    var len = CH + 0.3, SEG = 22;
+    var Y = 0.03;
+    var rows = FpLayout.riverBanks(len, 0.8, SEG, seed);
+    var up = [c.x, 5, c.z];
+    var i, k;
+    for (i = 0; i < SEG; i++) {
+      var r0 = rows[i], r1 = rows[i + 1];
+      var q = [wallPoint(c, ax, r0.left, Y, r0.t), wallPoint(c, ax, r0.right, Y, r0.t), wallPoint(c, ax, r1.right, Y, r1.t), wallPoint(c, ax, r1.left, Y, r1.t)];
+      b.lava.poly(q, [[r0.left / 2.2, r0.t / 4], [r0.right / 2.2, r0.t / 4], [r1.right / 2.2, r1.t / 4], [r1.left / 2.2, r1.t / 4]], up);
+    }
+    for (var side = -1; side <= 1; side += 2) {
+      // crust: inner lip at the lava, rounded top, outer foot on the floor
+      var PROFILE = [[0, Y], [0.3, 0.075], [0.65, 0.085], [1, 0.012]];
+      var pts = [], uvs = [];
+      for (i = 0; i <= SEG; i++) {
+        var row = [], urow = [];
+        var bank = side < 0 ? rows[i].left : rows[i].right;
+        for (k = 0; k < PROFILE.length; k++) {
+          var off = bank + side * PROFILE[k][0] * rows[i].crust;
+          row.push(wallPoint(c, ax, off, PROFILE[k][1], rows[i].t));
+          urow.push([off / 1.5, rows[i].t / 1.5]);
+        }
+        pts.push(row);
+        uvs.push(urow);
+      }
+      b.crust.grid(pts, uvs, up, false);
+      for (i = 0; i < SEG; i++) {
+        var a0 = side < 0 ? rows[i].left : rows[i].right, a1 = side < 0 ? rows[i + 1].left : rows[i + 1].right;
+        var g0 = a0 + side * rows[i].glow, g1 = a1 + side * rows[i + 1].glow;
+        var gq = [wallPoint(c, ax, a0, 0.1, rows[i].t), wallPoint(c, ax, g0, 0.1, rows[i].t), wallPoint(c, ax, g1, 0.1, rows[i + 1].t), wallPoint(c, ax, a1, 0.1, rows[i + 1].t)];
+        b.glow.poly(gq, [[0, 0.5], [1, 0.5], [1, 0.5], [0, 0.5]], up);
+      }
+    }
     // stone bridge slab over the river at the chamber centre
     var m = new THREE.Matrix4();
-    var slab = new THREE.BoxGeometry(2.8, 0.16, 2 * half + 0.6);
+    var slab = new THREE.BoxGeometry(3.6, 0.18, 2.0);
     if (axis === 'EW') m.makeRotationY(Math.PI / 2);
-    m.setPosition(c.x, 0.08, c.z);
+    m.setPosition(c.x, 0.1, c.z);
     b.floor.geometry(slab, m, 0.5);
-    // glowing rims beside the river
-    for (var side = -1; side <= 1; side += 2) {
-      var s0 = half * side, s1 = (half + 0.14) * side;
-      var rim = [wallPoint(c, ax, s0, 0.045, -len), wallPoint(c, ax, s1, 0.045, -len), wallPoint(c, ax, s1, 0.045, len), wallPoint(c, ax, s0, 0.045, len)];
-      b.lava.poly(rim, [[0.9, 0], [1, 0], [1, len / 2], [0.9, len / 2]], inside);
-    }
   }
 
   function pushVines(b, c, ax, inside) {
@@ -550,6 +595,11 @@ var FpRenderer = (function() {
     var wc = along(0.36);
     place(P.wrap, 'pitch', wc[0], wc[1], wc[2], tilt);
     var fb = along(0.44);
+    // soot plume on the wall above the flame
+    var so = CH - D.ROUGH - 0.02;
+    var sq = [wallPoint(c, ax, s - 0.45, D.TORCH_Y - 0.05, so), wallPoint(c, ax, s + 0.45, D.TORCH_Y - 0.05, so),
+      wallPoint(c, ax, s + 0.55, D.TORCH_Y + 1.3, so), wallPoint(c, ax, s - 0.55, D.TORCH_Y + 1.3, so)];
+    b.soot.poly(sq, [[0, 0], [1, 0], [1, 1], [0, 1]], wallPoint(c, ax, s, D.TORCH_Y, CH - 2));
     var v = new THREE.Vector3(fb[0], fb[1], fb[2]).applyMatrix4(basis);
     var lp = new THREE.Vector3(fb[0], fb[1] + 0.22, fb[2] + 0.18).applyMatrix4(basis);
     return { flame: [v.x, v.y, v.z], light: [lp.x, lp.y, lp.z] };
@@ -571,7 +621,8 @@ var FpRenderer = (function() {
     '  vUv = corner; vPhase = phase; vLit = lit; vKind = kind;',
     '  vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);',
     '  right = normalize(vec3(right.x, 0.0, right.z) + vec3(1e-5, 0.0, 0.0));',
-    '  vec3 p = position + right * offset.x + vec3(0.0, offset.y, 0.0);',
+    '  float grow = kind > 0.5 ? lit : (0.3 + 0.7 * lit);',
+    '  vec3 p = position + (right * offset.x + vec3(0.0, offset.y, 0.0)) * grow;',
     '  vec4 mv = viewMatrix * vec4(p, 1.0);',
     '  float fd = fogDensity * mv.z;',
     '  vFog = exp(-fd * fd);',
@@ -605,7 +656,7 @@ var FpRenderer = (function() {
     '  if (vKind > 0.5) {',
     '    vec2 q = vUv * 2.0 - 1.0;',
     '    float g = pow(max(0.0, 1.0 - length(q)), 2.0) * (0.85 + 0.15 * sin(t * 9.0));',
-    '    gl_FragColor = vec4(vec3(1.0, 0.5, 0.16) * g * 0.5 * vLit * vFog, 0.0);',
+    '    gl_FragColor = vec4(vec3(1.0, 0.5, 0.16) * g * 0.32 * vLit * vFog, 0.0);',
     '    return;',
     '  }',
     '  float y = vUv.y;',
@@ -679,70 +730,381 @@ var FpRenderer = (function() {
     if (!flameMesh) return;
     var attr = flameMesh.geometry.getAttribute('lit');
     for (var i = 0; i < torchList.length; i++) {
-      var bb = brightness[torchList[i].cellId];
-      var v = bb ? Math.min(1, bb.cur * 1.6) : 0;
+      var v = torchList[i].glow;
       for (var k = 0; k < 8; k++) attr.array[i * 8 + k] = v;
     }
     attr.needsUpdate = true;
   }
 
   // ---------------------------------------------------------------------------
-  // Props
+  // Water (cracks, trickles, puddles) and rune inscriptions
   // ---------------------------------------------------------------------------
-  var propParts = null;
+  var waterList = [];      // { cellId, pts: [[x,y,z]], right: [rx, rz], w0, w1, phase }
+  var runeList = [];       // { cellId, corners: [[x,y,z] x4], uv: [u0, v0, u1, v1], color: [r,g,b], phase }
+  var waterMesh = null, waterMaterial = null, runeMesh = null, runeMaterial = null;
+  var puddleAlpha = null;
+  var RUNE_COLORS = { cyan: [0.35, 0.95, 1.0], violet: [0.8, 0.45, 1.0], green: [0.45, 1.0, 0.55] };
 
-  function getPropParts() {
-    if (propParts) return propParts;
-    var prof = [];
-    for (var i = 0; i <= 8; i++) {
-      var t = i / 8;
-      prof.push(new THREE.Vector2(0.3 + 0.05 * Math.sin(t * Math.PI), t * 0.82));
+  function pushWallFeatures(b, cell, c, feats) {
+    var i;
+    for (i = 0; i < feats.inscriptions.length; i++) {
+      var ins = feats.inscriptions[i];
+      var ax = axes(ins.dir);
+      var h = 0.5, w = ins.w;
+      var out = CH - D.ROUGH - 0.015;
+      var row = Math.floor(ins.seed * 4) % 4;
+      var span = Math.min(1, (w / h) / 16);
+      var u0 = (1 - span) * ((ins.seed * 7.3) % 1);
+      runeList.push({
+        cellId: cell.id,
+        corners: [wallPoint(c, ax, -w / 2 + ins.s, ins.y - h / 2, out), wallPoint(c, ax, w / 2 + ins.s, ins.y - h / 2, out),
+          wallPoint(c, ax, w / 2 + ins.s, ins.y + h / 2, out), wallPoint(c, ax, -w / 2 + ins.s, ins.y + h / 2, out)],
+        uv: [u0, 1 - (row + 1) / 4, u0 + span, 1 - row / 4],
+        color: RUNE_COLORS[ins.hue] || RUNE_COLORS.cyan,
+        phase: ins.seed
+      });
     }
-    propParts = {
-      barrel: new THREE.LatheGeometry(prof, 14),
-      lid: new THREE.CircleGeometry(0.3, 14),
-      hoop: new THREE.TorusGeometry(0.34, 0.018, 4, 18),
-      crate: new THREE.BoxGeometry(0.72, 0.72, 0.72),
-      crateSmall: new THREE.BoxGeometry(0.46, 0.46, 0.46),
-      rock: new THREE.IcosahedronGeometry(0.2, 0)
-    };
-    return propParts;
+    if (feats.crack) {
+      var cax = axes(feats.crack.dir);
+      var cs = feats.crack.s;
+      var co = CH - D.ROUGH - 0.012;
+      var cq = [wallPoint(c, cax, cs - 0.8, 0.5, co), wallPoint(c, cax, cs + 0.8, 0.5, co), wallPoint(c, cax, cs + 0.8, 3.7, co), wallPoint(c, cax, cs - 0.8, 3.7, co)];
+      b.decal.poly(cq, [[0, 0], [1, 0], [1, 1], [0, 1]], wallPoint(c, cax, cs, 1.5, CH - 2));
+      // trickle: down the wall, over the cove, out onto the floor
+      var pts = [];
+      var yTop = 2.75;
+      for (var y = yTop; y > D.COVE; y -= 0.35) {
+        pts.push(wallPoint(c, cax, cs + Math.sin(y * 3.1) * 0.03, y, CH - D.ROUGH - 0.02));
+      }
+      for (var k = 0; k <= 4; k++) {
+        var ph = (Math.PI / 2) * k / 4;
+        var inset = D.COVE - D.COVE * Math.cos(ph);
+        pts.push(wallPoint(c, cax, cs, D.COVE - D.COVE * Math.sin(ph) + 0.015, CH - inset - 0.02));
+      }
+      pts.push(wallPoint(c, cax, cs, 0.014, CH - D.COVE - 0.35));
+      waterList.push({ cellId: cell.id, pts: pts, right: [cax.rx, cax.rz], w0: 0.07, w1: 0.3, phase: rnd() });
+    }
+    for (i = 0; i < feats.puddles.length; i++) pushPuddle(b, c, feats.puddles[i]);
   }
 
-  function pushProp(b, c, prop, wallKey) {
-    var P = getPropParts();
-    var m = new THREE.Matrix4();
-    var r = new THREE.Matrix4();
-    var s = new THREE.Matrix4();
-    var x = c.x + prop.x, z = c.z + prop.z;
-    if (prop.kind === 'barrel') {
-      m.makeRotationY(prop.rot); m.setPosition(x, 0, z);
-      b.wood.geometry(P.barrel, m, 1.2);
-      r.makeRotationX(-Math.PI / 2); r.setPosition(x, 0.82, z);
-      b.wood.geometry(P.lid, r, 1.2);
-      for (var h = 0; h < 2; h++) {
-        r.makeRotationX(Math.PI / 2); r.setPosition(x, 0.16 + h * 0.5, z);
-        b.iron.geometry(P.hoop, r);
-      }
-    } else if (prop.kind === 'crate') {
-      m.makeRotationY(prop.rot); m.setPosition(x, 0.36, z);
-      b.wood.geometry(P.crate, m, 0.55, true);
-      if (prop.rot > Math.PI) {
-        m.makeRotationY(prop.rot * 1.7); m.setPosition(x + 0.05, 0.95, z - 0.04);
-        b.wood.geometry(P.crateSmall, m, 0.36, true);
-      }
-    } else {
-      for (var k = 0; k < 6; k++) {
-        var a = prop.rot + k * 1.9;
-        var rr = k === 0 ? 0 : 0.18 + 0.1 * (k % 3);
-        var sc = k === 0 ? 1.6 : 0.7 + 0.25 * ((k * 7) % 3);
-        r.makeRotationFromEuler(new THREE.Euler(a, a * 0.7, a * 1.3));
-        s.makeScale(sc, sc * 0.75, sc);
-        m.multiplyMatrices(r, s);
-        m.setPosition(x + Math.cos(a) * rr, 0.1 * sc, z + Math.sin(a) * rr);
-        b[wallKey].geometry(P.rock, m, 0.4);
+  function pushPuddle(b, c, pd) {
+    var ring = FpLayout.blobOutline(pd.r, 22, pd.seed);
+    var cx = c.x + pd.x, cz = c.z + pd.z;
+    var Y = 0.014;
+    var bw = b.water;
+    var base = bw.pos.length / 3;
+    function vert(x, z, u) {
+      bw.vertex([x, Y, z], [0, 1, 0], [u, 0.5]);
+      bw.uv1.push(x / 1.6, z / 1.6);
+    }
+    vert(cx, cz, 0);
+    for (var i = 0; i < ring.length; i++) vert(cx + ring[i][0] * 0.7, cz + ring[i][1] * 0.7, 0.6);
+    for (i = 0; i < ring.length; i++) vert(cx + ring[i][0], cz + ring[i][1], 1);
+    var n = ring.length;
+    for (i = 0; i < n; i++) {
+      var j = (i + 1) % n;
+      bw.idx.push(base, base + 1 + j, base + 1 + i);
+      bw.idx.push(base + 1 + i, base + 1 + j, base + 1 + n + j);
+      bw.idx.push(base + 1 + i, base + 1 + n + j, base + 1 + n + i);
+    }
+  }
+
+  var WATER_VERT = [
+    'attribute float lit;',
+    'attribute float phase;',
+    'uniform float fogDensity;',
+    'varying vec2 vUv;',
+    'varying float vLit;',
+    'varying float vPhase;',
+    'varying float vFog;',
+    'void main() {',
+    '  vUv = uv; vLit = lit; vPhase = phase;',
+    '  vec4 mv = viewMatrix * vec4(position, 1.0);',
+    '  float fd = fogDensity * mv.z;',
+    '  vFog = exp(-fd * fd);',
+    '  gl_Position = projectionMatrix * mv;',
+    '}'
+  ].join('\n');
+
+  var NOISE_GLSL = [
+    'float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    'float vnoise(vec2 p) {',
+    '  vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);',
+    '  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);',
+    '}'
+  ].join('\n');
+
+  var WATER_FRAG = [
+    'uniform float time;',
+    'varying vec2 vUv;',
+    'varying float vLit;',
+    'varying float vPhase;',
+    'varying float vFog;',
+    NOISE_GLSL,
+    'void main() {',
+    '  if (vLit < 0.01) discard;',
+    '  float across = 1.0 - abs(vUv.x * 2.0 - 1.0);',
+    '  float body = smoothstep(0.0, 0.55, across);',
+    '  float streak = vnoise(vec2(vUv.x * 5.0 + vPhase * 11.0, vUv.y * 4.0 + time * 2.6));',
+    '  float glint = pow(vnoise(vec2(vUv.x * 9.0, vUv.y * 9.0 + time * 4.0)), 6.0);',
+    '  float a = body * (0.1 + 0.32 * streak) * vLit * vFog;',
+    '  vec3 col = mix(vec3(0.12, 0.18, 0.22), vec3(0.5, 0.62, 0.7), streak) + vec3(1.0, 0.8, 0.55) * glint * 2.5;',
+    '  gl_FragColor = vec4(col * a + vec3(1.0, 0.8, 0.55) * glint * vLit * vFog * 0.35, a * 0.8);',
+    '}'
+  ].join('\n');
+
+  var RUNE_VERT = [
+    'attribute float lit;',
+    'attribute float phase;',
+    'attribute vec3 tint;',
+    'uniform float fogDensity;',
+    'varying vec2 vUv;',
+    'varying float vLit;',
+    'varying float vPhase;',
+    'varying vec3 vTint;',
+    'varying float vFog;',
+    'void main() {',
+    '  vUv = uv; vLit = lit; vPhase = phase; vTint = tint;',
+    '  vec4 mv = viewMatrix * vec4(position, 1.0);',
+    '  float fd = fogDensity * mv.z;',
+    '  vFog = exp(-fd * fd);',
+    '  gl_Position = projectionMatrix * mv;',
+    '}'
+  ].join('\n');
+
+  var RUNE_FRAG = [
+    'uniform float time;',
+    'uniform sampler2D map;',
+    'varying vec2 vUv;',
+    'varying float vLit;',
+    'varying float vPhase;',
+    'varying vec3 vTint;',
+    'varying float vFog;',
+    'void main() {',
+    '  if (vLit < 0.01) discard;',
+    '  vec4 tx = texture2D(map, vUv);',
+    '  float pulse = 0.62 + 0.38 * sin(time * 1.7 + vPhase * 6.283);',
+    '  float wave = 0.75 + 0.25 * sin(vUv.x * 90.0 - time * 2.4 + vPhase * 20.0);',
+    '  float a = tx.a * vLit * vFog * pulse * wave;',
+    '  vec3 col = mix(vTint, vec3(1.0), smoothstep(0.6, 1.0, tx.a) * 0.45) * 3.0;',
+    '  gl_FragColor = vec4(col * a, 0.0);',
+    '}'
+  ].join('\n');
+
+  function buildWater() {
+    if (!waterList.length) return;
+    var pos = [], uv = [], lit = [], phase = [], idx = [];
+    for (var i = 0; i < waterList.length; i++) {
+      var wl = waterList[i];
+      var base = pos.length / 3;
+      var along = 0;
+      for (var k = 0; k < wl.pts.length; k++) {
+        var p = wl.pts[k];
+        if (k > 0) {
+          var q = wl.pts[k - 1];
+          along += Math.sqrt((p[0] - q[0]) * (p[0] - q[0]) + (p[1] - q[1]) * (p[1] - q[1]) + (p[2] - q[2]) * (p[2] - q[2]));
+        }
+        var t = k / (wl.pts.length - 1);
+        var hw = (wl.w0 + (wl.w1 - wl.w0) * t * t) / 2;
+        pos.push(p[0] - wl.right[0] * hw, p[1], p[2] - wl.right[1] * hw);
+        pos.push(p[0] + wl.right[0] * hw, p[1], p[2] + wl.right[1] * hw);
+        uv.push(0, along, 1, along);
+        lit.push(0, 0);
+        phase.push(wl.phase, wl.phase);
+        if (k > 0) {
+          var a = base + (k - 1) * 2;
+          idx.push(a, a + 1, a + 3, a, a + 3, a + 2);
+        }
       }
     }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setAttribute('lit', new THREE.Float32BufferAttribute(lit, 1));
+    g.setAttribute('phase', new THREE.Float32BufferAttribute(phase, 1));
+    g.setIndex(idx);
+    if (!waterMaterial) {
+      waterMaterial = new THREE.ShaderMaterial({
+        uniforms: { time: { value: 0 }, fogDensity: { value: FOG_DENSITY } },
+        vertexShader: WATER_VERT, fragmentShader: WATER_FRAG,
+        transparent: true, depthWrite: false, side: THREE.DoubleSide,
+        blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
+      });
+    }
+    waterMesh = new THREE.Mesh(g, waterMaterial);
+    waterMesh.frustumCulled = false;
+    waterMesh.renderOrder = 3;
+    scene.add(waterMesh);
+  }
+
+  function buildRunes() {
+    if (!runeList.length || !textures.decals) return;
+    var pos = [], uv = [], lit = [], phase = [], tint = [], idx = [];
+    for (var i = 0; i < runeList.length; i++) {
+      var r = runeList[i];
+      var base = pos.length / 3;
+      var U = [[r.uv[0], r.uv[1]], [r.uv[2], r.uv[1]], [r.uv[2], r.uv[3]], [r.uv[0], r.uv[3]]];
+      for (var k = 0; k < 4; k++) {
+        pos.push(r.corners[k][0], r.corners[k][1], r.corners[k][2]);
+        uv.push(U[k][0], U[k][1]);
+        lit.push(0);
+        phase.push(r.phase);
+        tint.push(r.color[0], r.color[1], r.color[2]);
+      }
+      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setAttribute('lit', new THREE.Float32BufferAttribute(lit, 1));
+    g.setAttribute('phase', new THREE.Float32BufferAttribute(phase, 1));
+    g.setAttribute('tint', new THREE.Float32BufferAttribute(tint, 3));
+    g.setIndex(idx);
+    if (!runeMaterial) {
+      runeMaterial = new THREE.ShaderMaterial({
+        uniforms: { time: { value: 0 }, fogDensity: { value: FOG_DENSITY }, map: { value: textures.decals.runes } },
+        vertexShader: RUNE_VERT, fragmentShader: RUNE_FRAG,
+        transparent: true, depthWrite: false, side: THREE.DoubleSide,
+        blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor
+      });
+    } else {
+      runeMaterial.uniforms.map.value = textures.decals.runes;
+    }
+    runeMesh = new THREE.Mesh(g, runeMaterial);
+    runeMesh.frustumCulled = false;
+    runeMesh.renderOrder = 4;
+    scene.add(runeMesh);
+  }
+
+  /** Per-item brightness for the shared rune / water meshes */
+  function updateDecalLit() {
+    var i, k, v;
+    if (runeMesh) {
+      var ra = runeMesh.geometry.getAttribute('lit');
+      for (i = 0; i < runeList.length; i++) {
+        v = cellBrightness(runeList[i].cellId);
+        for (k = 0; k < 4; k++) ra.array[i * 4 + k] = v;
+      }
+      ra.needsUpdate = true;
+    }
+    if (waterMesh) {
+      var wa = waterMesh.geometry.getAttribute('lit');
+      var o = 0;
+      for (i = 0; i < waterList.length; i++) {
+        v = cellBrightness(waterList[i].cellId);
+        for (k = 0; k < waterList[i].pts.length * 2; k++) wa.array[o++] = v;
+      }
+      wa.needsUpdate = true;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Doors (on some passages, shared by both chambers, swing open when crossed)
+  // ---------------------------------------------------------------------------
+  var doors = {};          // edge key -> { group, pivot, meshes, a, b, angle, target, lo }
+
+  function edgeKey(a, b) { return a < b ? a + '|' + b : b + '|' + a; }
+
+  function buildDoor(cell, dir, other) {
+    var c = cellCenter(cell);
+    var ax = axes(dir);
+    var hw = D.PR * 0.965;
+    var prof = FpLayout.passageProfile(D, 14);
+    var shape = new THREE.Shape();
+    for (var i = 0; i < prof.length; i++) {
+      var x = prof[i].s * 0.965 + hw, y = prof[i].y * 0.985;
+      if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+    }
+    shape.closePath();
+    var slab = new THREE.ExtrudeGeometry(shape, { depth: 0.09, bevelEnabled: false, curveSegments: 1 });
+    slab.translate(0, 0, -0.045);
+    var id = new THREE.Matrix4();
+    var wood = new Builder(), iron = new Builder();
+    wood.geometry(slab, id, 0.42, true);
+    var strap = new THREE.BoxGeometry(1, 1, 1);
+    var m = new THREE.Matrix4();
+    for (var k = 0; k < 2; k++) {
+      m.makeScale(hw * 1.85, 0.08, 0.12).setPosition(hw * 0.95, 0.55 + k * 1.35, 0);
+      iron.geometry(strap, m);
+    }
+    var ringG = new THREE.TorusGeometry(0.09, 0.018, 5, 12);
+    m.makeTranslation(hw * 1.7, 1.15, 0.08);
+    iron.geometry(ringG, m);
+    m.makeTranslation(hw * 1.7, 1.15, -0.08);
+    iron.geometry(ringG, m);
+    slab.dispose(); strap.dispose(); ringG.dispose();
+
+    var group = new THREE.Group();
+    var basis = new THREE.Matrix4().makeBasis(
+      new THREE.Vector3(ax.rx, 0, ax.rz), new THREE.Vector3(0, 1, 0), new THREE.Vector3(-ax.dx, 0, -ax.dz));
+    group.quaternion.setFromRotationMatrix(basis);
+    var hinge = wallPoint(c, ax, -hw, 0, CELL / 2);
+    group.position.set(hinge[0], hinge[1], hinge[2]);
+    var pivot = new THREE.Object3D();
+    group.add(pivot);
+    var meshes = [];
+    [[wood, materials.wood], [iron, materials.iron]].forEach(function(pair) {
+      var mesh = new THREE.Mesh(pair[0].toGeometry(), pair[1]);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      pivot.add(mesh);
+      meshes.push(mesh);
+    });
+    group.visible = false;
+    scene.add(group);
+    doors[edgeKey(cell.id, other.id)] = { group: group, pivot: pivot, meshes: meshes, a: cell.id, b: other.id, angle: 0, target: 0 };
+  }
+
+  function doorBrightness(dr) {
+    return Math.max(cellBrightness(dr.a), cellBrightness(dr.b));
+  }
+
+  function updateDoorsFor(cellId) {
+    Object.keys(doors).forEach(function(k) {
+      var dr = doors[k];
+      if (cellId && dr.a !== cellId && dr.b !== cellId) return;
+      var v = doorBrightness(dr);
+      for (var i = 0; i < dr.meshes.length; i++) {
+        var attr = dr.meshes[i].geometry.getAttribute('color');
+        attr.array.fill(v);
+        attr.needsUpdate = true;
+      }
+    });
+  }
+
+  /** True when a closed door stands between two neighbouring chambers */
+  function isDoorClosed(a, b) {
+    var dr = doors[edgeKey(a, b)];
+    return !!(dr && dr.target === 0);
+  }
+
+  /** Swing the door between a and b away from `from` */
+  function openDoor(from, to) {
+    var dr = doors[edgeKey(from, to)];
+    if (!dr || dr.target !== 0) return false;
+    // the door frame's +Z points into chamber a; swing toward the destination
+    dr.target = from === dr.a ? 1.62 : -1.62;
+    if (reducedMotion) { dr.angle = dr.target; dr.pivot.rotation.y = dr.angle; shadowDirty = true; }
+    doorsMoving = !reducedMotion;
+    startLoop();
+    return true;
+  }
+
+  var doorsMoving = false;
+
+  function stepDoors(dt) {
+    if (!doorsMoving) return;
+    var still = false;
+    Object.keys(doors).forEach(function(k) {
+      var dr = doors[k];
+      if (dr.angle === dr.target) return;
+      dr.angle = FpLayout.approach(dr.angle, dr.target, 6.5, dt);
+      dr.pivot.rotation.y = dr.angle;
+      if (dr.angle !== dr.target) still = true; else shadowDirty = true;
+    });
+    doorsMoving = still;
+    dirty = true;
   }
 
   // ---------------------------------------------------------------------------
@@ -777,15 +1139,46 @@ var FpRenderer = (function() {
     materials.floor = std(tex.floor, { roughness: 0.78, normal: 1.1 });
     materials.ceiling = std(tex.ceiling, { roughness: 0.95, normal: 1.0, color: 0xd8d2d8 });
     materials.wood = std(tex.wood, { roughness: 0.85, normal: 1.0, color: 0xa89484 });
-    materials.iron = new THREE.MeshStandardMaterial({ color: 0x3c3a3e, roughness: 0.5, metalness: 0.55, vertexColors: true });
+    materials.iron = new THREE.MeshStandardMaterial({ color: 0x5c5a60, roughness: 0.42, metalness: 0.5, vertexColors: true, side: THREE.DoubleSide });
     materials.pitch = new THREE.MeshStandardMaterial({ color: 0x2a1c12, roughness: 1, emissive: 0x3a1204, vertexColors: true });
     materials.lava = new THREE.MeshBasicMaterial({ map: tex.lava, vertexColors: true, fog: true });
     materials.vine = new THREE.MeshStandardMaterial({ map: tex.vine, vertexColors: true, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 1 });
+    materials.stone = std(tex.wall, { roughness: 0.88, normal: 0.6, color: 0xd6cec4 });
+    materials.crust = std(tex.wall, { roughness: 1, normal: 0.8, color: 0x3a2a24 });
+    materials.bone = new THREE.MeshStandardMaterial({ color: 0xe6dcc2, roughness: 0.65, vertexColors: true });
+    var dec = tex.decals || {};
+    materials.glow = new THREE.MeshBasicMaterial({ map: dec.glow || null, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: true });
+    materials.soot = new THREE.MeshBasicMaterial({ map: dec.soot || null, color: 0x000000, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    materials.decal = new THREE.MeshBasicMaterial({ map: dec.crack || null, color: 0xffffff, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    if (dec.env) {
+      materials.iron.envMap = dec.env;
+      materials.iron.envMapIntensity = 0.45;
+    }
+    if (!puddleAlpha) {
+      var pc = document.createElement('canvas');
+      pc.width = 64; pc.height = 4;
+      var pctx = pc.getContext('2d');
+      var pg = pctx.createLinearGradient(0, 0, 64, 0);
+      pg.addColorStop(0, '#fff'); pg.addColorStop(0.62, '#fff'); pg.addColorStop(1, '#000');
+      pctx.fillStyle = pg; pctx.fillRect(0, 0, 64, 4);
+      puddleAlpha = new THREE.CanvasTexture(pc);
+    }
+    materials.water = new THREE.MeshStandardMaterial({
+      color: 0x0d1418, roughness: 0.05, metalness: 0.1,
+      envMap: dec.env || null, envMapIntensity: 1.1,
+      alphaMap: puddleAlpha, transparent: true, depthWrite: false, vertexColors: true,
+      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1
+    });
+    if (dec.ripple && quality.normalMaps) {
+      dec.ripple.channel = 1;
+      materials.water.normalMap = dec.ripple;
+      materials.water.normalScale.set(0.7, 0.7);
+    }
   }
 
   // torch parts do not cast: the light sits right in front of them
-  var CAST = { wall: true, moss: true, floor: true, ceiling: true, wood: true, iron: true, torchIron: false, torchWood: false, trim: false, pitch: false, lava: false, vine: false };
-  var RECEIVE = { lava: false };
+  var CAST = { wall: true, moss: true, floor: true, ceiling: true, wood: true, iron: true, stone: true, rubble: true, bone: true, armour: true, crust: true };
+  var RECEIVE = { lava: false, glow: false, soot: false, decal: false, dark: false };
 
   // ---------------------------------------------------------------------------
   // Scene
@@ -799,6 +1192,14 @@ var FpRenderer = (function() {
     cells = {};
     Object.keys(entities).forEach(removeEntity);
     if (flameMesh) { scene.remove(flameMesh); flameMesh.geometry.dispose(); flameMesh = null; }
+    if (waterMesh) { scene.remove(waterMesh); waterMesh.geometry.dispose(); waterMesh = null; }
+    if (runeMesh) { scene.remove(runeMesh); runeMesh.geometry.dispose(); runeMesh = null; }
+    Object.keys(doors).forEach(function(k) {
+      scene.remove(doors[k].group);
+      doors[k].meshes.forEach(function(m) { m.geometry.dispose(); });
+    });
+    doors = {}; doorsMoving = false;
+    waterList = []; runeList = [];
     if (gateRune) { scene.remove(gateRune); gateRune.material.dispose(); gateRune = null; }
     lavaCells = {}; torchList = [];
     gateBars = null; gateHost = null;
@@ -820,8 +1221,9 @@ var FpRenderer = (function() {
 
     var ids = Object.keys(w.cells);
     var bossHost = null;
-    var keys = ['wall', 'moss', 'floor', 'ceiling', 'trim', 'lava', 'iron', 'wood', 'torchIron', 'torchWood', 'pitch', 'vine'];
-    var MAT = { torchIron: 'iron', torchWood: 'wood', trim: 'wall' };
+    var keys = ['wall', 'moss', 'floor', 'ceiling', 'lava', 'crust', 'glow', 'iron', 'wood', 'torchIron', 'torchWood', 'pitch', 'vine',
+      'stone', 'bone', 'soot', 'decal', 'water'];
+    var MAT = { torchIron: 'iron', torchWood: 'wood' };
 
     for (var n = 0; n < ids.length; n++) {
       var cell = w.cells[ids[n]];
@@ -830,16 +1232,22 @@ var FpRenderer = (function() {
       var b = {};
       keys.forEach(function(k) { b[k] = new Builder(); });
       var wallKey = (FpLayout.hashCell(cell.x, cell.y, 3) < 0.4) ? 'moss' : 'wall';
+      // aliases that share a draw call: rubble and the string course use the chamber stone,
+      // armour and dark details use iron
+      b.rubble = b[wallKey];
+      b.trim = b[wallKey];
+      b.armour = b.iron;
+      b.dark = b.iron;
 
       pushShell(b, cell, c, wallKey);
       var lava = FpLayout.lavaAxis(cell);
-      if (lava) { lavaCells[cell.id] = true; pushLava(b, c, lava); }
+      if (lava) { lavaCells[cell.id] = true; pushLava(b, c, lava, FpLayout.hashCell(cell.x, cell.y, 50)); }
 
       for (var d = 0; d < 4; d++) {
         var dir = FpLayout.DIRS[d];
         if (cell.walls[dir]) continue;
         var ax = axes(dir);
-        pushDoorway(b, c, ax, wallKey);
+        pushDoorway(b, c, ax, wallKey, quality.props ? FpLayout.doorwayStyle(cell, dir) : 'plain', FpLayout.hashCell(cell.x, cell.y, 120 + d));
         if (rnd() < 0.6) pushVines(b, c, ax, inside);
         if (cell.portal && cell.portal.dir === dir && cell.type !== 'boss') {
           bossHost = { cell: cell, ax: ax, c: c };
@@ -849,19 +1257,23 @@ var FpRenderer = (function() {
       var spots = FpLayout.torchSpots(cell, D);
       for (var t = 0; t < spots.length; t++) {
         var tp = pushTorch(b, c, spots[t].dir, spots[t].s);
-        torchList.push({ cellId: cell.id, x: tp.light[0], y: tp.light[1], z: tp.light[2], fx: tp.flame[0], fy: tp.flame[1], fz: tp.flame[2], phase: rnd() });
+        var lit0 = prevBright[cell.id] && prevBright[cell.id].target === 1 ? 1 : 0;
+        torchList.push({ cellId: cell.id, x: tp.light[0], y: tp.light[1], z: tp.light[2], fx: tp.flame[0], fy: tp.flame[1], fz: tp.flame[2], phase: rnd(),
+          rank: t, glow: lit0, target: lit0, delay: 0 });
       }
 
       if (quality.props) {
-        var props = FpLayout.propSpots(cell, D);
-        for (var p = 0; p < props.length; p++) pushProp(b, c, props[p], wallKey);
+        var feats = FpLayout.floorFeatures(cell, D);
+        for (var p = 0; p < feats.length; p++) FpProps.floorFeature(b, c.x, c.z, feats[p]);
       }
+      pushWallFeatures(b, cell, c, FpLayout.wallFeatures(cell, D));
 
       var group = new THREE.Group();
       var cd = { group: group, meshes: [], x: c.x, z: c.z };
       keys.forEach(function(k) {
         if (b[k].empty()) return;
         var mesh = new THREE.Mesh(b[k].toGeometry(), materials[MAT[k] || k]);
+        mesh.userData.key = k;
         mesh.castShadow = !!CAST[k];
         mesh.receiveShadow = RECEIVE[k] !== false;
         group.add(mesh);
@@ -910,8 +1322,23 @@ var FpRenderer = (function() {
       applyBrightness(bossHost.cell.id, brightness[bossHost.cell.id].cur);
     }
 
+    // doors on some passages (each edge once)
+    for (n = 0; n < ids.length; n++) {
+      var dc = w.cells[ids[n]];
+      ['E', 'S'].forEach(function(dd) {
+        var other = dc.exits[dd] ? w.cells[dc.exits[dd]] : null;
+        if (other && !(dc.portal && dc.portal.dir === dd) && FpLayout.hasDoor(dc, other)) {
+          buildDoor(dc, dd, other);
+        }
+      });
+    }
+    updateDoorsFor(null);
+
     buildFlames();
     updateFlameLit();
+    buildWater();
+    buildRunes();
+    updateDecalLit();
 
     // rune glow above the gate
     if (gateHost && textures.rune) {
@@ -946,6 +1373,7 @@ var FpRenderer = (function() {
   function applyBrightness(cellId, v) {
     var cd = cells[cellId];
     if (!cd) return;
+    updateDoorsFor(cellId);
     for (var i = 0; i < cd.meshes.length; i++) {
       var attr = cd.meshes[i].geometry.getAttribute('color');
       if (!attr) continue;
@@ -967,6 +1395,11 @@ var FpRenderer = (function() {
         cd.group.visible = vis;
         if (dist < CELL * 2.2) shadowDirty = true;
       }
+    });
+    Object.keys(doors).forEach(function(k) {
+      var dr = doors[k];
+      var v = !!((cells[dr.a] && cells[dr.a].group.visible) || (cells[dr.b] && cells[dr.b].group.visible));
+      if (dr.group.visible !== v) { dr.group.visible = v; shadowDirty = true; }
     });
   }
 
@@ -991,15 +1424,74 @@ var FpRenderer = (function() {
         applyBrightness(id, t);
       }
     });
-    if (reducedMotion) { updateFlameLit(); refreshGroups(false); }
+    if (reducedMotion) { updateFlameLit(); updateDecalLit(); refreshGroups(false); }
     if (gateHost) {
       var g = brightness[gateHost.cell.id];
       gateLight.visible = !!(g && g.target > 0);
     }
+    updateTorchTargets();
     if (changed) assignLights();
     dirty = true;
     startLoop();
   }
+
+  // ---------------------------------------------------------------------------
+  // Torch ignition: torches stay dark until their chamber is entered, then
+  // catch one after another and their lights ramp up
+  // ---------------------------------------------------------------------------
+  var torchesChanging = false, igniteHook = null;
+
+  function updateTorchTargets() {
+    for (var i = 0; i < torchList.length; i++) {
+      var t = torchList[i];
+      var b = brightness[t.cellId];
+      var target = b && b.target === 1 ? 1 : 0;
+      if (target === t.target) continue;
+      t.target = target;
+      var near = true;
+      if (focusId && world && world.cells[focusId]) {
+        var fc = cellCenter(world.cells[focusId]);
+        near = Math.abs(t.x - fc.x) + Math.abs(t.z - fc.z) < CELL * 1.2;
+      }
+      if (reducedMotion || !near) {
+        t.glow = target;
+        t.delay = 0;
+      } else {
+        t.delay = target ? 0.35 + t.rank * 0.45 : 0;
+        t.pendingIgnite = target === 1;
+        torchesChanging = true;
+      }
+    }
+    if (reducedMotion) updateFlameLit();
+  }
+
+  function stepTorches(dt) {
+    if (!torchesChanging) return;
+    var still = false;
+    for (var i = 0; i < torchList.length; i++) {
+      var t = torchList[i];
+      if (t.glow === t.target && t.delay <= 0) continue;
+      if (t.delay > 0) {
+        t.delay -= dt;
+        still = true;
+        continue;
+      }
+      if (t.pendingIgnite) {
+        t.pendingIgnite = false;
+        if (igniteHook) {
+          var dx = t.x - camera.position.x, dz = t.z - camera.position.z;
+          igniteHook({ cellId: t.cellId, distance: Math.sqrt(dx * dx + dz * dz), focus: t.cellId === focusId });
+        }
+      }
+      t.glow = FpLayout.approach(t.glow, t.target, 1.5, dt);
+      if (t.glow !== t.target) still = true;
+    }
+    torchesChanging = still;
+    updateFlameLit();
+    dirty = true;
+  }
+
+  function onTorchIgnite(fn) { igniteHook = fn; }
 
   function stepBrightness(dt) {
     if (!brightening) return;
@@ -1009,13 +1501,14 @@ var FpRenderer = (function() {
       var b = brightness[ids[i]];
       if (b.cur === b.target) continue;
       var d = b.target - b.cur;
-      var step = dt / 0.55;
+      var step = dt / 0.8;
       if (Math.abs(d) <= step) b.cur = b.target; else b.cur += (d > 0 ? 1 : -1) * step;
       applyBrightness(ids[i], b.cur);
       if (b.cur !== b.target) still = true;
     }
     brightening = still;
     updateFlameLit();
+    updateDecalLit();
     refreshGroups(false);
     if (gateRune) gateRune.material.opacity = brightness[gateHost.cell.id].cur;
     dirty = true;
@@ -1028,39 +1521,58 @@ var FpRenderer = (function() {
   // ---------------------------------------------------------------------------
   // Lights
   // ---------------------------------------------------------------------------
-  /** Point the light pool at the torches around the focus chamber */
+  /**
+   * Point the light pool at the torches around the focus chamber. Slots keep
+   * their torch when it stays chosen; a slot that changes fades its light
+   * out, moves, and fades back in (see updateLights).
+   */
   function assignLights() {
     if (!world || !torchLights.length) return;
     var focus = focusId && world.cells[focusId] ? cellCenter(world.cells[focusId]) : { x: pose.x, z: pose.z };
     var chosen = FpLayout.assignLights(torchList, {
       focusId: focusId, px: focus.x, pz: focus.z,
       count: torchLights.length, shadowCount: quality.shadowLights,
-      isLit: function(id) { return !!(brightness[id] && (brightness[id].target > 0 || brightness[id].cur > 0)); }
+      isLit: function(id) { return !!(brightness[id] && brightness[id].target === 1); }
     });
+    var prev = lightSlots.map(function(sl) { return sl.pending; });
+    var next = FpLayout.stableSlots(prev, chosen, quality.shadowLights);
     for (var i = 0; i < torchLights.length; i++) {
-      var idx = typeof chosen[i] === 'number' ? chosen[i] : -1;
-      if (lightSlots[i] === idx) continue;
-      lightSlots[i] = idx;
-      var L = torchLights[i];
-      if (idx < 0) {
-        L.position.set(0, -50, 0);
-        L.intensity = 0;
-      } else {
-        L.position.set(torchList[idx].x, torchList[idx].y, torchList[idx].z);
+      if (lightSlots[i].pending !== next[i]) {
+        lightSlots[i].pending = next[i];
+        lightsFading = true;
       }
-      if (L.castShadow) shadowDirty = true;
     }
+    startLoop();
     dirty = true;
   }
 
-  function updateLights(t) {
+  var lightsFading = false;
+
+  function updateLights(t, dt) {
     if (!world) return;
+    dt = dt || 0;
+    var fading = false;
     for (var i = 0; i < torchLights.length; i++) {
-      var idx = lightSlots[i];
-      if (idx < 0) { torchLights[i].intensity = 0; continue; }
-      var torch = torchList[idx];
-      torchLights[i].intensity = TORCH_INTENSITY * cellBrightness(torch.cellId) * FpLayout.flicker(t, torch.phase);
+      var sl = lightSlots[i];
+      var L = torchLights[i];
+      if (sl.torch !== sl.pending) {
+        sl.fade = reducedMotion ? 0 : FpLayout.approach(sl.fade, 0, 5, dt);
+        if (sl.fade === 0) {
+          sl.torch = sl.pending;
+          if (sl.torch >= 0) L.position.set(torchList[sl.torch].x, torchList[sl.torch].y, torchList[sl.torch].z);
+          else L.position.set(0, -50, 0);
+          if (L.castShadow) shadowDirty = true;
+        }
+        fading = true;
+      } else if (sl.fade < 1) {
+        sl.fade = reducedMotion ? 1 : FpLayout.approach(sl.fade, 1, 2.5, dt);
+        fading = true;
+      }
+      if (sl.torch < 0) { L.intensity = 0; continue; }
+      var torch = torchList[sl.torch];
+      L.intensity = TORCH_INTENSITY * torch.glow * sl.fade * FpLayout.flicker(t, torch.phase);
     }
+    lightsFading = fading;
     var lava = [];
     Object.keys(lavaCells).forEach(function(id) {
       var b = cellBrightness(id);
@@ -1150,8 +1662,25 @@ var FpRenderer = (function() {
     }
   }
 
+  /**
+   * Start lighting a chamber as the player walks in (the bootstrap confirms
+   * it as explored on arrival), so light grows during the step instead of
+   * popping afterwards
+   */
+  function enterCell(toId) {
+    var b = brightness[toId];
+    if (!b || b.target === 1) return;
+    b.target = 1;
+    brightening = true;
+    updateTorchTargets();
+    assignLights();
+    startLoop();
+  }
+
   function animateStep(toId, facing, ms, done) {
     var c = cellCenter(world.cells[toId]);
+    if (focusId) openDoor(focusId, toId);
+    enterCell(toId);
     setFocus(toId);
     startTween({ x: c.x, z: c.z, yaw: FpWorld.YAW[facing] }, typeof ms === 'number' ? ms : 520, easeInOut, done, true);
   }
@@ -1162,6 +1691,7 @@ var FpRenderer = (function() {
 
   function animateKnockback(toId, facing, ms, done) {
     var c = cellCenter(world.cells[toId]);
+    if (focusId) openDoor(focusId, toId);
     pose.yaw = FpWorld.YAW[facing];
     setFocus(toId);
     startTween({ x: c.x, z: c.z, yaw: FpWorld.YAW[facing] }, typeof ms === 'number' ? ms : 520, easeOut, done, true);
@@ -1175,6 +1705,7 @@ var FpRenderer = (function() {
       return;
     }
     fade.classList.add('active');
+    enterCell(toId);
     setTimeout(function() {
       setPose(toId, facing);
       render();
@@ -1343,11 +1874,19 @@ var FpRenderer = (function() {
     if (tween) stepTween(now);
     if (fades.length) stepFades(now);
     if (brightening) stepBrightness(dt);
+    if (doorsMoving) stepDoors(dt);
+    if (torchesChanging) stepTorches(dt);
     if (tween) refreshGroups(false);
     if (animated || tween || fades.length || brightening) {
       if (flameMaterial) flameMaterial.uniforms.time.value = clock;
+      if (waterMaterial) waterMaterial.uniforms.time.value = clock;
+      if (runeMaterial) runeMaterial.uniforms.time.value = clock;
+      if (materials.water && materials.water.normalMap) { materials.water.normalMap.offset.set((clock * 0.013) % 1, (clock * 0.021) % 1); }
       if (materials.lava && materials.lava.map) { materials.lava.map.offset.y = (clock * 0.05) % 1; materials.lava.map.offset.x = Math.sin(clock * 0.4) * 0.02; }
-      updateLights(clock);
+      updateLights(clock, dt);
+      dirty = true;
+    } else if (lightsFading || torchesChanging) {
+      updateLights(clock, dt);
       dirty = true;
     }
     var hadShadowWork = shadowDirty;
@@ -1362,7 +1901,7 @@ var FpRenderer = (function() {
         rebuild();
       }
     }
-    if (running && (animated || tween || fades.length || brightening)) rafId = requestAnimationFrame(frame);
+    if (running && (animated || tween || fades.length || brightening || doorsMoving || torchesChanging || lightsFading)) rafId = requestAnimationFrame(frame);
   }
 
   function startLoop() {
@@ -1399,12 +1938,46 @@ var FpRenderer = (function() {
   function getLightInfo() {
     return {
       torches: torchList.length,
-      slots: lightSlots.slice(),
+      slots: lightSlots.map(function(sl) { return sl.torch; }),
+      focusTorches: torchList.filter(function(t) { return t.cellId === focusId; }).map(function(t) { return { glow: +t.glow.toFixed(2), target: t.target, delay: +t.delay.toFixed(2), y: +t.fy.toFixed(2) }; }),
       shadowCasters: quality ? quality.shadowLights : 0,
       focus: focusId
     };
   }
   function markDirty() { dirty = true; startLoop(); }
+
+  /** Debug: meshes of a chamber by builder key */
+  function debugCell(id) {
+    var cd = cells[id];
+    if (!cd) return null;
+    return cd.meshes.map(function(m) {
+      var mat = m.material;
+      return { key: m.userData.key, verts: m.geometry.getAttribute('position').count, visible: m.visible && cd.group.visible,
+        map: !!(mat.map && mat.map.image), mapSize: mat.map && mat.map.image ? mat.map.image.width + 'x' + mat.map.image.height : null,
+        transparent: mat.transparent, bbox: (m.geometry.computeBoundingBox(), m.geometry.boundingBox.min.toArray().map(function(v) { return +v.toFixed(2); }).concat(m.geometry.boundingBox.max.toArray().map(function(v) { return +v.toFixed(2); }))) };
+    });
+  }
+
+  /**
+   * Ambient sound sources around the listener: lava chambers and water
+   * trickles/puddles in explored chambers
+   * @returns {Object} { x, z, lava: [{ x, z }], water: [{ x, z }] }
+   */
+  function getSoundscape() {
+    var out = { x: camera ? camera.position.x : pose.x, z: camera ? camera.position.z : pose.z, lava: [], water: [] };
+    if (!world) return out;
+    Object.keys(lavaCells).forEach(function(id) {
+      if (cellBrightness(id) < 0.99) return;
+      var c = cellCenter(world.cells[id]);
+      out.lava.push({ x: c.x, z: c.z });
+    });
+    for (var i = 0; i < waterList.length; i++) {
+      if (cellBrightness(waterList[i].cellId) < 0.99) continue;
+      var p = waterList[i].pts[waterList[i].pts.length - 1];
+      out.water.push({ x: p[0], z: p[2] });
+    }
+    return out;
+  }
 
   /**
    * Debug/tuning helper (screenshots): override light levels at runtime
@@ -1421,7 +1994,7 @@ var FpRenderer = (function() {
       renderer.toneMapping = tones[o.tone];
       Object.keys(materials).forEach(function(k) { if (materials[k]) materials[k].needsUpdate = true; });
     }
-    updateLights(clock);
+    updateLights(clock, 0);
     markDirty();
   }
 
@@ -1452,6 +2025,10 @@ var FpRenderer = (function() {
     stop: stop,
     markDirty: markDirty,
     tune: tune,
+    debugCell: debugCell,
+    isDoorClosed: isDoorClosed,
+    onTorchIgnite: onTorchIgnite,
+    getSoundscape: getSoundscape,
     setQuality: setQuality,
     onRebuild: onRebuild,
     getQuality: getQuality,
