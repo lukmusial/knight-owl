@@ -439,11 +439,11 @@ const UI = (function() {
           <div class="saved-game-item" data-name="${save.name}">
             <span class="save-name">${save.name}</span>
             <span class="save-info">${save.monstersDefeated} monsters / potworów</span>
-            <button class="delete-save-btn" data-name="${save.name}">Delete / Usuń</button>
+            <button class="delete-save-btn bi" data-name="${save.name}"><span class="bi-en">Delete</span><span class="bi-pl">Usuń</span></button>
           </div>
         `).join('');
       } else {
-        elements.savedGamesList.innerHTML = '<p class="no-saves">No saved games / Brak zapisanych gier</p>';
+        elements.savedGamesList.innerHTML = '<p class="no-saves bi">'+'<span class="bi-en">No saved games</span><span class="bi-pl">Brak zapisanych gier</span>'+'</p>';
       }
     }
 
@@ -841,6 +841,7 @@ const UI = (function() {
         </div>
       `).join('');
 
+      elements.answersContainer.classList.toggle('with-speak', question.category !== 'vocabulary');
       answerSubmitted = false;
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -939,6 +940,7 @@ const UI = (function() {
         </div>
       `).join('');
 
+      elements.answersContainer.classList.toggle('with-speak', question.category !== 'vocabulary');
       answerSubmitted = false;
       elements.answersContainer.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1048,9 +1050,10 @@ const UI = (function() {
       }
     }
 
-    // Hide loot initially - will show when continue button is enabled
+    // Hide loot initially - it is laid out (invisible) right away and revealed later
     if (elements.lootContainer) {
       elements.lootContainer.classList.add('hidden');
+      elements.lootContainer.classList.remove('loot-pending');
     }
 
     if (elements.continueBtn) {
@@ -1086,8 +1089,9 @@ const UI = (function() {
 
       // Reveal loot shortly after the modal opens
       if (elements.lootContainer && result.loot && result.loot.length > 0) {
-        resultTimers.push(setTimeout(() => {
-          elements.lootContainer.innerHTML = `
+        // Render now but keep it invisible, so the panel has its final size
+        // from the first frame and does not jump when the loot appears
+        elements.lootContainer.innerHTML = `
             <h4>
               <span class="label-en">${getLabel(labels, 'lootObtained', 'en', 'Loot obtained:')}</span>
               <span class="label-pl">${getLabel(labels, 'lootObtained', 'pl', 'Zdobyte łupy:')}</span>
@@ -1102,7 +1106,10 @@ const UI = (function() {
               `).join('')}
             </ul>
           `;
-          elements.lootContainer.classList.remove('hidden');
+        elements.lootContainer.classList.add('loot-pending');
+        elements.lootContainer.classList.remove('hidden');
+        resultTimers.push(setTimeout(() => {
+          elements.lootContainer.classList.remove('loot-pending');
           if (hasFx()) {
             FX.lootReveal(elements.lootContainer);
             for (var i = 0; i < Math.min(result.loot.length, 4); i++) {

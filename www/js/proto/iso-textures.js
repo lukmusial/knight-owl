@@ -41,6 +41,30 @@ var IsoTextures = (function() {
     gold_pile: 'gold_pile.png', bones: 'bones.png', rubble: 'rubble.png'
   };
 
+  /**
+   * Kenney "Isometric Miniature Dungeon" (CC0) tiles under assets/proto/iso/kenney/.
+   * Every image is a 256x512 canvas (stored here at 128x256) whose floor
+   * diamond is centred at (128, 427) -> origin (0.5, 0.834). Kenney names wall
+   * pieces by the direction they face, so our n/w/s/e edges map to _S/_E/_N/_W.
+   */
+  var KENNEY_DIR = 'assets/proto/iso/kenney/';
+  var KENNEY_ORIGIN = { x: 0.5, y: 427 / 512 };
+  var KENNEY_FILES = {
+    k_floor_0: 'stone_E', k_floor_1: 'stoneTile_E', k_floor_2: 'stoneUneven_E', k_floor_3: 'stoneMissingTiles_E',
+    k_corridor: 'dirt_E', k_corridor_1: 'dirtTiles_E',
+    k_wall_n_0: 'stoneWall_S', k_wall_n_1: 'stoneWallAged_S', k_wall_n_2: 'stoneWallBroken_S',
+    k_wall_w_0: 'stoneWall_E', k_wall_w_1: 'stoneWallAged_E', k_wall_w_2: 'stoneWallBroken_E',
+    k_arch_n: 'stoneWallArchway_S', k_arch_w: 'stoneWallArchway_E',
+    k_gate_n: 'stoneWallGate_S',
+    k_rim_n: 'stoneWallHalf_S', k_rim_w: 'stoneWallHalf_E', k_rim_s: 'stoneWallHalf_N', k_rim_e: 'stoneWallHalf_W',
+    k_stairs: 'stairs_S', k_chest: 'chestClosed_E', k_chest_open: 'chestOpen_E',
+    k_barrel: 'barrel_E', k_barrels: 'barrels_E', k_crate: 'woodenCrate_E', k_crates: 'woodenCrates_E',
+    k_column: 'stoneColumn_E'
+  };
+  // Keys that must all be present for the scene to switch to the Kenney set
+  var KENNEY_REQUIRED = ['k_floor_0', 'k_floor_1', 'k_floor_2', 'k_corridor', 'k_wall_n_0', 'k_wall_w_0',
+    'k_arch_n', 'k_arch_w', 'k_rim_n', 'k_rim_w', 'k_rim_s', 'k_rim_e', 'k_stairs', 'k_chest', 'k_chest_open'];
+
   function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
   function rgb(r, g, b) { return 'rgb(' + clamp(r) + ',' + clamp(g) + ',' + clamp(b) + ')'; }
   function rgba(r, g, b, a) { return 'rgba(' + clamp(r) + ',' + clamp(g) + ',' + clamp(b) + ',' + a + ')'; }
@@ -941,6 +965,10 @@ var IsoTextures = (function() {
     WALL_H: WALL_H,
     FALLBACK_PALETTE: FALLBACK_PALETTE,
     OPTIONAL_FILES: OPTIONAL_FILES,
+    KENNEY_DIR: KENNEY_DIR,
+    KENNEY_FILES: KENNEY_FILES,
+    KENNEY_ORIGIN: KENNEY_ORIGIN,
+    KENNEY_REQUIRED: KENNEY_REQUIRED,
     samplePalette: samplePalette,
     generateFallbacks: generateFallbacks,
     makeStanding: makeStanding,

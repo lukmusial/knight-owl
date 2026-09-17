@@ -14,6 +14,8 @@ var IsoScenes = (function() {
   var TILE_W = 128, TILE_H = 64, WALL_H = 64;
   var LAYERS = { floor: 0, wall: 1, token: 2, fx: 3 };
   var FOG_ALPHA = { hidden: 1, fogged: 0.72, visible: 0 };
+  var KENNEY_TINT = 0xb6bdd2;      // cool grey-blue multiply tint for the Kenney tiles
+  var KENNEY_WALL_H = 96;          // their wall pieces are taller than the procedural 64px faces
   var SPRITE_DIR = 'assets/proto/monsters/';
   var OWL_H = 104;          // player sprite height in px (~1.1 tile widths tall on a 96px basis)
   var MONSTER_H = 116;      // regular monster sprite height
@@ -74,6 +76,10 @@ var IsoScenes = (function() {
       Object.keys(IsoTextures.OPTIONAL_FILES).forEach(function(key) {
         self.load.image(key, 'assets/proto/iso/' + IsoTextures.OPTIONAL_FILES[key]);
       });
+      // Kenney Isometric Miniature Dungeon tiles (optional; scene falls back to procedural art)
+      Object.keys(IsoTextures.KENNEY_FILES).forEach(function(key) {
+        self.load.image(key, IsoTextures.KENNEY_DIR + IsoTextures.KENNEY_FILES[key] + '.png');
+      });
       // Extracted cutouts for the monsters in this dungeon + the owl
       monsterIds().concat(['knight_owl']).forEach(function(id) {
         self.load.image('cut_' + id, SPRITE_DIR + id + '.png');
@@ -87,6 +93,9 @@ var IsoScenes = (function() {
         palette = IsoTextures.samplePalette(this.textures.get('palette_src').getSourceImage());
       }
       IsoTextures.generateFallbacks(this, palette);
+      var kenney = IsoTextures.KENNEY_REQUIRED.every(function(k) { return self.textures.exists(k); });
+      this.registry.set('kenneyTiles', kenney);
+      console.log('IsoTextures: ' + (kenney ? 'Kenney dungeon tiles' : 'procedural tiles'));
 
       function cutout(id) {
         return self.textures.exists('cut_' + id) ? self.textures.get('cut_' + id).getSourceImage() : null;
@@ -138,6 +147,7 @@ var IsoScenes = (function() {
       this.roomLights = {};    // roomId -> [gameObjects] (only in explored rooms)
       this.linkSprites = {};   // linkId -> [gameObjects]
       this.fogOverlays = {};   // roomId|linkId -> Graphics
+      this.kenney = !!this.registry.get('kenneyTiles');
       this.archByTile = {};    // 'gx,gy' of the room tile -> arch image (ghosted while the owl is behind it)
       this.lastVis = {};
       this.tokens = {};        // roomId -> sprite
@@ -202,7 +212,7 @@ var IsoScenes = (function() {
 
     addTorch: function(roomId, t, side) {
       var self = this;
-      var pt = this.wallPoint(t, side, 0.5, 30);
+      var pt = this.wallPoint(t, side, 0.5, this.kenney ? 46 : 30);
       var depth = IsoModel.depthKey(t.gx, t.gy, LAYERS.wall) + 0.5;
       var bracket = this.add.image(pt.x, pt.y + 14, 'torch_bracket').setDepth(depth);
       this.bucketFor(t).push(bracket);
@@ -231,10 +241,20 @@ var IsoScenes = (function() {
 
     // --- Build -----------------------------------------------------------------
 
+    /**
+     * Place a Kenney tile: 128x256 image whose floor diamond centre must sit at p
+     */
+    kTile: function(key, p, depth, dy) {
+      var o = IsoTextures.KENNEY_ORIGIN;
+      // Kenney's sandstone is tinted toward the game's cool grey-blue dungeon palette
+      return this.add.image(p.x, p.y + (dy || 0), key).setOrigin(o.x, o.y).setDepth(depth).setTint(KENNEY_TINT);
+    },
+
     buildTiles: function() {
       var self = this;
       var model = this.model;
       var rooms = Dungeon.getState().rooms;
+      if (this.kenney) return this.buildTilesKenney();
 
       model.tiles.forEach(function(t) {
         var p = IsoModel.gridToIso(t.gx, t.gy);
@@ -295,6 +315,80 @@ var IsoScenes = (function() {
         }
       });
 
+      this.buildPortals();
+    },
+
+    /**
+     * Tile pass with the Kenney set: block floors, wall pieces per edge, arches
+     * at corridor openings, half walls as parapets. Torches, banners, fog and
+     * tokens are added by the other passes unchanged.
+     */
+    buildTilesKenney: function() {
+      var self = this;
+      var model = this.model;
+      var rooms = Dungeon.getState().rooms;
+
+      model.tiles.forEach(function(t) {
+        var p = IsoModel.gridToIso(t.gx, t.gy);
+        var bucket = self.bucketFor(t);
+        var room = t.roomId ? rooms[t.roomId] : null;
+        var rm = t.roomId ? model.rooms[t.roomId] : null;
+        var dx = rm ? t.gx - rm.gx0 : 0, dy = rm ? t.gy - rm.gy0 : 0;
+        var floorDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.floor);
+        var wallDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.wall);
+        var frontDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.fx) - 0.5;
+        var v = Math.floor(hash(t.gx, t.gy, 3) * 3);
+
+        var isLava = room && room.type === 'boss' && ((dx === 0 || dx === 2) && (dy === 0 || dy === 2));
+        if (isLava) {
+          var lava = self.add.sprite(p.x, p.y, 'lava_0').setDepth(floorDepth);
+          if (!REDUCED_MOTION) lava.play({ key: 'lava', startFrame: (dx + dy) % 3 });
+          bucket.push(lava);
+        } else if (t.kind === 'corridor') {
+          bucket.push(self.kTile(self.textures.exists('k_corridor_1') && v === 2 ? 'k_corridor_1' : 'k_corridor', p, floorDepth));
+        } else {
+          var fk = 'k_floor_' + (self.textures.exists('k_floor_3') ? Math.floor(hash(t.gx, t.gy, 5) * 4) : t.variant);
+          if (!self.textures.exists(fk)) fk = 'k_floor_0';
+          bucket.push(self.kTile(fk, p, floorDepth));
+        }
+
+        function wallKey(side) {
+          var k = 'k_wall_' + side + '_' + (v === 2 && hash(t.gx, t.gy, 7) > 0.5 ? 2 : (v === 1 ? 1 : 0));
+          return self.textures.exists(k) ? k : 'k_wall_' + side + '_0';
+        }
+
+        if (t.kind === 'corridor') {
+          t.walls.forEach(function(side) {
+            var back = side === 'n' || side === 'w';
+            bucket.push(self.kTile('k_rim_' + side, p, back ? wallDepth : frontDepth));
+          });
+          return;
+        }
+
+        if (t.walls.indexOf('n') !== -1) {
+          bucket.push(self.kTile(wallKey('n'), p, wallDepth));
+        } else if (t.kind === 'floor' && self.opensTo(t, 'n')) {
+          var archN = self.kTile('k_arch_n', p, wallDepth);
+          bucket.push(archN);
+          self.archByTile[t.gx + ',' + t.gy + ':n'] = archN;
+        }
+        if (t.walls.indexOf('w') !== -1) {
+          bucket.push(self.kTile(wallKey('w'), p, wallDepth));
+        } else if (t.kind === 'floor' && self.opensTo(t, 'w')) {
+          var archW = self.kTile('k_arch_w', p, wallDepth);
+          bucket.push(archW);
+          self.archByTile[t.gx + ',' + t.gy + ':w'] = archW;
+        }
+        if (t.walls.indexOf('s') !== -1) bucket.push(self.kTile('k_rim_s', p, frontDepth));
+        if (t.walls.indexOf('e') !== -1) bucket.push(self.kTile('k_rim_e', p, frontDepth));
+      });
+
+      this.buildPortals();
+    },
+
+    buildPortals: function() {
+      var self = this;
+      var model = this.model;
       // Portal links: rune circles on both rooms and a faint line between them
       model.links.forEach(function(link) {
         if (link.type !== 'portal') return;
@@ -341,7 +435,12 @@ var IsoScenes = (function() {
         else if (wCorner && wCorner.walls.indexOf('w') !== -1) self.addTorch(rid, wCorner, 'w');
 
         if (type === 'entrance') {
-          self.addProp(rid, g + 1, h, 'entrance', { dy: 20, dz: 0.6 });
+          if (self.kenney) {
+            var sp = IsoModel.gridToIso(g + 1, h);
+            self.roomSprites[rid].push(self.kTile('k_stairs', sp, IsoModel.depthKey(g + 1, h, LAYERS.token) + 0.6));
+          } else {
+            self.addProp(rid, g + 1, h, 'entrance', { dy: 20, dz: 0.6 });
+          }
           var bt = self.tileAt(g, h);
           if (bt && bt.walls.indexOf('n') !== -1) {
             var bp = self.wallPoint(bt, 'n', 0.5, 62);
@@ -351,7 +450,12 @@ var IsoScenes = (function() {
         } else if (type === 'monster') {
           // bones or rubble near the front, a second pile now and then
           self.addProp(rid, seed > 0.5 ? g + 2 : g, h + 2, seed > 0.33 ? 'bones' : 'rubble', { dy: 8, dz: -0.5 });
-          if (seed > 0.6) self.addProp(rid, g + 2, h, 'rubble', { dy: 8, dz: -0.5, scale: 0.8 });
+          if (self.kenney && self.textures.exists('k_barrels')) {
+            var bp0 = IsoModel.gridToIso(seed > 0.5 ? g : g + 2, h);
+            self.roomSprites[rid].push(self.kTile(seed > 0.75 ? 'k_crates' : 'k_barrels', bp0, IsoModel.depthKey(seed > 0.5 ? g : g + 2, h, LAYERS.token) + 0.2));
+          } else if (seed > 0.6) {
+            self.addProp(rid, g + 2, h, 'rubble', { dy: 8, dz: -0.5, scale: 0.8 });
+          }
         } else if (type === 'treasure') {
           self.addProp(rid, g + 1, h + 1, 'glow_gold', { oy: 0.5, dy: 4, layer: LAYERS.floor, dz: 0.5, blend: Phaser.BlendModes.ADD, alpha: 0.7, light: true });
           self.addProp(rid, g + 2, h, 'gold_pile', { dy: 12 });
@@ -491,8 +595,8 @@ var IsoScenes = (function() {
       switch (tok.kind) {
         case 'unknown': return 'marker_unknown';
         case 'entrance': return null; // stairs are part of the chamber dressing
-        case 'treasure': return 'treasure_chest';
-        case 'treasure_open': return 'treasure_open';
+        case 'treasure': return this.kenney ? 'k_chest' : 'treasure_chest';
+        case 'treasure_open': return this.kenney ? 'k_chest_open' : 'treasure_open';
         case 'boss': return this.textures.exists('mon_dragon') ? 'mon_dragon' : 'marker_unknown';
         case 'monster':
           return this.textures.exists('mon_' + tok.id) ? 'mon_' + tok.id : 'marker_unknown';
@@ -514,8 +618,9 @@ var IsoScenes = (function() {
         }
         if (!key) return;
         var c = IsoModel.getRoomCenter(rid), p = IsoModel.getRoomCenterPx(rid);
-        var img = self.add.image(p.x, p.y + 12, key).setOrigin(0.5, 1)
-          .setDepth(IsoModel.depthKey(c.gx, c.gy, LAYERS.token));
+        var img = key.indexOf('k_') === 0
+          ? self.kTile(key, p, IsoModel.depthKey(c.gx, c.gy, LAYERS.token))   // Kenney tile: diamond-centre origin
+          : self.add.image(p.x, p.y + 12, key).setOrigin(0.5, 1).setDepth(IsoModel.depthKey(c.gx, c.gy, LAYERS.token));
         img.tokenKey = key;
         if ((tok.kind === 'monster' || tok.kind === 'boss') && !REDUCED_MOTION) {
           img.bobTween = self.tweens.add({ targets: img, y: p.y + 8, scaleX: 0.98, duration: 1100 + hash(c.gx, c.gy) * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });

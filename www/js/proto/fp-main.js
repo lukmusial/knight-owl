@@ -44,10 +44,10 @@ var ProtoFp = (function() {
       name: 'Mr Owl',
       controlsHtml:
         '<div class="hud-dpad">' +
-        '<button type="button" class="hud-btn hud-btn-forward" data-cmd="forward" aria-label="Forward">&#x25B2;</button>' +
-        '<button type="button" class="hud-btn hud-btn-left" data-cmd="turnLeft" aria-label="Turn left">&#x21B6;</button>' +
-        '<button type="button" class="hud-btn hud-btn-back" data-cmd="back" aria-label="Back">&#x25BC;</button>' +
-        '<button type="button" class="hud-btn hud-btn-right" data-cmd="turnRight" aria-label="Turn right">&#x21B7;</button>' +
+        '<button type="button" class="hud-btn rpg-arrow hud-btn-forward" data-cmd="forward" aria-label="Forward">&#x25B2;</button>' +
+        '<button type="button" class="hud-btn rpg-arrow hud-btn-left" data-cmd="turnLeft" aria-label="Turn left">&#x21B6;</button>' +
+        '<button type="button" class="hud-btn rpg-arrow hud-btn-back" data-cmd="back" aria-label="Back">&#x25BC;</button>' +
+        '<button type="button" class="hud-btn rpg-arrow hud-btn-right" data-cmd="turnRight" aria-label="Turn right">&#x21B7;</button>' +
         '</div>',
       note: { en: 'Swipe or use the pad. Tap ▲ to walk.', pl: 'Przesuń palcem lub użyj przycisków.' }
     });
@@ -57,7 +57,7 @@ var ProtoFp = (function() {
       ng.type = 'button';
       ng.id = 'fp-new-game';
       ng.className = 'hud-btn';
-      ng.title = 'New game / Nowa gra';
+      ng.title = 'New game. Nowa gra.';
       ng.innerHTML = '&#x27F3;';
       side.appendChild(ng);
       ng.addEventListener('click', function() { newGame(true); });
@@ -422,7 +422,7 @@ var ProtoFp = (function() {
   function showVictory() {
     FpRenderer.stop();
     ProtoSession.finishRun();
-    UI.showVictoryScreen(Player.getGameSummary(), function() { window.location.href = 'index.html'; });
+    UI.showVictoryScreen(Player.getGameSummary(), function() { window.location.href = ProtoSession.launcherUrl(Player.getName()); });
   }
 
   /**

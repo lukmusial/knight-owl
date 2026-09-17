@@ -36,10 +36,10 @@ var ProtoIso = (function() {
 
   var CONTROLS_HTML =
     '<div id="direction-bar" class="hud-cross">' +
-      '<button type="button" class="hud-btn dir-btn dir-north" data-direction="North" disabled aria-label="North">&#x2191;</button>' +
-      '<button type="button" class="hud-btn dir-btn dir-west" data-direction="West" disabled aria-label="West">&#x2190;</button>' +
-      '<button type="button" class="hud-btn dir-btn dir-east" data-direction="East" disabled aria-label="East">&#x2192;</button>' +
-      '<button type="button" class="hud-btn dir-btn dir-south" data-direction="South" disabled aria-label="South">&#x2193;</button>' +
+      '<button type="button" class="hud-btn rpg-arrow dir-btn dir-north" data-direction="North" disabled aria-label="North">&#x2191;</button>' +
+      '<button type="button" class="hud-btn rpg-arrow dir-btn dir-west" data-direction="West" disabled aria-label="West">&#x2190;</button>' +
+      '<button type="button" class="hud-btn rpg-arrow dir-btn dir-east" data-direction="East" disabled aria-label="East">&#x2192;</button>' +
+      '<button type="button" class="hud-btn rpg-arrow dir-btn dir-south" data-direction="South" disabled aria-label="South">&#x2193;</button>' +
     '</div>';
 
   // ---------------------------------------------------------------------------
@@ -57,7 +57,25 @@ var ProtoIso = (function() {
       note: { en: 'Tap a lit chamber or use the compass.', pl: 'Dotknij komnaty lub użyj kompasu.' }
     });
     ProtoSharedDom.inject(document.getElementById('iso-modals'));
-    if (typeof SFX !== 'undefined') SFX.init();
+    if (typeof SFX !== 'undefined') {
+      SFX.init();
+      // Kenney RPG Audio (CC0) clips for the isometric view; synth stays for the rest
+      var K = 'assets/audio/kenney/';
+      SFX.registerFiles({
+        'step': [K + 'footstep00.mp3', K + 'footstep01.mp3', K + 'footstep02.mp3', K + 'footstep03.mp3', K + 'footstep04.mp3'],
+        'tap': K + 'metalClick.mp3',
+        'reveal': [K + 'doorOpen_1.mp3', K + 'doorOpen_2.mp3'],
+        'door': K + 'doorOpen_2.mp3',
+        'coin': K + 'handleCoins.mp3',
+        'coins': K + 'handleCoins2.mp3',
+        'hit': [K + 'knifeSlice.mp3', K + 'knifeSlice2.mp3'],
+        'attack': K + 'chop.mp3',
+        'pushback': K + 'dropLeather.mp3',
+        'knockback': K + 'dropLeather.mp3',
+        'chest': K + 'metalLatch.mp3',
+        'creak': K + 'creak1.mp3'
+      });
+    }
     if (typeof UI.setSfxToggleState === 'function') UI.setSfxToggleState();
 
     // Move the shared sound toggle and add a restart button into the top bar
@@ -123,7 +141,7 @@ var ProtoIso = (function() {
       },
       onRoomTap: tapRoom,
       onFarTap: function() {
-        UI.showToast('Too far away / Za daleko', 'info');
+        UI.showToast('Too far away. Za daleko.', 'info');
       }
     });
   }
@@ -335,7 +353,7 @@ var ProtoIso = (function() {
 
   function showVictory() {
     ProtoSession.finishRun();
-    UI.showVictoryScreen(Player.getGameSummary(), function() { location.href = 'index.html'; });
+    UI.showVictoryScreen(Player.getGameSummary(), function() { location.href = ProtoSession.launcherUrl(Player.getName()); });
   }
 
   // ---------------------------------------------------------------------------
