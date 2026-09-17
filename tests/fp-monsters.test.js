@@ -5,16 +5,25 @@
 TestRunner.suite('FpMonsters', () => {
   var LEVEL1 = ['goblin', 'giant_rat', 'slime', 'bat_swarm', 'zombie', 'mimic', 'wolf', 'giant_snake', 'vampire_bunny'];
 
-  TestRunner.test('every level-1 monster has a model config', () => {
-    var level1 = MONSTERS.filter(function(m) { return m.difficulty === 1; }).map(function(m) { return m.id; }).sort();
-    TestRunner.assertEqual(level1.join(','), LEVEL1.slice().sort().join(','), 'level-1 roster matches the model list');
-    level1.forEach(function(id) {
+  TestRunner.test('every monster, the dragon and the treasure chest have a model config', () => {
+    var ids = MONSTERS.map(function(m) { return m.id; }).concat(['treasure']);
+    TestRunner.assert(ids.indexOf('dragon') !== -1, 'dragon is in the roster');
+    ids.forEach(function(id) {
       var c = FpMonsters.config(id);
       TestRunner.assertTruthy(c, id + ' configured');
-      TestRunner.assert(c.height > 1 && c.height < 3, id + ' height in range');
+      TestRunner.assert(c.height > 1 && c.height < 5, id + ' height in range');
+      TestRunner.assert(['breathe', 'squash', 'hover', 'sway', 'still'].indexOf(c.motion) !== -1, id + ' motion known');
       TestRunner.assertEqual(FpMonsters.url(id), 'assets/proto/fp/monsters/' + id + '.glb', id + ' url');
     });
-    TestRunner.assertEqual(FpMonsters.has('dragon'), false, 'dragon keeps its billboard');
+    LEVEL1.forEach(function(id) { TestRunner.assert(FpMonsters.config(id).height < 3, id + ' stays smaller than the bosses'); });
+    TestRunner.assert(FpMonsters.config('dragon').height > FpMonsters.config('minotaur').height, 'the dragon is the biggest');
+    TestRunner.assertEqual(FpMonsters.config('treasure').motion, 'still', 'the chest does not breathe');
+    TestRunner.assertEqual(FpMonsters.has('knight_owl'), false, 'Mr Owl is not a monster model');
+  });
+
+  TestRunner.test('the still motion does not move', () => {
+    var o = FpMonsters.pose('still', 3.3, 1, {});
+    TestRunner.assert(o.y === 0 && o.sx === 1 && o.sy === 1 && o.rotZ === 0, 'no idle motion');
   });
 
   TestRunner.test('idle motion stays subtle and loops', () => {

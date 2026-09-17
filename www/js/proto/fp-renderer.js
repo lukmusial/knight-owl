@@ -2097,7 +2097,8 @@ var FpRenderer = (function() {
     scene.add(sprite);
     var entry = { sprite: sprite, imageId: info.imageId, ready: false, extras: [], model: null };
     entities[roomId] = entry;
-    if (kind === 'monster' && typeof FpMonsters !== 'undefined' && FpMonsters.has(info.imageId)) {
+    // monsters, the dragon and the treasure chest all have 3D models (billboard fallback)
+    if (typeof FpMonsters !== 'undefined' && FpMonsters.has(info.imageId)) {
       FpMonsters.load(info.imageId).then(function(gltf) {
         if (entities[roomId] !== entry) return;
         if (gltf) placeModel(entry, info, gltf, px, pz, ax);
