@@ -220,6 +220,46 @@ TestRunner.suite('IsoModel', () => {
     TestRunner.assert(Object.keys(seen).length >= 5, 'at least 5 themes on a 7x6 grid, saw ' + Object.keys(seen).join(','));
   });
 
+  TestRunner.test('isoToGridExact inverts gridToIso without rounding', () => {
+    var p = IsoModel.gridToIso(3.25, 1.5);
+    var g = IsoModel.isoToGridExact(p.x, p.y);
+    TestRunner.assert(Math.abs(g.gx - 3.25) < 1e-9 && Math.abs(g.gy - 1.5) < 1e-9, 'round trip');
+  });
+
+  TestRunner.test('torch floor point sits just inside the wall', () => {
+    var n = IsoModel.torchFloorPoint({ gx: 5, gy: 4 }, 'n');
+    var w = IsoModel.torchFloorPoint({ gx: 5, gy: 4 }, 'w');
+    TestRunner.assert(n.gx === 5 && n.gy < 4 && n.gy > 3.5, 'north wall: toward -gy');
+    TestRunner.assert(w.gy === 4 && w.gx < 5 && w.gx > 4.5, 'west wall: toward -gx');
+  });
+
+  TestRunner.test('shadows point away from the torch, fade with distance and stay bounded', () => {
+    var torch = { gx: 0, gy: 0, height: 1.3 };
+    var near = IsoModel.castShadow({ gx: 1, gy: 0, height: 0.9, radius: 0.25 }, torch);
+    var far = IsoModel.castShadow({ gx: 3, gy: 0, height: 0.9, radius: 0.25 }, torch);
+    TestRunner.assertTruthy(near, 'shadow near the torch');
+    var dir = IsoModel.gridToIso(1, 0);   // +gx on screen
+    var ang = Math.atan2(dir.y, dir.x);
+    TestRunner.assert(Math.abs(near.angle - ang) < 1e-9, 'points along +gx, away from the torch');
+    TestRunner.assert(far.alpha < near.alpha, 'fainter further away');
+    TestRunner.assert(far.length >= near.length, 'longer further away');
+    var maxPx = IsoModel.gridToIso(IsoModel.LIGHT.maxLength, 0);
+    TestRunner.assert(far.length <= Math.sqrt(maxPx.x * maxPx.x + maxPx.y * maxPx.y) + 1e-9, 'length capped');
+    TestRunner.assertEqual(IsoModel.castShadow({ gx: 10, gy: 0, height: 0.9, radius: 0.25 }, torch), null, 'out of range');
+    TestRunner.assertEqual(IsoModel.castShadow({ gx: 0, gy: 0, height: 0.9, radius: 0.25 }, torch), null, 'standing on the light');
+    var tall = IsoModel.castShadow({ gx: 2, gy: 0, height: 1.2, radius: 0.25 }, torch);
+    var short = IsoModel.castShadow({ gx: 2, gy: 0, height: 0.3, radius: 0.25 }, torch);
+    TestRunner.assert(tall.length > short.length, 'taller casters throw longer shadows');
+  });
+
+  TestRunner.test('light level falls off from the nearest torch', () => {
+    var lights = [{ gx: 0, gy: 0 }, { gx: 10, gy: 0 }];
+    TestRunner.assertEqual(IsoModel.lightLevel(0, 0, lights), 1, 'full under a torch');
+    TestRunner.assert(IsoModel.lightLevel(2, 0, lights) > IsoModel.lightLevel(3, 0, lights), 'dimmer further away');
+    TestRunner.assertEqual(IsoModel.lightLevel(5, 0, lights), 0, 'dark between distant torches');
+    TestRunner.assertEqual(IsoModel.lightLevel(0, 0, []), 0, 'dark without torches');
+  });
+
   TestRunner.test('depthKey orders layers within a tile and tiles down-right', () => {
     TestRunner.assert(IsoModel.depthKey(3, 3, 2) > IsoModel.depthKey(3, 3, 0), 'token above floor');
     TestRunner.assert(IsoModel.depthKey(4, 3, 0) > IsoModel.depthKey(3, 3, 3), 'next tile above previous fx layer');

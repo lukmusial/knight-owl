@@ -48,6 +48,77 @@ var IsoModel = (function() {
   }
 
   /**
+   * Isometric pixels to continuous grid coordinates (no rounding)
+   */
+  function isoToGridExact(px, py) {
+    var hw = CONFIG.TILE_W / 2;
+    var hh = CONFIG.TILE_H / 2;
+    return { gx: (px / hw + py / hh) / 2, gy: (py / hh - px / hw) / 2 };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Torchlight shadows
+  // ---------------------------------------------------------------------------
+
+  var LIGHT = {
+    torchHeight: 1.3,   // wall torches hang this high (grid units)
+    range: 4.2,         // no shadow beyond this distance from a torch
+    maxAlpha: 0.8,
+    maxLength: 1.5,     // longest shadow in grid units
+    minLength: 0.25
+  };
+
+  /**
+   * Floor point under a wall torch, a little inside the room
+   * @param {Object} tile - { gx, gy } floor tile the wall belongs to
+   * @param {string} side - 'n' or 'w'
+   */
+  function torchFloorPoint(tile, side) {
+    return side === 'n' ? { gx: tile.gx, gy: tile.gy - 0.4 } : { gx: tile.gx - 0.4, gy: tile.gy };
+  }
+
+  /**
+   * Shadow a caster throws from one torch, in screen terms
+   * @param {Object} caster - { gx, gy (continuous), height, radius } in grid units
+   * @param {Object} light - { gx, gy, height } torch floor point and height
+   * @returns {Object|null} { angle (radians, screen), length (px), width (px), alpha, distance }
+   */
+  function castShadow(caster, light) {
+    var dx = caster.gx - light.gx, dy = caster.gy - light.gy;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist >= LIGHT.range || dist < 1e-6) return null;
+    var ux = dx / dist, uy = dy / dist;
+    var lh = light.height || LIGHT.torchHeight;
+    // similar triangles for a point light, softened so tall casters near a
+    // torch do not throw endless shadows
+    var len = caster.height * dist / Math.max(0.35, lh - caster.height * 0.6);
+    len = Math.max(LIGHT.minLength, Math.min(LIGHT.maxLength, len));
+    var along = gridToIso(ux * len, uy * len);
+    var across = gridToIso(-uy * caster.radius * 2, ux * caster.radius * 2);
+    var fall = Math.pow(1 - dist / LIGHT.range, 0.8);
+    return {
+      angle: Math.atan2(along.y, along.x),
+      length: Math.sqrt(along.x * along.x + along.y * along.y),
+      width: Math.max(8, Math.sqrt(across.x * across.x + across.y * across.y)),
+      alpha: LIGHT.maxAlpha * fall * fall,
+      distance: dist
+    };
+  }
+
+  /**
+   * How lit a spot is by the nearest torches (0 dark .. 1 fully lit)
+   */
+  function lightLevel(gx, gy, lights) {
+    var best = 0;
+    for (var i = 0; i < (lights || []).length; i++) {
+      var dx = gx - lights[i].gx, dy = gy - lights[i].gy;
+      var f = 1 - Math.sqrt(dx * dx + dy * dy) / LIGHT.range;
+      if (f > best) best = f;
+    }
+    return Math.max(0, Math.min(1, best));
+  }
+
+  /**
    * Depth sort key: further down-right on screen draws later
    */
   function depthKey(gx, gy, layer) {
@@ -379,6 +450,11 @@ var IsoModel = (function() {
 
   return {
     CONFIG: CONFIG,
+    LIGHT: LIGHT,
+    isoToGridExact: isoToGridExact,
+    torchFloorPoint: torchFloorPoint,
+    castShadow: castShadow,
+    lightLevel: lightLevel,
     DECOR_THEMES: DECOR_THEMES,
     BACK_SLOT: BACK_SLOT,
     LOW_SLOTS: LOW_SLOTS,
