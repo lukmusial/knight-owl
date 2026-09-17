@@ -53,4 +53,37 @@ TestRunner.suite('FpMonsters', () => {
       TestRunner.assertEqual(r[1], null, 'no model for the dragon');
     });
   });
+  TestRunner.test('every model has an exit style', () => {
+    Object.keys(FpMonsters.MODELS).forEach(function(id) {
+      TestRunner.assert(['runaway', 'flyaway', 'vanish'].indexOf(FpMonsters.config(id).exit) !== -1, id + ' exit style');
+    });
+    ['appear', 'taunt', 'hurt', 'attack', 'exit'].forEach(function(k) {
+      TestRunner.assert(FpMonsters.ACTIONS[k] >= 400 && FpMonsters.ACTIONS[k] <= 1500, k + ' duration readable but short');
+    });
+  });
+
+  TestRunner.test('appear rises in from nothing and settles at full size', () => {
+    var start = FpMonsters.pose('breathe', 0, 0, { appear: 0 });
+    var end = FpMonsters.pose('breathe', 0, 0, { appear: 1 });
+    TestRunner.assert(start.sy > 0 && start.sy < 0.01 && start.fade === 0, 'starts invisible');
+    TestRunner.assert(start.y < 0, 'starts below the floor');
+    TestRunner.assert(Math.abs(end.sy - 1) < 0.03 && end.fade === 1 && end.y === 0, 'ends in place');
+  });
+
+  TestRunner.test('taunt hops toward the player and back', () => {
+    TestRunner.assert(FpMonsters.pose('breathe', 0, 0, { taunt: 0.5 }).forward > 0.3, 'hops forward');
+    TestRunner.assert(Math.abs(FpMonsters.pose('breathe', 0, 0, { taunt: 1 }).forward) < 1e-9, 'lands back');
+  });
+
+  TestRunner.test('exits: run away turns and leaves, fly away climbs, vanish shrinks; all fade out', () => {
+    var run = FpMonsters.pose('breathe', 0, 0, { exit: 1, exitStyle: 'runaway' });
+    var fly = FpMonsters.pose('hover', 0, 0, { exit: 1, exitStyle: 'flyaway' });
+    var gone = FpMonsters.pose('squash', 0, 0, { exit: 1, exitStyle: 'vanish' });
+    TestRunner.assert(Math.abs(run.rotY - Math.PI) < 1e-9 && run.forward < -3, 'turns round and runs off');
+    TestRunner.assert(fly.y > 1.5 && fly.forward < -3, 'flies up and away');
+    TestRunner.assert(gone.sy < 0.01, 'vanish shrinks to nothing');
+    [run, fly, gone].forEach(function(o) { TestRunner.assertEqual(o.fade, 0, 'fully faded'); });
+    var midRun = FpMonsters.pose('breathe', 0, 0, { exit: 0.3, exitStyle: 'runaway' });
+    TestRunner.assertEqual(midRun.fade, 1, 'still visible while turning');
+  });
 });

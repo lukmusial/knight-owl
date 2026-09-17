@@ -2131,19 +2131,18 @@ var FpRenderer = (function() {
     blob.position.set(px, 0.03, pz);
     scene.add(blob);
     entry.extras.push(blob);
+    entry.blob = blob;
 
     if (info.fadeMs && !reducedMotion) {
-      var now = performance.now();
-      inst.materials.forEach(function(m) {
-        m.transparent = true; m.opacity = 0;
-        fades.push({ mat: m, from: 0, to: 1, start: now, ms: info.fadeMs, done: function() { m.transparent = false; m.needsUpdate = true; } });
-      });
-      fades.push({ mat: blobMat, from: 0, to: 0.9, start: now, ms: info.fadeMs });
+      // rise out of the floor (the appear action fades the model and blob in)
+      inst.materials.forEach(function(m) { m.transparent = true; m.opacity = 0; });
+      entry.actions = { appear: performance.now() };
     }
     envDirty = true;
     shadowDirty = true;
     dirty = true;
     startLoop();
+    if (info.onReady) info.onReady('model');
   }
 
   function placeBillboard(entry, roomId, info, h, px, pz, ax, mat) {
@@ -2180,6 +2179,7 @@ var FpRenderer = (function() {
         shadowDirty = true;
       }
 
+      if (info.onReady) info.onReady('billboard');
       if (info.fadeMs && !reducedMotion) {
         fades.push({ mat: mat, from: 0, to: 1, start: performance.now(), ms: info.fadeMs });
         fades.push({ mat: blobMat, from: 0, to: 1, start: performance.now(), ms: info.fadeMs });
@@ -2193,34 +2193,72 @@ var FpRenderer = (function() {
   }
 
   /**
-   * Monster reaction to an answer: 'flinch' (correct) or 'lunge' (wrong)
+   * Encounter action of a 3D monster: 'appear', 'taunt', 'hurt', 'attack' or
+   * 'exit' (the monster's own exit style; the entity is removed at the end).
+   * Monsters without a model (billboards) skip straight to `done`; an exit
+   * then removes them at once.
+   * @returns {number} duration in ms (0 when nothing plays)
    */
-  function reactEntity(roomId, kind) {
+  function entityAction(roomId, kind, done) {
     var e = entities[roomId];
-    if (!e || !e.model) return;
-    if (kind === 'flinch') e.flinchAt = performance.now();
-    else if (kind === 'lunge') e.lungeAt = performance.now();
+    var ms = (e && e.model && !reducedMotion) ? (FpMonsters.ACTIONS[kind] || 0) : 0;
+    if (!ms) {
+      if (kind === 'exit') removeEntity(roomId);
+      if (done) setTimeout(done, 0);
+      return 0;
+    }
+    e.actions = e.actions || {};
+    e.actions[kind] = performance.now();
+    if (kind === 'exit') {
+      e.model.materials.forEach(function(m) { m.transparent = true; });
+    }
     startLoop();
+    setTimeout(function() {
+      if (kind === 'exit' && entities[roomId] === e) removeEntity(roomId);
+      if (done) done();
+    }, ms);
+    return ms;
   }
 
-  /** Procedural idle + reactions of the 3D monsters; true while a reaction plays */
+  /** Back-compat: answer reactions ('flinch' = hurt, 'lunge' = attack) */
+  function reactEntity(roomId, kind) {
+    return entityAction(roomId, kind === 'flinch' ? 'hurt' : (kind === 'lunge' ? 'attack' : kind));
+  }
+
+  /** Procedural idle + encounter actions of the 3D monsters; true while an action plays */
   function stepEntities(now) {
-    var busyReacting = false;
+    var acting = false;
+    var A = FpMonsters.ACTIONS;
     Object.keys(entities).forEach(function(id) {
       var e = entities[id];
       if (!e.model) return;
+      var act = e.actions || {};
       var ev = {
-        flinch: FpMonsters.progress(e.flinchAt, now, FpMonsters.FLINCH_MS),
-        lunge: FpMonsters.progress(e.lungeAt, now, FpMonsters.LUNGE_MS)
+        // appear and exit clamp at 1 so their last frame always lands (fully shown / gone)
+        appear: act.appear ? Math.min(1, (now - act.appear) / A.appear) : -1,
+        taunt: FpMonsters.progress(act.taunt, now, A.taunt),
+        flinch: FpMonsters.progress(act.hurt, now, A.hurt),
+        lunge: FpMonsters.progress(act.attack, now, A.attack),
+        exit: act.exit ? Math.min(1, (now - act.exit) / A.exit) : -1,
+        exitStyle: FpMonsters.config(e.imageId).exit
       };
-      if (ev.flinch >= 0 || ev.lunge >= 0) busyReacting = true;
+      if ((ev.appear >= 0 && ev.appear < 1) || ev.taunt >= 0 || ev.flinch >= 0 || ev.lunge >= 0 || (ev.exit >= 0 && ev.exit < 1)) acting = true;
       var o = FpMonsters.pose(e.motion, reducedMotion ? 0 : clock, e.phase, ev);
       var pv = e.model.pivot;
       pv.position.set(0, o.y, o.forward);
       pv.scale.set(o.sx, o.sy, o.sz);
-      pv.rotation.set(o.rotX, 0, o.rotZ);
+      pv.rotation.set(o.rotX, o.rotY, o.rotZ);
+      if (ev.appear >= 0 || ev.exit >= 0) {
+        var fading = o.fade < 0.999;
+        e.model.materials.forEach(function(m) {
+          if (m.transparent !== fading) { m.transparent = fading; m.needsUpdate = true; }
+          m.opacity = o.fade;
+        });
+        if (e.blob) e.blob.material.opacity = 0.9 * o.fade;
+      }
+      if (ev.appear === 1) delete act.appear;   // settled: back to the plain idle
     });
-    return busyReacting;
+    return acting;
   }
 
   function removeEntity(roomId) {
@@ -2527,6 +2565,8 @@ var FpRenderer = (function() {
     pause: pause,
     setViewMode: setViewMode,
     reactEntity: reactEntity,
+    entityAction: entityAction,
+    hasModel: function(roomId) { return !!(entities[roomId] && entities[roomId].model); },
     getViewMode: getViewMode,
     playOwl: playOwl,
     getOwlInfo: getOwlInfo,
