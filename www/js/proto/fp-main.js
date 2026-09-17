@@ -100,6 +100,14 @@ var ProtoFp = (function() {
       });
     }
 
+    // Idle in the background: stop the render loop until the app returns
+    if (ok && typeof AppLifecycle !== 'undefined') {
+      AppLifecycle.on({
+        pause: function() { FpRenderer.stop(); },
+        resume: function() { if (gameInProgress) FpRenderer.resume(); }
+      });
+    }
+
     bindControls();
     if (typeof InputAdapter !== 'undefined') {
       InputAdapter.on('navigate', function(data) { onNavigate(data.direction, data.source); });

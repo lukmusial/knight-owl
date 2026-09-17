@@ -272,12 +272,9 @@ var IsoModel = (function() {
 
     if (room.type === 'entrance') return { kind: 'entrance', id: null, size: 96 };
 
-    if (vis === 'fogged') {
-      if (room.type === 'monster' || room.type === 'treasure' || room.type === 'boss') {
-        return { kind: 'unknown', id: null, size: 64 };
-      }
-      return null;
-    }
+    // Through the fog every chamber looks alike: what it holds (monster,
+    // treasure, nothing) is only shown once the owl has entered it
+    if (vis === 'fogged') return null;
 
     if (room.type === 'boss') {
       return room.cleared ? null : { kind: 'boss', id: 'dragon', size: 160 };
@@ -292,8 +289,103 @@ var IsoModel = (function() {
     return null;
   }
 
+  // ---------------------------------------------------------------------------
+  // Chamber dressing
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Themes for the set dressing that is visible through the fog. The choice
+   * depends only on the chamber's grid position and its doorways (never on its
+   * type), so the dressing cannot give away what a fogged chamber holds.
+   * back: tall piece on the back corner tile (0,0), in front of both back walls
+   * low: floor-level piece on a back edge tile (1,0) or (0,1) that has a wall
+   *   behind it (not a doorway, so the owl never walks through it)
+   * The front of the chamber is mostly hidden by the parapets, and the side
+   * corners (2,0) / (0,2) plus the centre stay free for the contents (monsters,
+   * chests, bones, gold) that only appear once the chamber is explored.
+   */
+  var DECOR_THEMES = [
+    { id: 'plain', back: null, low: null, weight: 3 },
+    { id: 'flooded', back: 'plants', low: 'pool', weight: 2 },
+    { id: 'cavein', back: 'cavein', low: 'broken_floor', weight: 2 },
+    { id: 'fungal', back: 'mushrooms_big', low: 'mushrooms', weight: 2 },
+    { id: 'shrine', back: 'statue', low: 'plants', weight: 2 },
+    { id: 'volcanic', back: 'cavein', low: 'lava_vent', weight: 1 },
+    { id: 'storeroom', back: 'barrels_stacked', low: 'mushrooms', weight: 1 },
+    { id: 'ruin', back: 'furniture', low: 'pool', weight: 1 }
+  ];
+  var BACK_SLOT = { dx: 0, dy: 0 };
+  // Candidate low slots with the wall side that must be solid
+  var LOW_SLOTS = [{ dx: 1, dy: 0, wall: 'n' }, { dx: 0, dy: 1, wall: 'w' }];
+  // Contents props of explored chambers go on these tiles only
+  var CONTENT_SLOTS = [{ dx: 2, dy: 0 }, { dx: 0, dy: 2 }];
+
+  function positionHash(rx, ry) {
+    var h = (rx * 374761393 + ry * 668265263) >>> 0;
+    h = ((h ^ (h >>> 13)) * 1274126177) >>> 0;
+    return ((h ^ (h >>> 16)) >>> 0) % 10000 / 10000;
+  }
+
+  /**
+   * Decor theme for a chamber (the entrance keeps its stairs and banner clear)
+   * @returns {Object} theme from DECOR_THEMES
+   */
+  function getRoomTheme(roomId) {
+    if (!model || !model.rooms[roomId]) return DECOR_THEMES[0];
+    var rm = model.rooms[roomId];
+    if (rm.type === 'entrance') return DECOR_THEMES[0];
+    var total = 0;
+    DECOR_THEMES.forEach(function(t) { total += t.weight; });
+    var pick = positionHash(rm.rx, rm.ry) * total;
+    for (var i = 0; i < DECOR_THEMES.length; i++) {
+      pick -= DECOR_THEMES[i].weight;
+      if (pick < 0) return DECOR_THEMES[i];
+    }
+    return DECOR_THEMES[0];
+  }
+
+  /**
+   * Decor pieces of a chamber with absolute grid tiles
+   * @returns {Array} [{ kind, slot, gx, gy }]
+   */
+  function getRoomDecor(roomId) {
+    if (!model || !model.rooms[roomId]) return [];
+    var rm = model.rooms[roomId];
+    var theme = getRoomTheme(roomId);
+    var out = [];
+    if (theme.back) {
+      out.push({ kind: theme.back, slot: 'back', gx: rm.gx0 + BACK_SLOT.dx, gy: rm.gy0 + BACK_SLOT.dy });
+    }
+    if (theme.low) {
+      var first = positionHash(rm.ry + 17, rm.rx + 5) < 0.5 ? 0 : 1;
+      for (var i = 0; i < LOW_SLOTS.length; i++) {
+        var slot = LOW_SLOTS[(first + i) % LOW_SLOTS.length];
+        var tile = model.tileMap[key(rm.gx0 + slot.dx, rm.gy0 + slot.dy)];
+        if (tile && tile.walls.indexOf(slot.wall) !== -1) {
+          out.push({ kind: theme.low, slot: 'low', gx: tile.gx, gy: tile.gy });
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Whether a chamber's contents (props tied to its type) may be drawn
+   */
+  function showsContents(roomId) {
+    return getRoomVisibility(roomId) === 'visible';
+  }
+
   return {
     CONFIG: CONFIG,
+    DECOR_THEMES: DECOR_THEMES,
+    BACK_SLOT: BACK_SLOT,
+    LOW_SLOTS: LOW_SLOTS,
+    CONTENT_SLOTS: CONTENT_SLOTS,
+    getRoomTheme: getRoomTheme,
+    getRoomDecor: getRoomDecor,
+    showsContents: showsContents,
     gridToIso: gridToIso,
     isoToGrid: isoToGrid,
     depthKey: depthKey,

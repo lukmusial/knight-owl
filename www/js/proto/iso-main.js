@@ -64,8 +64,10 @@ var ProtoIso = (function() {
       SFX.registerFiles({
         'step': [K + 'footstep00.mp3', K + 'footstep01.mp3', K + 'footstep02.mp3', K + 'footstep03.mp3', K + 'footstep04.mp3'],
         'tap': K + 'metalClick.mp3',
-        'reveal': [K + 'doorOpen_1.mp3', K + 'doorOpen_2.mp3'],
-        'door': K + 'doorOpen_2.mp3',
+        // 'reveal' opens the quiz, treasure and result cards: a page turn, not a door
+        'reveal': K + 'bookFlip2.mp3',
+        // 'door' plays once per crossing into another chamber (IsoScenes.movePlayer)
+        'door': [K + 'doorOpen_1.mp3', K + 'doorOpen_2.mp3'],
         'coin': K + 'handleCoins.mp3',
         'coins': K + 'handleCoins2.mp3',
         'hit': [K + 'knifeSlice.mp3', K + 'knifeSlice2.mp3'],
@@ -128,8 +130,21 @@ var ProtoIso = (function() {
       },
       render: { antialias: true, pixelArt: false, roundPixels: true },
       input: { activePointers: 3 },
+      // Sounds go through SFX; Phaser's own AudioContext would stay open (and
+      // keep an Android audio stream alive in the background) for nothing
+      audio: { noAudio: true },
       scene: [IsoScenes.BootScene, IsoScenes.DungeonScene]
     });
+
+    watchViewport();
+
+    // Idle in the background: no rendering, tweens or walk timers until the app returns
+    if (typeof AppLifecycle !== 'undefined') {
+      AppLifecycle.on({
+        pause: function() { if (game && typeof game.pause === 'function') game.pause(); },
+        resume: function() { if (game && typeof game.resume === 'function') game.resume(); }
+      });
+    }
 
     game.registry.set('isoCallbacks', {
       onReady: function(s) {
@@ -144,6 +159,35 @@ var ProtoIso = (function() {
         UI.showToast('Too far away. Za daleko.', 'info');
       }
     });
+  }
+
+  /**
+   * Phaser's RESIZE mode can miss a rotation: the parent size is picked up
+   * but the canvas keeps its old backing size, and the CSS (100% x 100%)
+   * stretches the portrait canvas over the landscape screen. Refresh the
+   * scale manager on every viewport change, again once Android WebViews have
+   * settled on the final size.
+   */
+  function watchViewport() {
+    if (typeof window === 'undefined') return;
+    var timers = [];
+    function refresh() {
+      timers.forEach(clearTimeout);
+      timers = [0, 150, 400].map(function(delay) {
+        return setTimeout(function() {
+          if (!game || !game.scale) return;
+          var parent = document.getElementById('iso-canvas');
+          if (!parent) return;
+          var w = parent.clientWidth, h = parent.clientHeight;
+          if (w > 0 && h > 0 && (game.scale.width !== w || game.scale.height !== h)) {
+            game.scale.refresh();
+          }
+        }, delay);
+      });
+    }
+    window.addEventListener('resize', refresh);
+    window.addEventListener('orientationchange', refresh);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', refresh);
   }
 
   // ---------------------------------------------------------------------------
