@@ -34,7 +34,8 @@ body.proto-fp .fp-dock-buttons {
   gap: 6px;
 }
 
-body.proto-fp #fp-quality {
+body.proto-fp #fp-quality,
+body.proto-fp #fp-view-mode {
   font-size: 0.7rem;
   font-weight: bold;
   letter-spacing: 0.02em;

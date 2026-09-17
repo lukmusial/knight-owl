@@ -227,6 +227,7 @@ loadScript('www/js/modules/lifecycle.js');
 loadScript('www/js/proto/fp-world.js');
 loadScript('www/js/proto/fp-layout.js');
 loadScript('www/js/proto/fp-quality.js');
+loadScript('www/js/proto/fp-owl.js');
 loadScript('www/js/proto/iso-model.js');
 
 console.log(`${colors.green}Modules loaded successfully${colors.reset}`);
@@ -253,6 +254,7 @@ loadScript('tests/shared-dom.test.js');
 loadScript('tests/session.test.js');
 loadScript('tests/fp-world.test.js');
 loadScript('tests/fp-layout.test.js');
+loadScript('tests/fp-owl.test.js');
 loadScript('tests/iso-model.test.js');
 loadScript('tests/lifecycle.test.js');
 loadScript('tests/integration.test.js');

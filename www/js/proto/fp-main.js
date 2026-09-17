@@ -104,6 +104,28 @@ var ProtoFp = (function() {
       });
     }
 
+    // First-person eyes or the over-the-shoulder camera behind Mr Owl
+    if (side && ok) {
+      var vb = document.createElement('button');
+      vb.type = 'button';
+      vb.id = 'fp-view-mode';
+      vb.className = 'hud-btn';
+      vb.title = 'Camera: first / third person. Kamera: pierwsza / trzecia osoba.';
+      (document.querySelector('#hud-root .fp-dock-buttons') || side).appendChild(vb);
+      var viewLabel = function() {
+        var third = FpRenderer.getViewMode() === 'third';
+        vb.textContent = third ? '3P' : '1P';
+        vb.setAttribute('aria-pressed', third ? 'true' : 'false');
+        vb.setAttribute('aria-label', third ? 'Third-person camera' : 'First-person camera');
+      };
+      viewLabel();
+      vb.addEventListener('click', function() {
+        if (busy || FpRenderer.isBusy()) return;
+        FpRenderer.setViewMode(FpOwl.nextMode(FpRenderer.getViewMode()));
+        viewLabel();
+      });
+    }
+
     // Idle in the background: stop the render loop until the app returns
     if (ok && typeof AppLifecycle !== 'undefined') {
       AppLifecycle.on({
@@ -376,6 +398,8 @@ var ProtoFp = (function() {
     if (result.error) { console.error(result.error); return; }
 
     var fxDone = (typeof UI.playAnswerFx === 'function') ? UI.playAnswerFx(answerIndex, result) : Promise.resolve();
+    // Mr Owl swings his sword at the monster on a correct answer (third-person camera)
+    if (result.success) FpRenderer.playOwl('attack');
     fxDone.then(function() {
       if (result.dragonDefeated) {
         gameInProgress = false;
