@@ -58,6 +58,7 @@ const ModuleName = (function() {
 | Descriptions | `js/modules/descriptions.js` | Bilingual room/monster text |
 | SFX | `js/modules/sfx.js` | Synthesized Web Audio sound effects, mute, TTS ducking |
 | FX | `js/modules/fx.js` | Promise-based encounter animations (`css/fx.css`), haptic/sound proxies |
+| AppLifecycle | `js/modules/lifecycle.js` | Idles the game in the background (suspends music/SFX, stops TTS and render loops); Android sends `app-pause`/`app-resume` from `MainActivity` |
 | ProtoSharedDom | `js/proto/shared-dom.js` | Shared modal markup for the standalone prototype pages |
 | FpWorld / FpRenderer | `js/proto/fp-*.js` | First-person prototype (pure grid model + three.js renderer + bootstrap) |
 | IsoModel / scenes | `js/proto/iso-*.js` | Isometric fog-of-war prototype (pure tile model + Phaser scenes + bootstrap) |
