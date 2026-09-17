@@ -130,6 +130,9 @@ var ProtoIso = (function() {
       },
       render: { antialias: true, pixelArt: false, roundPixels: true },
       input: { activePointers: 3 },
+      // Sounds go through SFX; Phaser's own AudioContext would stay open (and
+      // keep an Android audio stream alive in the background) for nothing
+      audio: { noAudio: true },
       scene: [IsoScenes.BootScene, IsoScenes.DungeonScene]
     });
 
