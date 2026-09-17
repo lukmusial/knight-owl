@@ -15,7 +15,6 @@ var ProtoFp = (function() {
   var TURN_MS = 240;
   var REVEAL_MS = 900;       // monster rising into view
   var TAUNT_PAUSE_MS = 250;  // beat between the taunt and the quiz
-  var EXCHANGE_TAIL_MS = 350; // beat after the blow before the result screen
 
   function fx(name, opts) {
     if (typeof FX !== 'undefined' && FX.play) FX.play(name, opts);
@@ -379,7 +378,6 @@ var ProtoFp = (function() {
   }
 
   function handleAnswer(answerIndex) {
-    var monsterRoom = Player.getCurrentRoom();
     var result = Combat.submitAnswer(answerIndex);
     if (result.error) { console.error(result.error); return; }
 
@@ -397,39 +395,8 @@ var ProtoFp = (function() {
         return;
       }
       UI.hideQuizModal();
-      playExchange(monsterRoom, result.success, function() {
-        UI.showResultModal(result, handleResultContinue);
-      });
+      UI.showResultModal(result, handleResultContinue);
     });
-  }
-
-  /**
-   * The blow in the 3D scene, with the quiz out of the way: on a correct
-   * answer Mr Owl swings his sword and the monster recoils; on a wrong one
-   * the monster winds up and lunges and Mr Owl staggers. Then `done`.
-   */
-  function playExchange(monsterRoom, success, done) {
-    FpRenderer.resume();
-    if (reducedMotion()) { setTimeout(done, 0); return; }
-    var hurt = FpMonsters.ACTIONS.hurt, attack = FpMonsters.ACTIONS.attack;
-    if (success) {
-      FpRenderer.playOwl('attack');
-      fx('attack', { volume: 0.7 });
-      setTimeout(function() {
-        fx('hit');
-        haptic('onCorrectAnswer');
-        FpRenderer.entityAction(monsterRoom, 'hurt');
-      }, 350);
-      setTimeout(done, 350 + hurt + EXCHANGE_TAIL_MS);
-    } else {
-      FpRenderer.entityAction(monsterRoom, 'attack');
-      setTimeout(function() {
-        fx('hit');
-        haptic('onWrongAnswer');
-        FpRenderer.playOwl('bump');
-      }, attack * 0.45);
-      setTimeout(done, attack + EXCHANGE_TAIL_MS);
-    }
   }
 
   function startMatchingEncounter(monster, depth, category) {
@@ -443,7 +410,6 @@ var ProtoFp = (function() {
 
   function handleMatchingComplete(success, monster, set) {
     UI.hideMatchingModal();
-    var monsterRoom = Player.getCurrentRoom();
     var result;
     if (success) {
       var loot = monster.loot || [];
@@ -465,9 +431,7 @@ var ProtoFp = (function() {
         explanation: set.explanation || ''
       };
     }
-    playExchange(monsterRoom, success, function() {
-      UI.showResultModal(result, handleResultContinue);
-    });
+    UI.showResultModal(result, handleResultContinue);
   }
 
   function startTreasureEncounter(roomId) {
