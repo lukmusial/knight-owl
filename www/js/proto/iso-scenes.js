@@ -18,6 +18,7 @@ var IsoScenes = (function() {
   var KENNEY_WALL_H = 96;          // their wall pieces are taller than the procedural 64px faces
   var SPRITE_DIR = 'assets/proto/monsters/';
   var OWL_H = 104;          // player sprite height in px (~1.1 tile widths tall on a 96px basis)
+  var OWL3D_H = 118;        // on-screen height of the rendered 3D owl
   var MONSTER_H = 116;      // regular monster sprite height
   var DRAGON_H = 200;
   var WALK_SPEED = 0.26;    // px per ms
@@ -80,6 +81,8 @@ var IsoScenes = (function() {
       Object.keys(IsoTextures.KENNEY_FILES).forEach(function(key) {
         self.load.image(key, IsoTextures.KENNEY_DIR + IsoTextures.KENNEY_FILES[key] + '.png');
       });
+      // Mr Owl pre-rendered from the rigged 3D model (tools/owl3d/render_iso.py)
+      this.load.atlas('owl3d', 'assets/proto/iso/owl3d.png', 'assets/proto/iso/owl3d.json');
       // Extracted cutouts for the monsters in this dungeon + the owl
       monsterIds().concat(['knight_owl']).forEach(function(id) {
         self.load.image('cut_' + id, SPRITE_DIR + id + '.png');
@@ -114,9 +117,20 @@ var IsoScenes = (function() {
         }));
       });
 
-      // Owl walk cycle
+      // Owl: 3D renders (walk/idle, toward and away from the viewer); the
+      // cutout walk cycle stays as the fallback when the atlas is missing
+      if (this.textures.exists('owl3d')) {
+        ['front', 'back'].forEach(function(facing) {
+          self.anims.create({ key: 'owl3d_walk_' + facing, frameRate: 12, repeat: -1,
+            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_walk_', start: 0, end: 7 }) });
+          self.anims.create({ key: 'owl3d_idle_' + facing, frameRate: 3, repeat: -1,
+            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_idle_', start: 0, end: 5 }) });
+        });
+      }
       var owl = cutout('knight_owl');
-      if (!owl || !IsoTextures.makeWalkCycle(this, 'owl', owl, OWL_H)) {
+      if (this.textures.exists('owl3d')) {
+        // nothing to build
+      } else if (!owl || !IsoTextures.makeWalkCycle(this, 'owl', owl, OWL_H)) {
         jobs.push(IsoTextures.loadImage('assets/knight_owl.png').then(function(full) {
           if (!full || !IsoTextures.makeWalkCycle(self, 'owl', full, OWL_H)) {
             IsoTextures.makeFallbackToken(self, 'owl', 'O', '#006064', '#00bcd4', 96);
@@ -610,9 +624,20 @@ var IsoScenes = (function() {
 
     createPlayer: function() {
       this.highlight = this.add.image(0, 0, 'highlight_ring').setDepth(0).setVisible(false);
-      var hasFrames = this.textures.exists('owl') && this.textures.get('owl').has('idle');
-      this.player = this.add.sprite(0, 0, 'owl', hasFrames ? 'idle' : undefined).setOrigin(0.5, 0.96).setVisible(false);
-      this.playerHasWalk = hasFrames && this.anims.exists('owl_walk');
+      this.owl3d = this.textures.exists('owl3d') && this.anims.exists('owl3d_walk_front');
+      this.owlFacing = 'front';
+      if (this.owl3d) {
+        var meta = this.textures.get('owl3d').customData.meta || {};
+        var pivot = meta.pivot || { x: 0.52, y: 0.91 };
+        this.owlScale = OWL3D_H / (meta.figureHeight || 160);
+        this.player = this.add.sprite(0, 0, 'owl3d', 'front_idle_0').setOrigin(pivot.x, pivot.y)
+          .setScale(this.owlScale).setVisible(false);
+        this.playerHasWalk = true;
+      } else {
+        var hasFrames = this.textures.exists('owl') && this.textures.get('owl').has('idle');
+        this.player = this.add.sprite(0, 0, 'owl', hasFrames ? 'idle' : undefined).setOrigin(0.5, 0.96).setVisible(false);
+        this.playerHasWalk = hasFrames && this.anims.exists('owl_walk');
+      }
       this.playerBob = null;
       if (!REDUCED_MOTION) {
         this.tweens.add({ targets: this.highlight, scaleX: 1.08, scaleY: 1.08, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -621,13 +646,26 @@ var IsoScenes = (function() {
     },
 
     startIdle: function() {
+      if (this.owl3d) {
+        if (!REDUCED_MOTION) this.player.play('owl3d_idle_' + this.owlFacing, true);
+        return;
+      }
       if (REDUCED_MOTION || this.playerBob) return;
       this.playerBob = this.tweens.add({ targets: this.player, scaleY: 1.03, scaleX: 0.985, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     },
 
     stopIdle: function() {
       if (this.playerBob) { this.playerBob.stop(); this.playerBob = null; }
-      this.player.setScale(1, 1);
+      if (!this.owl3d) this.player.setScale(1, 1);
+    },
+
+    /**
+     * 3D owl facing for a screen-space move: the renders face down-left
+     * ('front') and up-right ('back'); the other two directions are mirrored
+     */
+    faceOwl: function(dx, dy) {
+      this.owlFacing = dy >= 0 ? 'front' : 'back';
+      this.player.setFlipX(this.owlFacing === 'front' ? dx > 0 : dx < 0);
     },
 
     // --- Fog / tokens ------------------------------------------------------------
@@ -832,7 +870,7 @@ var IsoScenes = (function() {
       this.followOffset = this.hudOffset();
       this.cameras.main.panEffect.reset();  // the camera follows the owl while walking
       this.stopIdle();
-      if (this.playerHasWalk) this.player.play('owl_walk');
+      if (this.playerHasWalk && !this.owl3d) this.player.play('owl_walk');
       var segments = path.slice(1).map(function(g) { var q = IsoModel.gridToIso(g.gx, g.gy); return { x: q.x, y: q.y + 12 }; });
       var idx = 0;
 
@@ -840,7 +878,7 @@ var IsoScenes = (function() {
         if (idx >= segments.length) {
           self.moving = false;
           self.ghostArchesFor(null);
-          if (self.playerHasWalk) { self.player.stop(); self.player.setFrame('idle'); }
+          if (self.playerHasWalk && !self.owl3d) { self.player.stop(); self.player.setFrame('idle'); }
           self.startIdle();
           if (onArrive) onArrive();
           return;
@@ -849,7 +887,12 @@ var IsoScenes = (function() {
         var to = segments[idx++];
         var g = IsoModel.isoToGrid(to.x, to.y - 12);
         self.ghostArchesFor([IsoModel.isoToGrid(from.x, from.y - 12), g]);
-        if (Math.abs(to.x - from.x) > 2) self.player.setFlipX(to.x < from.x);
+        if (self.owl3d) {
+          self.faceOwl(to.x - from.x, to.y - from.y);
+          self.player.play('owl3d_walk_' + self.owlFacing, true);
+        } else if (Math.abs(to.x - from.x) > 2) {
+          self.player.setFlipX(to.x < from.x);
+        }
         var dist = Phaser.Math.Distance.Between(from.x, from.y, to.x, to.y);
         var dur = Math.max(180, dist / WALK_SPEED);
         // one door sound per crossing: as the owl steps into the next chamber
