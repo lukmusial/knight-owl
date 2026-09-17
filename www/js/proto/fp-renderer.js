@@ -45,7 +45,7 @@ var FpRenderer = (function() {
   var UVS = 3;             // world units per wall texture repeat
   var FLOOR_UVS = 4.2;     // world units per floor texture repeat
   var FOG_DENSITY = 0.045;
-  var TORCH_INTENSITY = 42;
+  var TORCH_INTENSITY = 50;
   var TORCH_RANGE = 14;
   var CULL_DIST = 36;
   var QUALITY_KEY = 'fpQualityAuto';
@@ -130,7 +130,7 @@ var FpRenderer = (function() {
     }
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.15;
     renderer.domElement.addEventListener('webglcontextlost', function(e) { e.preventDefault(); console.warn('FpRenderer: context lost'); });
     renderer.domElement.addEventListener('webglcontextrestored', function() {
       console.warn('FpRenderer: context restored, rebuilding');
@@ -170,6 +170,17 @@ var FpRenderer = (function() {
   /** (Re)create the torch and lava light pools for the current quality tier */
   function setupLights() {
     var i;
+    if (mirror) { mirror.target.dispose(); mirror = null; }
+    var mirrorScale = quality.tier === 'high' ? 0.5 : (quality.tier === 'medium' ? 0.33 : 0);
+    if (mirrorScale) {
+      mirror = {
+        target: new THREE.WebGLRenderTarget(256, 256, { generateMipmaps: false }),
+        camera: new THREE.PerspectiveCamera(),
+        textureMatrix: new THREE.Matrix4(),
+        scale: mirrorScale
+      };
+      resizeMirror();
+    }
     for (i = 0; i < lavaLights.length; i++) { scene.remove(lavaLights[i]); lavaLights[i].dispose(); }
     lavaLights = [];
     for (i = 0; i < quality.lavaLights; i++) {
@@ -179,7 +190,7 @@ var FpRenderer = (function() {
     }
     if (quality.headLight && !headLight.parent) camera.add(headLight);
     if (!quality.headLight && headLight.parent) camera.remove(headLight);
-    hemi.intensity = quality.headLight ? 0.22 : 0.32;
+    hemi.intensity = quality.headLight ? 0.32 : 0.42;
     for (i = 0; i < torchLights.length; i++) {
       scene.remove(torchLights[i]);
       if (torchLights[i].shadow && torchLights[i].shadow.map) torchLights[i].shadow.map.dispose();
@@ -217,6 +228,7 @@ var FpRenderer = (function() {
     camera.aspect = w / h;
     camera.fov = h > w ? 92 : 68;
     camera.updateProjectionMatrix();
+    resizeMirror();
     dirty = true;
   }
 
@@ -742,7 +754,12 @@ var FpRenderer = (function() {
   var waterList = [];      // { cellId, pts: [[x,y,z]], right: [rx, rz], w0, w1, phase }
   var runeList = [];       // { cellId, corners: [[x,y,z] x4], uv: [u0, v0, u1, v1], color: [r,g,b], phase }
   var waterMesh = null, waterMaterial = null, runeMesh = null, runeMaterial = null;
-  var puddleAlpha = null;
+  var puddleList = [];     // { cellId, cx, cz, r, seed, ring: [[x, z]], drip: [x, z] | null }
+  var puddleMesh = null, puddleMaterial = null;
+  // planar mirror for the floor plane shared by all puddles
+  var mirror = null;       // { target, camera, textureMatrix, scale }
+  var envDirty = false;
+  var PUDDLE_Y = 0.016;
   var RUNE_COLORS = { cyan: [0.35, 0.95, 1.0], violet: [0.8, 0.45, 1.0], green: [0.45, 1.0, 0.55] };
 
   function pushWallFeatures(b, cell, c, feats) {
@@ -784,28 +801,14 @@ var FpRenderer = (function() {
       pts.push(wallPoint(c, cax, cs, 0.014, CH - D.COVE - 0.35));
       waterList.push({ cellId: cell.id, pts: pts, right: [cax.rx, cax.rz], w0: 0.07, w1: 0.3, phase: rnd() });
     }
-    for (i = 0; i < feats.puddles.length; i++) pushPuddle(b, c, feats.puddles[i]);
-  }
-
-  function pushPuddle(b, c, pd) {
-    var ring = FpLayout.blobOutline(pd.r, 22, pd.seed);
-    var cx = c.x + pd.x, cz = c.z + pd.z;
-    var Y = 0.014;
-    var bw = b.water;
-    var base = bw.pos.length / 3;
-    function vert(x, z, u) {
-      bw.vertex([x, Y, z], [0, 1, 0], [u, 0.5]);
-      bw.uv1.push(x / 1.6, z / 1.6);
-    }
-    vert(cx, cz, 0);
-    for (var i = 0; i < ring.length; i++) vert(cx + ring[i][0] * 0.7, cz + ring[i][1] * 0.7, 0.6);
-    for (i = 0; i < ring.length; i++) vert(cx + ring[i][0], cz + ring[i][1], 1);
-    var n = ring.length;
-    for (i = 0; i < n; i++) {
-      var j = (i + 1) % n;
-      bw.idx.push(base, base + 1 + j, base + 1 + i);
-      bw.idx.push(base + 1 + i, base + 1 + j, base + 1 + n + j);
-      bw.idx.push(base + 1 + i, base + 1 + n + j, base + 1 + n + i);
+    for (i = 0; i < feats.puddles.length; i++) {
+      var pd = feats.puddles[i];
+      var drip = null;
+      if (feats.crack && i === 0) {
+        var last = waterList[waterList.length - 1].pts;
+        drip = [last[last.length - 1][0], last[last.length - 1][2]];
+      }
+      puddleList.push({ cellId: cell.id, cx: c.x + pd.x, cz: c.z + pd.z, r: pd.r, seed: pd.seed, ring: FpLayout.blobOutline(pd.r, 24, pd.seed), drip: drip });
     }
   }
 
@@ -845,8 +848,9 @@ var FpRenderer = (function() {
     '  if (vLit < 0.01) discard;',
     '  float across = 1.0 - abs(vUv.x * 2.0 - 1.0);',
     '  float body = smoothstep(0.0, 0.55, across);',
-    '  float streak = vnoise(vec2(vUv.x * 5.0 + vPhase * 11.0, vUv.y * 4.0 + time * 2.6));',
-    '  float glint = pow(vnoise(vec2(vUv.x * 9.0, vUv.y * 9.0 + time * 4.0)), 6.0);',
+    // uv.y is the distance travelled down the stream: subtracting time moves the pattern downhill
+    '  float streak = vnoise(vec2(vUv.x * 5.0 + vPhase * 11.0, vUv.y * 4.0 - time * 3.2));',
+    '  float glint = pow(vnoise(vec2(vUv.x * 9.0, vUv.y * 9.0 - time * 4.5)), 6.0);',
     '  float a = body * (0.1 + 0.32 * streak) * vLit * vFog;',
     '  vec3 col = mix(vec3(0.12, 0.18, 0.22), vec3(0.5, 0.62, 0.7), streak) + vec3(1.0, 0.8, 0.55) * glint * 2.5;',
     '  gl_FragColor = vec4(col * a + vec3(1.0, 0.8, 0.55) * glint * vLit * vFog * 0.35, a * 0.8);',
@@ -890,6 +894,259 @@ var FpRenderer = (function() {
     '  gl_FragColor = vec4(col * a, 0.0);',
     '}'
   ].join('\n');
+
+  /**
+   * Puddles: a mirror-like water surface. All puddles lie in one floor plane,
+   * so one planar reflection (the scene rendered from the camera mirrored
+   * below the floor, at reduced resolution) serves them all. The reflection
+   * is distorted by rings spreading from drops that fall at random spots
+   * and, under a crack, from the trickle's landing point; a Fresnel term
+   * mixes it with dark water.
+   */
+  var PUDDLE_VERT = [
+    'attribute float edge;',
+    'attribute float lit;',
+    'attribute vec4 info;',   // centre x, centre z, radius, seed
+    'attribute vec3 drip;',   // drip x, drip z, has drip
+    'uniform float fogDensity;',
+    'varying vec3 vWorld;',
+    'varying float vEdge;',
+    'varying float vLit;',
+    'varying vec4 vInfo;',
+    'varying vec3 vDrip;',
+    'varying float vFog;',
+    'uniform mat4 mirrorMatrix;',
+    'varying vec4 vMirror;',
+    'void main() {',
+    '  vEdge = edge; vLit = lit; vInfo = info; vDrip = drip;',
+    '  vec4 w = modelMatrix * vec4(position, 1.0);',
+    '  vWorld = w.xyz;',
+    '  vMirror = mirrorMatrix * w;',
+    '  vec4 mv = viewMatrix * w;',
+    '  float fd = fogDensity * mv.z;',
+    '  vFog = exp(-fd * fd);',
+    '  gl_Position = projectionMatrix * mv;',
+    '}'
+  ].join('\n');
+
+  var PUDDLE_FRAG = [
+    'uniform float time;',
+    'uniform sampler2D mirrorMap;',
+    'uniform float hasEnv;',
+    'uniform float debugMode;',
+    'uniform vec3 lightA;',
+    'uniform vec3 lightB;',
+    'uniform float lightGain;',
+    'varying vec4 vMirror;',
+    'varying vec3 vWorld;',
+    'varying float vEdge;',
+    'varying float vLit;',
+    'varying vec4 vInfo;',
+    'varying vec3 vDrip;',
+    'varying float vFog;',
+    'float h1(float n) { return fract(sin(n) * 43758.5453); }',
+    // expanding ring: slope of a damped wave packet around the front
+    'vec2 ringSlope(vec2 p, vec2 c, float age, float amp) {',
+    '  vec2 d = p - c;',
+    '  float dist = length(d) + 1e-4;',
+    '  float x = dist - age * 0.42;',
+    '  float packet = exp(-x * x * 90.0);',
+    '  float fade = exp(-age * 2.2) * smoothstep(0.0, 0.05, age);',
+    '  float slope = cos(x * 60.0) * 60.0 * packet * fade * amp;',
+    '  return d / dist * slope;',
+    '}',
+    'void main() {',
+    '  if (vLit < 0.01) discard;',
+    '  vec2 p = vWorld.xz;',
+    '  vec2 g = vec2(0.0);',
+    // random drops falling into the puddle
+    '  for (int i = 0; i < 3; i++) {',
+    '    float fi = float(i);',
+    '    float period = 1.9 + fi * 0.7;',
+    '    float t = time / period + vInfo.w * 13.0 + fi * 0.37;',
+    '    float n = floor(t);',
+    '    float age = fract(t) * period;',
+    '    float ang = h1(n * 12.9 + vInfo.w * 78.2 + fi) * 6.2832;',
+    '    float rad = sqrt(h1(n * 3.7 + fi * 5.1 + vInfo.w)) * vInfo.z * 0.55;',
+    '    vec2 c = vInfo.xy + vec2(cos(ang), sin(ang)) * rad;',
+    '    g += ringSlope(p, c, age, 0.0022);',
+    '  }',
+    // steady drips from the crack above
+    '  if (vDrip.z > 0.5) {',
+    '    for (int j = 0; j < 2; j++) {',
+    '      float per = 0.62;',
+    '      float tt = time / per + float(j) * 0.5;',
+    '      float age2 = fract(tt) * per;',
+    '      g += ringSlope(p, vDrip.xy, age2, 0.003);',
+    '    }',
+    '  }',
+    // faint breeze ripple so the surface is never perfectly still
+    '  g += vec2(sin(p.x * 9.0 + time * 1.3), cos(p.y * 11.0 - time * 1.1)) * 0.004;',
+    '  vec3 n = normalize(vec3(-g.x, 1.0, -g.y));',
+    '  vec3 V = normalize(vWorld - cameraPosition);',
+    '  vec3 R = reflect(V, n);',
+    '  vec3 env;',
+    '  if (hasEnv > 0.5) {',
+    '    vec2 muv = vMirror.xy / vMirror.w + g * 3.5;',
+    '    env = texture2D(mirrorMap, muv).rgb;',
+    '  } else {',
+    '    env = mix(vec3(0.04, 0.035, 0.03), vec3(0.45, 0.3, 0.18), clamp(R.y, 0.0, 1.0));',
+    '  }',
+    '  float cosT = clamp(dot(-V, n), 0.0, 1.0);',
+    '  float fresnel = 0.02 + 0.98 * pow(1.0 - cosT, 5.0);',
+    '  vec3 deep = vec3(0.006, 0.012, 0.016);',
+    // stylised: a still puddle reads as a dark mirror, so reflect strongly at every angle
+    '  vec3 refl = env * vec3(0.95, 1.02, 1.1);',
+    '  vec3 col = mix(deep, refl, clamp(0.82 + 0.18 * fresnel, 0.0, 1.0));',
+    // a bright crest on the ring fronts catches the torchlight
+    '  col += vec3(1.0, 0.8, 0.55) * clamp(length(g) * 22.0 - 0.08, 0.0, 1.0) * 0.22;',
+    // torch glints on the rippled surface
+    '  vec3 toEye = -V;',
+    '  vec3 la = normalize(lightA - vWorld), lb = normalize(lightB - vWorld);',
+    '  float spec = pow(max(dot(n, normalize(la + toEye)), 0.0), 220.0) + pow(max(dot(n, normalize(lb + toEye)), 0.0), 220.0);',
+    '  col += vec3(1.0, 0.78, 0.45) * spec * 2.5 * lightGain;',
+    // wet dark stone around the rim
+    '  float rim = smoothstep(0.42, 0.8, vEdge);',
+    '  col = mix(col, vec3(0.01, 0.011, 0.012), rim * 0.6);',
+    '  col *= vLit * vFog;',
+    '  float a = mix(0.97, 0.5, rim) * (1.0 - smoothstep(0.82, 1.0, vEdge));',
+    '  if (debugMode > 0.5) { col = debugMode > 1.5 ? vec3(fract(vMirror.xy / vMirror.w * 4.0), 0.0) : env * 2.0; a = 1.0; }',
+    '  gl_FragColor = vec4(col, a);',
+    '  #include <tonemapping_fragment>',
+    '  #include <colorspace_fragment>',
+    '}'
+  ].join('\n');
+
+  function buildPuddles() {
+    if (!puddleList.length) return;
+    var pos = [], edge = [], lit = [], info = [], drip = [], idx = [];
+    var Y = PUDDLE_Y;
+    for (var i = 0; i < puddleList.length; i++) {
+      var pd = puddleList[i];
+      var base = pos.length / 3;
+      var dr = pd.drip ? [pd.drip[0], pd.drip[1], 1] : [0, 0, 0];
+      var push = function(x, z, e) {
+        pos.push(x, Y, z);
+        edge.push(e);
+        lit.push(0);
+        info.push(pd.cx, pd.cz, pd.r, pd.seed);
+        drip.push(dr[0], dr[1], dr[2]);
+      };
+      push(pd.cx, pd.cz, 0);
+      var n = pd.ring.length, k;
+      for (k = 0; k < n; k++) push(pd.cx + pd.ring[k][0] * 0.6, pd.cz + pd.ring[k][1] * 0.6, 0.6);
+      for (k = 0; k < n; k++) push(pd.cx + pd.ring[k][0], pd.cz + pd.ring[k][1], 1);
+      for (k = 0; k < n; k++) {
+        var j = (k + 1) % n;
+        idx.push(base, base + 1 + j, base + 1 + k);
+        idx.push(base + 1 + k, base + 1 + j, base + 1 + n + j);
+        idx.push(base + 1 + k, base + 1 + n + j, base + 1 + n + k);
+      }
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('edge', new THREE.Float32BufferAttribute(edge, 1));
+    geo.setAttribute('lit', new THREE.Float32BufferAttribute(lit, 1));
+    geo.setAttribute('info', new THREE.Float32BufferAttribute(info, 4));
+    geo.setAttribute('drip', new THREE.Float32BufferAttribute(drip, 3));
+    geo.setIndex(idx);
+    if (!puddleMaterial) {
+      puddleMaterial = new THREE.ShaderMaterial({
+        uniforms: { time: { value: 0 }, fogDensity: { value: FOG_DENSITY }, mirrorMap: { value: null }, mirrorMatrix: { value: new THREE.Matrix4() }, hasEnv: { value: 0 }, debugMode: { value: 0 },
+          lightA: { value: new THREE.Vector3(0, -50, 0) }, lightB: { value: new THREE.Vector3(0, -50, 0) }, lightGain: { value: 0 } },
+        vertexShader: PUDDLE_VERT, fragmentShader: PUDDLE_FRAG,
+        transparent: true, depthWrite: false, side: THREE.DoubleSide,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
+      });
+    }
+    puddleMaterial.uniforms.mirrorMap.value = mirror ? mirror.target.texture : null;
+    puddleMaterial.uniforms.hasEnv.value = 0;
+    puddleMesh = new THREE.Mesh(geo, puddleMaterial);
+    puddleMesh.frustumCulled = false;
+    puddleMesh.renderOrder = 2;
+    scene.add(puddleMesh);
+    envDirty = true;
+  }
+
+  var _mv = null;
+
+  /** True when a lit puddle is close enough to the camera to be worth reflecting */
+  function puddleNearby() {
+    var cx = camera.position.x, cz = camera.position.z;
+    for (var i = 0; i < puddleList.length; i++) {
+      var dx = puddleList[i].cx - cx, dz = puddleList[i].cz - cz;
+      if (dx * dx + dz * dz < 196 && cellBrightness(puddleList[i].cellId) > 0.05) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Render the mirrored scene for the floor plane (after three.js' Reflector:
+   * reflected camera, oblique near plane at the floor, projective texture matrix)
+   */
+  function updateReflections() {
+    if (!mirror || !puddleMesh || !puddleNearby()) {
+      if (puddleMaterial) puddleMaterial.uniforms.hasEnv.value = 0;
+      return;
+    }
+    if (!_mv) {
+      _mv = { normal: new THREE.Vector3(0, 1, 0), pos: new THREE.Vector3(0, PUDDLE_Y, 0), cam: new THREE.Vector3(), rot: new THREE.Matrix4(),
+        look: new THREE.Vector3(), view: new THREE.Vector3(), target: new THREE.Vector3(), plane: new THREE.Plane(),
+        clip: new THREE.Vector4(), q: new THREE.Vector4() };
+    }
+    var v = _mv;
+    camera.updateMatrixWorld();
+    v.cam.setFromMatrixPosition(camera.matrixWorld);
+    v.view.subVectors(v.pos, v.cam);
+    if (v.view.dot(v.normal) > 0) return;
+    v.view.reflect(v.normal).negate().add(v.pos);
+    v.rot.extractRotation(camera.matrixWorld);
+    v.look.set(0, 0, -1).applyMatrix4(v.rot).add(v.cam);
+    v.target.subVectors(v.pos, v.look).reflect(v.normal).negate().add(v.pos);
+    var vc = mirror.camera;
+    vc.position.copy(v.view);
+    vc.up.set(0, 1, 0).applyMatrix4(v.rot).reflect(v.normal);
+    vc.lookAt(v.target);
+    vc.far = camera.far;
+    vc.updateMatrixWorld();
+    vc.projectionMatrix.copy(camera.projectionMatrix);
+    var tm = mirror.textureMatrix;
+    tm.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
+    tm.multiply(vc.projectionMatrix).multiply(vc.matrixWorldInverse);
+    // oblique near plane so nothing below the floor is drawn
+    v.plane.setFromNormalAndCoplanarPoint(v.normal, v.pos).applyMatrix4(vc.matrixWorldInverse);
+    v.clip.set(v.plane.normal.x, v.plane.normal.y, v.plane.normal.z, v.plane.constant);
+    var e = vc.projectionMatrix.elements;
+    v.q.x = (Math.sign(v.clip.x) + e[8]) / e[0];
+    v.q.y = (Math.sign(v.clip.y) + e[9]) / e[5];
+    v.q.z = -1.0;
+    v.q.w = (1.0 + e[10]) / e[14];
+    v.clip.multiplyScalar(2.0 / v.clip.dot(v.q));
+    e[2] = v.clip.x;
+    e[6] = v.clip.y;
+    e[10] = v.clip.z + 1.0 - 0.003;
+    e[14] = v.clip.w;
+
+    puddleMesh.visible = false;
+    var head = headLight.parent;
+    renderer.setRenderTarget(mirror.target);
+    renderer.clear();
+    renderer.render(scene, vc);
+    renderer.setRenderTarget(null);
+    puddleMesh.visible = true;
+    void head;
+    puddleMaterial.uniforms.mirrorMatrix.value.copy(tm);
+    puddleMaterial.uniforms.mirrorMap.value = mirror.target.texture;
+    puddleMaterial.uniforms.hasEnv.value = 1;
+  }
+
+  /** Size the mirror target to a fraction of the canvas */
+  function resizeMirror() {
+    if (!mirror || !renderer) return;
+    var size = new THREE.Vector2();
+    renderer.getDrawingBufferSize(size);
+    mirror.target.setSize(Math.max(64, Math.floor(size.x * mirror.scale)), Math.max(64, Math.floor(size.y * mirror.scale)));
+  }
 
   function buildWater() {
     if (!waterList.length) return;
@@ -987,6 +1244,15 @@ var FpRenderer = (function() {
         for (k = 0; k < 4; k++) ra.array[i * 4 + k] = v;
       }
       ra.needsUpdate = true;
+    }
+    if (puddleMesh) {
+      var pa = puddleMesh.geometry.getAttribute('lit');
+      var po = 0;
+      for (i = 0; i < puddleList.length; i++) {
+        v = cellBrightness(puddleList[i].cellId);
+        for (k = 0; k < 1 + puddleList[i].ring.length * 2; k++) pa.array[po++] = v;
+      }
+      pa.needsUpdate = true;
     }
     if (waterMesh) {
       var wa = waterMesh.geometry.getAttribute('lit');
@@ -1104,6 +1370,7 @@ var FpRenderer = (function() {
       if (dr.angle !== dr.target) still = true; else shadowDirty = true;
     });
     doorsMoving = still;
+    if (!still) envDirty = true;
     dirty = true;
   }
 
@@ -1154,26 +1421,6 @@ var FpRenderer = (function() {
       materials.iron.envMap = dec.env;
       materials.iron.envMapIntensity = 0.45;
     }
-    if (!puddleAlpha) {
-      var pc = document.createElement('canvas');
-      pc.width = 64; pc.height = 4;
-      var pctx = pc.getContext('2d');
-      var pg = pctx.createLinearGradient(0, 0, 64, 0);
-      pg.addColorStop(0, '#fff'); pg.addColorStop(0.62, '#fff'); pg.addColorStop(1, '#000');
-      pctx.fillStyle = pg; pctx.fillRect(0, 0, 64, 4);
-      puddleAlpha = new THREE.CanvasTexture(pc);
-    }
-    materials.water = new THREE.MeshStandardMaterial({
-      color: 0x0d1418, roughness: 0.05, metalness: 0.1,
-      envMap: dec.env || null, envMapIntensity: 1.1,
-      alphaMap: puddleAlpha, transparent: true, depthWrite: false, vertexColors: true,
-      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1
-    });
-    if (dec.ripple && quality.normalMaps) {
-      dec.ripple.channel = 1;
-      materials.water.normalMap = dec.ripple;
-      materials.water.normalScale.set(0.7, 0.7);
-    }
   }
 
   // torch parts do not cast: the light sits right in front of them
@@ -1194,6 +1441,8 @@ var FpRenderer = (function() {
     if (flameMesh) { scene.remove(flameMesh); flameMesh.geometry.dispose(); flameMesh = null; }
     if (waterMesh) { scene.remove(waterMesh); waterMesh.geometry.dispose(); waterMesh = null; }
     if (runeMesh) { scene.remove(runeMesh); runeMesh.geometry.dispose(); runeMesh = null; }
+    if (puddleMesh) { scene.remove(puddleMesh); puddleMesh.geometry.dispose(); puddleMesh = null; }
+    puddleList = [];
     Object.keys(doors).forEach(function(k) {
       scene.remove(doors[k].group);
       doors[k].meshes.forEach(function(m) { m.geometry.dispose(); });
@@ -1222,7 +1471,7 @@ var FpRenderer = (function() {
     var ids = Object.keys(w.cells);
     var bossHost = null;
     var keys = ['wall', 'moss', 'floor', 'ceiling', 'lava', 'crust', 'glow', 'iron', 'wood', 'torchIron', 'torchWood', 'pitch', 'vine',
-      'stone', 'bone', 'soot', 'decal', 'water'];
+      'stone', 'bone', 'soot', 'decal'];
     var MAT = { torchIron: 'iron', torchWood: 'wood' };
 
     for (var n = 0; n < ids.length; n++) {
@@ -1337,6 +1586,7 @@ var FpRenderer = (function() {
     buildFlames();
     updateFlameLit();
     buildWater();
+    buildPuddles();
     buildRunes();
     updateDecalLit();
 
@@ -1487,6 +1737,7 @@ var FpRenderer = (function() {
       if (t.glow !== t.target) still = true;
     }
     torchesChanging = still;
+    if (!still) envDirty = true;
     updateFlameLit();
     dirty = true;
   }
@@ -1573,6 +1824,18 @@ var FpRenderer = (function() {
       L.intensity = TORCH_INTENSITY * torch.glow * sl.fade * FpLayout.flicker(t, torch.phase);
     }
     lightsFading = fading;
+    if (puddleMaterial) {
+      var ft = [];
+      for (i = 0; i < torchList.length && ft.length < 2; i++) if (torchList[i].cellId === focusId) ft.push(torchList[i]);
+      if (ft.length) {
+        puddleMaterial.uniforms.lightA.value.set(ft[0].fx, ft[0].fy + 0.2, ft[0].fz);
+        var fb2 = ft[1] || ft[0];
+        puddleMaterial.uniforms.lightB.value.set(fb2.fx, fb2.fy + 0.2, fb2.fz);
+        puddleMaterial.uniforms.lightGain.value = ft[0].glow * FpLayout.flicker(t, ft[0].phase);
+      } else {
+        puddleMaterial.uniforms.lightGain.value = 0;
+      }
+    }
     var lava = [];
     Object.keys(lavaCells).forEach(function(id) {
       var b = cellBrightness(id);
@@ -1608,6 +1871,7 @@ var FpRenderer = (function() {
   function setFocus(roomId) {
     if (focusId === roomId) return;
     focusId = roomId;
+    envDirty = true;
     assignLights();
   }
 
@@ -1781,6 +2045,7 @@ var FpRenderer = (function() {
       sprite.position.y = h / 2 + 0.02;
       entry.ready = true;
       sprite.visible = true;
+      envDirty = true;
 
       // contact shadow
       var blobMat = new THREE.MeshBasicMaterial({ map: getBlobTexture(), transparent: true, depthWrite: false, opacity: info.fadeMs ? 0 : 1, polygonOffset: true, polygonOffsetFactor: -2 });
@@ -1860,6 +2125,7 @@ var FpRenderer = (function() {
       renderer.shadowMap.needsUpdate = true;
     }
     shadowDirty = false;
+    updateReflections();
     renderer.render(scene, camera);
     dirty = false;
   }
@@ -1881,7 +2147,7 @@ var FpRenderer = (function() {
       if (flameMaterial) flameMaterial.uniforms.time.value = clock;
       if (waterMaterial) waterMaterial.uniforms.time.value = clock;
       if (runeMaterial) runeMaterial.uniforms.time.value = clock;
-      if (materials.water && materials.water.normalMap) { materials.water.normalMap.offset.set((clock * 0.013) % 1, (clock * 0.021) % 1); }
+      if (puddleMaterial) puddleMaterial.uniforms.time.value = clock;
       if (materials.lava && materials.lava.map) { materials.lava.map.offset.y = (clock * 0.05) % 1; materials.lava.map.offset.x = Math.sin(clock * 0.4) * 0.02; }
       updateLights(clock, dt);
       dirty = true;
@@ -1989,6 +2255,33 @@ var FpRenderer = (function() {
     if (typeof o.hemi === 'number') hemi.intensity = o.hemi;
     if (typeof o.head === 'number') headLight.intensity = o.head;
     if (typeof o.torch === 'number') TORCH_INTENSITY = o.torch;
+    if (typeof o.puddleEnv === 'number' && puddleMaterial) puddleMaterial.uniforms.hasEnv.value = o.puddleEnv;
+    if (typeof o.puddleDebug === 'number' && puddleMaterial) puddleMaterial.uniforms.debugMode.value = o.puddleDebug;
+    if (o.mirrorDump && mirror) {
+      var w = mirror.target.width, h = mirror.target.height;
+      var buf = new Uint8Array(w * h * 4);
+      renderer.readRenderTargetPixels(mirror.target, 0, 0, w, h, buf);
+      var cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      var id = cv.getContext('2d').createImageData(w, h);
+      for (var yy = 0; yy < h; yy++) {
+        for (var xx = 0; xx < w; xx++) {
+          var si = ((h - 1 - yy) * w + xx) * 4, di = (yy * w + xx) * 4;
+          id.data[di] = Math.min(255, buf[si] * 3); id.data[di + 1] = Math.min(255, buf[si + 1] * 3); id.data[di + 2] = Math.min(255, buf[si + 2] * 3); id.data[di + 3] = 255;
+        }
+      }
+      cv.getContext('2d').putImageData(id, 0, 0);
+      window.__mirror = cv.toDataURL('image/png');
+    }
+    if (o.debugWater) {
+      window.__water = {
+        puddles: puddleList.length,
+        hasEnv: puddleMaterial ? puddleMaterial.uniforms.hasEnv.value : null,
+        mirror: mirror ? [mirror.target.width, mirror.target.height] : null,
+        visible: puddleMesh ? puddleMesh.visible : null,
+        lit: puddleMesh ? Array.prototype.slice.call(puddleMesh.geometry.getAttribute('lit').array, 0, 5) : null
+      };
+    }
     var tones = { agx: THREE.AgXToneMapping, aces: THREE.ACESFilmicToneMapping, neutral: THREE.NeutralToneMapping };
     if (o.tone && tones[o.tone] !== undefined) {
       renderer.toneMapping = tones[o.tone];
