@@ -64,8 +64,10 @@ var ProtoIso = (function() {
       SFX.registerFiles({
         'step': [K + 'footstep00.mp3', K + 'footstep01.mp3', K + 'footstep02.mp3', K + 'footstep03.mp3', K + 'footstep04.mp3'],
         'tap': K + 'metalClick.mp3',
-        'reveal': [K + 'doorOpen_1.mp3', K + 'doorOpen_2.mp3'],
-        'door': K + 'doorOpen_2.mp3',
+        // 'reveal' opens the quiz, treasure and result cards: a page turn, not a door
+        'reveal': K + 'bookFlip2.mp3',
+        // 'door' plays once per crossing into another chamber (IsoScenes.movePlayer)
+        'door': [K + 'doorOpen_1.mp3', K + 'doorOpen_2.mp3'],
         'coin': K + 'handleCoins.mp3',
         'coins': K + 'handleCoins2.mp3',
         'hit': [K + 'knifeSlice.mp3', K + 'knifeSlice2.mp3'],

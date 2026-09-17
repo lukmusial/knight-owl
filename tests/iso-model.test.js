@@ -125,7 +125,7 @@ TestRunner.suite('IsoModel', () => {
     TestRunner.assertEqual(IsoModel.getRoomVisibility(n), 'visible', 'neighbour now visible');
   });
 
-  TestRunner.test('token rules: unknown when fogged, monster when explored, none when cleared', () => {
+  TestRunner.test('token rules: nothing when fogged, monster when explored, none when cleared', () => {
     setup();
     var rooms = Dungeon.getState().rooms;
     var monsterId = Object.keys(rooms).filter(function(id) { return rooms[id].type === 'monster'; })[0];
@@ -133,8 +133,10 @@ TestRunner.suite('IsoModel', () => {
     TestRunner.assertEqual(IsoModel.getTokenFor(monsterId), null, 'hidden room shows nothing');
     var neighbour = rooms[monsterId].connections[0];
     DungeonMap.exploreRoom(neighbour);
-    TestRunner.assertEqual(IsoModel.getTokenFor(monsterId).kind, 'unknown', 'fogged monster is a ? marker');
+    TestRunner.assertEqual(IsoModel.getTokenFor(monsterId), null, 'fogged monster shows nothing');
+    TestRunner.assertEqual(IsoModel.showsContents(monsterId), false, 'fogged monster hides its contents');
     DungeonMap.exploreRoom(monsterId);
+    TestRunner.assertEqual(IsoModel.showsContents(monsterId), true, 'explored room shows its contents');
     var tok = IsoModel.getTokenFor(monsterId);
     TestRunner.assertEqual(tok.kind, 'monster', 'explored monster token');
     TestRunner.assertEqual(tok.id, rooms[monsterId].monster.id, 'token carries monster id');
@@ -147,6 +149,75 @@ TestRunner.suite('IsoModel', () => {
     TestRunner.assertEqual(boss.kind + ':' + boss.size, 'boss:160', 'boss token is large');
     DungeonMap.exploreRoom(Dungeon.getEntranceId());
     TestRunner.assertEqual(IsoModel.getTokenFor(Dungeon.getEntranceId()).kind, 'entrance', 'entrance marker');
+  });
+
+  TestRunner.test('fogged rooms of every type look the same (no token)', () => {
+    setup();
+    var rooms = Dungeon.getState().rooms;
+    Object.keys(rooms).forEach(function(id) { DungeonMap.exploreRoom(id); });
+    var ids = Object.keys(rooms);
+    DungeonMap.init();
+    DungeonMap.calculateLayout(Dungeon.getEntranceId());
+    DungeonMap.exploreRoom(Dungeon.getEntranceId());
+    ids.forEach(function(id) {
+      if (IsoModel.getRoomVisibility(id) === 'fogged') {
+        TestRunner.assertEqual(IsoModel.getTokenFor(id), null, rooms[id].type + ' room ' + id + ' has no fogged token');
+      }
+    });
+  });
+
+  TestRunner.test('decor depends only on grid position, never on room type', () => {
+    setup();
+    var rooms = Dungeon.getState().rooms;
+    var ids = Object.keys(rooms).filter(function(id) { return rooms[id].type !== 'entrance'; });
+    var before = {};
+    ids.forEach(function(id) { before[id] = JSON.stringify(IsoModel.getRoomDecor(id)); });
+    var savedTypes = {};
+    ids.forEach(function(id) { savedTypes[id] = model.rooms[id].type; model.rooms[id].type = 'treasure'; });
+    ids.forEach(function(id) {
+      TestRunner.assertEqual(JSON.stringify(IsoModel.getRoomDecor(id)), before[id], 'decor of ' + id + ' unchanged by type');
+    });
+    ids.forEach(function(id) { model.rooms[id].type = savedTypes[id]; });
+    TestRunner.assertEqual(IsoModel.getRoomDecor(Dungeon.getEntranceId()).length, 0, 'entrance has no decor');
+  });
+
+  TestRunner.test('decor stays off the centre, content slots and doorways', () => {
+    setup();
+    var lows = 0;
+    Object.keys(model.rooms).forEach(function(id) {
+      var rm = model.rooms[id];
+      IsoModel.getRoomDecor(id).forEach(function(d) {
+        var dx = d.gx - rm.gx0, dy = d.gy - rm.gy0;
+        TestRunner.assert(!(dx === 1 && dy === 1), 'decor not on the centre tile');
+        IsoModel.CONTENT_SLOTS.forEach(function(c) {
+          TestRunner.assert(!(c.dx === dx && c.dy === dy), 'decor not on a content slot');
+        });
+        if (d.slot === 'back') {
+          TestRunner.assertEqual(dx + ',' + dy, '0,0', 'back decor on the back corner');
+        } else {
+          lows++;
+          var t = model.tileMap[d.gx + ',' + d.gy];
+          var wallSide = dx === 1 ? 'n' : 'w';
+          TestRunner.assert((dx === 1 && dy === 0) || (dx === 0 && dy === 1), 'low decor on a back edge tile');
+          TestRunner.assert(t.walls.indexOf(wallSide) !== -1, 'low decor has a wall behind it, not a doorway');
+        }
+      });
+    });
+    TestRunner.assert(lows > 0, 'some chambers have low decor');
+  });
+
+  TestRunner.test('decor themes vary across the grid', () => {
+    setup();
+    var seen = {};
+    var saved = model.rooms;
+    for (var rx = 0; rx < 7; rx++) {
+      for (var ry = 0; ry < 6; ry++) {
+        model.rooms = { probe: { rx: rx, ry: ry, gx0: rx * 4, gy0: ry * 4, type: 'corridor' } };
+        seen[IsoModel.getRoomTheme('probe').id] = true;
+      }
+    }
+    model.rooms = saved;
+    TestRunner.assert(Object.keys(seen).length >= 5, 'at least 5 themes on a 7x6 grid, saw ' + Object.keys(seen).join(','));
   });
 
   TestRunner.test('depthKey orders layers within a tile and tiles down-right', () => {
