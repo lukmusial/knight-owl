@@ -109,6 +109,21 @@ var SFX = (function() {
       tone(0, 0.30, 0.15, 'triangle', 220, 330)
     ] },
     'bump': { dur: 0.12, steps: [tone(0, 0.10, 0.3, 'sine', 120, 60)] },
+    // first-person dungeon: torch catching fire, heavy door, water drip, lava bubble
+    'torch-ignite': { dur: 0.55, steps: [
+      noise(0, 0.5, 0.3, 'bandpass', 350, 2600),
+      tone(0, 0.18, 0.25, 'sine', 95, 55)
+    ] },
+    'door-creak': { dur: 0.75, steps: [
+      tone(0, 0.45, 0.12, 'sawtooth', 210, 150, 'bandpass', 900),
+      tone(0.12, 0.35, 0.06, 'square', 320, 230, 'bandpass', 1500),
+      noise(0.55, 0.18, 0.3, 'lowpass', 280)
+    ] },
+    'drip': { dur: 0.08, steps: [tone(0, 0.07, 0.2, 'sine', 1300, 2600)] },
+    'lava-bubble': { dur: 0.2, steps: [
+      tone(0, 0.16, 0.35, 'sine', 65, 170, 'lowpass', 500),
+      noise(0.02, 0.12, 0.12, 'lowpass', 220)
+    ] },
     'knockback': { dur: 0.40, steps: [
       noise(0, 0.30, 0.35, 'lowpass', 600),
       tone(0, 0.35, 0.35, 'sine', 200, 60)
@@ -463,6 +478,17 @@ var SFX = (function() {
     muted = loadMuted();
   }
 
+  /**
+   * Audio graph for callers that run their own long-lived sources (ambient
+   * loops): the running context and the master gain (so mute-by-duck and
+   * background suspend apply). Null while locked, muted or backgrounded.
+   * @returns {Object|null} { context, destination }
+   */
+  function getAudioOutput() {
+    if (muted || backgrounded || !isRunning() || !master) return null;
+    return { context: ctx, destination: master };
+  }
+
   function hasClip(name) {
     return !!(clipBuffers[name] && clipBuffers[name].length);
   }
@@ -482,6 +508,7 @@ var SFX = (function() {
     reset: reset,
     registerFiles: registerFiles,
     hasClip: hasClip,
+    getAudioOutput: getAudioOutput,
     RECIPES: RECIPES,
     STORAGE_KEY: STORAGE_KEY
   };
