@@ -586,12 +586,15 @@ var FpLayout = (function() {
     var count = opts.count || 0;
     var shadowCount = Math.min(opts.shadowCount || 0, count);
     var isLit = opts.isLit || function() { return true; };
+    // focusIds: while walking between chambers both the one being left and
+    // the one ahead count as focus, so the owl keeps casting shadows in transit
+    var focusIds = opts.focusIds || (opts.focusId ? [opts.focusId] : []);
     var cand = [];
     for (var i = 0; i < torches.length; i++) {
       var t = torches[i];
       if (!isLit(t.cellId)) continue;
       var dx = t.x - opts.px, dz = t.z - opts.pz;
-      cand.push({ i: i, d: dx * dx + dz * dz, focus: t.cellId === opts.focusId });
+      cand.push({ i: i, d: dx * dx + dz * dz, focus: focusIds.indexOf(t.cellId) !== -1 });
     }
     cand.sort(function(a, b) {
       if (a.focus !== b.focus) return a.focus ? -1 : 1;
@@ -603,6 +606,37 @@ var FpLayout = (function() {
     var rest = cand.slice(chosen.length).sort(function(a, b) { return a.d - b.d || a.i - b.i; });
     for (i = 0; i < rest.length && chosen.length < count; i++) chosen.push(rest[i].i);
     return chosen;
+  }
+
+  /**
+   * Shadow maps to redraw this frame while a character moves: the casting
+   * lights nearest to it, the closest every frame and the next ones on
+   * alternating frames so the cost stays bounded
+   * @param {Array} lights - [{ x, z, casts, on }] (on: intensity > 0)
+   * @param {Object} at - { x, z } character position
+   * @param {Object} opts - { range, everyFrame, alternating, frame }
+   * @returns {Array} light indices
+   */
+  function shadowRefresh(lights, at, opts) {
+    var range = opts.range || Infinity;
+    var near = [];
+    for (var i = 0; i < lights.length; i++) {
+      var L = lights[i];
+      if (!L.casts || !L.on) continue;
+      var dx = L.x - at.x, dz = L.z - at.z;
+      var d = Math.sqrt(dx * dx + dz * dz);
+      if (d <= range) near.push({ i: i, d: d });
+    }
+    near.sort(function(a, b) { return a.d - b.d || a.i - b.i; });
+    var every = opts.everyFrame === undefined ? 1 : opts.everyFrame;
+    var alt = opts.alternating || 0;
+    var out = [];
+    for (i = 0; i < near.length && i < every; i++) out.push(near[i].i);
+    var rest = near.slice(every, every + alt);
+    for (i = 0; i < rest.length; i++) {
+      if (((opts.frame || 0) + i) % 2 === 0) out.push(rest[i].i);
+    }
+    return out;
   }
 
   /** Torch flicker multiplier (~0.8..1.1), smooth in time, distinct per phase */
@@ -653,6 +687,7 @@ var FpLayout = (function() {
     ambienceLevel: ambienceLevel,
     sidePoint: sidePoint,
     assignLights: assignLights,
+    shadowRefresh: shadowRefresh,
     flicker: flicker
   };
 })();
