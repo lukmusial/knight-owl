@@ -722,18 +722,41 @@ var IsoScenes = (function() {
      * Screen-space offset so the room is centred between the HUD top bar and dock
      */
     hudOffsetY: function() {
+      return this.hudOffset().y;
+    },
+
+    /**
+     * Screen-space offset {x, y} that centres the room in the part of the
+     * screen the HUD leaves free: below the top bar and above a bottom dock
+     * (portrait), or left of a right-hand dock column (landscape)
+     */
+    hudOffset: function() {
       var top = document.querySelector('.hud-top');
       var dock = document.querySelector('.hud-dock');
-      var t = top ? top.offsetHeight : 0;
-      var d = dock ? dock.offsetHeight : 0;
-      return (d - t) / 2;
+      var vw = window.innerWidth, vh = window.innerHeight;
+      var t = top ? top.getBoundingClientRect().bottom : 0;
+      var free = { left: 0, right: vw, top: Math.max(0, t), bottom: vh };
+      if (dock) {
+        var r = dock.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          var sideColumn = r.left > vw / 2 && r.height > vh / 2;
+          if (sideColumn) free.right = Math.min(free.right, r.left);
+          else free.bottom = Math.min(free.bottom, r.top);
+        }
+      }
+      return {
+        x: vw / 2 - (free.left + free.right) / 2,
+        y: vh / 2 - (free.top + free.bottom) / 2
+      };
     },
 
     focusOn: function(x, y, instant) {
       var cam = this.cameras.main;
-      var ty = y + this.hudOffsetY() / cam.zoom;
-      if (instant || REDUCED_MOTION) cam.centerOn(x, ty);
-      else cam.pan(x, ty, 550, 'Sine.easeInOut', true); // force: replace a pan still in flight
+      var off = this.hudOffset();
+      var tx = x + off.x / cam.zoom;
+      var ty = y + off.y / cam.zoom;
+      if (instant || REDUCED_MOTION) cam.centerOn(tx, ty);
+      else cam.pan(tx, ty, 550, 'Sine.easeInOut', true); // force: replace a pan still in flight
     },
 
     setCurrentRoom: function(roomId, snapPlayer) {
@@ -806,7 +829,7 @@ var IsoScenes = (function() {
       }
 
       this.moving = true;
-      this.followOffsetY = this.hudOffsetY();
+      this.followOffset = this.hudOffset();
       this.cameras.main.panEffect.reset();  // the camera follows the owl while walking
       this.stopIdle();
       if (this.playerHasWalk) this.player.play('owl_walk');
@@ -918,8 +941,8 @@ var IsoScenes = (function() {
 
       // Follow the owl while it walks between rooms (smoothed)
       if (this.moving && this.player) {
-        var tx = this.player.x;
-        var ty = this.player.y + this.followOffsetY / cam.zoom;
+        var tx = this.player.x + this.followOffset.x / cam.zoom;
+        var ty = this.player.y + this.followOffset.y / cam.zoom;
         var k = 1 - Math.pow(0.002, Math.min(delta || 16, 100) / 1000);
         var mx = cam.midPoint.x, my = cam.midPoint.y;
         cam.centerOn(mx + (tx - mx) * k, my + (ty - my) * k);

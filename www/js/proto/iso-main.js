@@ -133,6 +133,8 @@ var ProtoIso = (function() {
       scene: [IsoScenes.BootScene, IsoScenes.DungeonScene]
     });
 
+    watchViewport();
+
     game.registry.set('isoCallbacks', {
       onReady: function(s) {
         scene = s;
@@ -146,6 +148,35 @@ var ProtoIso = (function() {
         UI.showToast('Too far away. Za daleko.', 'info');
       }
     });
+  }
+
+  /**
+   * Phaser's RESIZE mode can miss a rotation: the parent size is picked up
+   * but the canvas keeps its old backing size, and the CSS (100% x 100%)
+   * stretches the portrait canvas over the landscape screen. Refresh the
+   * scale manager on every viewport change, again once Android WebViews have
+   * settled on the final size.
+   */
+  function watchViewport() {
+    if (typeof window === 'undefined') return;
+    var timers = [];
+    function refresh() {
+      timers.forEach(clearTimeout);
+      timers = [0, 150, 400].map(function(delay) {
+        return setTimeout(function() {
+          if (!game || !game.scale) return;
+          var parent = document.getElementById('iso-canvas');
+          if (!parent) return;
+          var w = parent.clientWidth, h = parent.clientHeight;
+          if (w > 0 && h > 0 && (game.scale.width !== w || game.scale.height !== h)) {
+            game.scale.refresh();
+          }
+        }, delay);
+      });
+    }
+    window.addEventListener('resize', refresh);
+    window.addEventListener('orientationchange', refresh);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', refresh);
   }
 
   // ---------------------------------------------------------------------------
