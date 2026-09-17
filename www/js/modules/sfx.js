@@ -28,6 +28,7 @@ var SFX = (function() {
   var ducked = false;
   var initialized = false;
   var unlockListenersArmed = false;
+  var backgrounded = false;
 
   var UNLOCK_EVENTS = ['pointerdown', 'touchend', 'keydown', 'click'];
 
@@ -345,7 +346,7 @@ var SFX = (function() {
   function play(name, opts) {
     var recipe = RECIPES[name];
     if (!recipe && !clipUrls[name]) return false;
-    if (muted) return false;
+    if (muted || backgrounded) return false;
 
     var c = ensureContext();
     if (!c || c.state !== 'running') return false;
@@ -409,6 +410,38 @@ var SFX = (function() {
     }
   }
 
+  /**
+   * App went to the background: silence everything (AppLifecycle)
+   */
+  function suspend() {
+    backgrounded = true;
+    if (ctx && ctx.state === 'running' && typeof ctx.suspend === 'function') {
+      try {
+        var p = ctx.suspend();
+        if (p && typeof p.catch === 'function') p.catch(function() {});
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  /**
+   * Back in the foreground: resume the context, or wait for the next gesture
+   */
+  function resumeFromBackground() {
+    backgrounded = false;
+    if (!ctx || ctx.state === 'running' || typeof ctx.resume !== 'function') return;
+    try {
+      ctx.resume().then(function() {
+        if (!isRunning()) armUnlockListeners();
+      }, function() { armUnlockListeners(); });
+    } catch (e) {
+      armUnlockListeners();
+    }
+  }
+
+  function isSuspended() {
+    return backgrounded;
+  }
+
   function isAvailable() {
     return isRunning();
   }
@@ -424,6 +457,7 @@ var SFX = (function() {
     master = null;
     noiseBuffer = null;
     ducked = false;
+    backgrounded = false;
     clipBuffers = {};
     clipsLoading = false;
     muted = loadMuted();
@@ -441,6 +475,9 @@ var SFX = (function() {
     isMuted: isMuted,
     toggleMuted: toggleMuted,
     duck: duck,
+    suspend: suspend,
+    resumeFromBackground: resumeFromBackground,
+    isSuspended: isSuspended,
     isAvailable: isAvailable,
     reset: reset,
     registerFiles: registerFiles,
