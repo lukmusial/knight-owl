@@ -85,4 +85,18 @@ TestRunner.suite('FX Module', () => {
       TestRunner.assertEqual(results.length, 10, 'all effects resolved');
     });
   });
+  TestRunner.test('panel effects keep the modal entrance animation so the panel never blinks out', () => {
+    var fs = typeof require !== 'undefined' ? require('fs') : null;
+    var path = typeof require !== 'undefined' ? require('path') : null;
+    if (!fs || !path) { TestRunner.assert(true, 'Skipped in browser context'); return; }
+    var css = fs.readFileSync(path.resolve(__dirname, '../www/css/fx.css'), 'utf8');
+    ['.modal-content.fx-screen-shake', '.modal-content.fx-shake-x', '.modal-content.fx-flash-red', '.modal-content.fx-shake-x.fx-flash-red'].forEach(function(sel) {
+      var at = css.indexOf(sel + ' {');
+      TestRunner.assert(at !== -1, sel + ' rule exists');
+      var body = css.slice(at, css.indexOf('}', at));
+      TestRunner.assert(/animation:\s*fx-modal-in\b/.test(body), sel + ' lists fx-modal-in first');
+    });
+    var src = fs.readFileSync(path.resolve(__dirname, '../www/js/modules/fx.js'), 'utf8');
+    TestRunner.assert(src.indexOf("e.animationName !== 'fx-modal-in'") !== -1, 'effects ignore the entrance animation ending');
+  });
 });
