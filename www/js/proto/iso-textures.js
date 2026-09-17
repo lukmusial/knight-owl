@@ -799,23 +799,80 @@ var IsoTextures = (function() {
     ctx.fillRect(3, 24, 10, 4);
   }
 
+  var FLAME_FRAMES = 8;
+
+  /**
+   * 40x64 flame, one of FLAME_FRAMES in a seamless loop: an outer orange
+   * body, a yellow middle and a white-hot core, each a tongue whose tip and
+   * sides sway with phase-shifted sines, plus a spark drifting up
+   */
   function drawFlame(ctx, frame) {
-    // 28x40 flame, three frames flicker
-    var r = rng(300 + frame);
-    var cx = 14, base = 38;
-    function lick(w, h, color, alpha) {
+    var cx = 20, base = 60;
+    var ph = frame / FLAME_FRAMES * Math.PI * 2;
+    function tongue(w, h, sway, colors, alpha) {
+      var tipX = cx + Math.sin(ph + sway) * w * 0.45;
+      var tipY = base - h * (0.92 + 0.08 * Math.sin(ph * 2 + sway));
+      var lw = w * (1 + 0.08 * Math.sin(ph + sway + 1.3));
+      var rw = w * (1 + 0.08 * Math.sin(ph + sway + 2.6));
+      var g = ctx.createLinearGradient(0, base, 0, tipY);
+      g.addColorStop(0, colors[0]);
+      g.addColorStop(0.55, colors[1]);
+      g.addColorStop(1, colors[2]);
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = color;
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.moveTo(cx - w, base);
-      ctx.quadraticCurveTo(cx - w * 1.1 + (r() - 0.5) * 3, base - h * 0.5, cx + (r() - 0.5) * 4 + (frame - 1) * 2, base - h);
-      ctx.quadraticCurveTo(cx + w * 1.1 + (r() - 0.5) * 3, base - h * 0.5, cx + w, base);
-      ctx.closePath();
+      ctx.moveTo(cx - lw * 0.7, base);
+      ctx.bezierCurveTo(cx - lw * 1.15, base - h * 0.35, cx - lw * 0.55 + (tipX - cx) * 0.4, base - h * 0.7, tipX, tipY);
+      ctx.bezierCurveTo(cx + rw * 0.55 + (tipX - cx) * 0.4, base - h * 0.7, cx + rw * 1.15, base - h * 0.35, cx + rw * 0.7, base);
+      ctx.quadraticCurveTo(cx, base + 4, cx - lw * 0.7, base);
       ctx.fill();
     }
-    lick(11, 34 + frame * 2, '#ff6a00', 0.9);
-    lick(8, 26 + (2 - frame) * 2, '#ffb300', 0.95);
-    lick(4, 15 + frame, '#fff2a8', 1);
+    tongue(15, 50, 0, ['rgba(200,60,10,0.9)', 'rgba(255,110,20,0.85)', 'rgba(255,90,10,0)'], 0.95);
+    tongue(11, 40, 1.7, ['rgba(255,150,30,1)', 'rgba(255,190,60,0.95)', 'rgba(255,170,40,0)'], 1);
+    tongue(6, 24, 3.1, ['rgba(255,250,220,1)', 'rgba(255,240,170,1)', 'rgba(255,230,140,0)'], 1);
+    // spark rising and fading over the loop
+    var t = frame / FLAME_FRAMES;
+    ctx.globalAlpha = 1 - t;
+    ctx.fillStyle = '#ffd27a';
+    ctx.beginPath();
+    ctx.arc(cx + 6 * Math.sin(ph * 0.5 + 1), base - 30 - t * 28, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * Warm pool of torchlight on the floor (256x128 ellipse, additive)
+   */
+  function drawLightPool(ctx) {
+    var g = ctx.createRadialGradient(128, 64, 4, 128, 64, 128);
+    g.addColorStop(0, 'rgba(255,190,110,0.55)');
+    g.addColorStop(0.5, 'rgba(255,150,70,0.22)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.scale(1, 0.5);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(128, 128, 128, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /**
+   * Soft cast shadow (128x48): dense near the feet, feathering toward the tip.
+   * Drawn with its origin at (0.12, 0.5) so it starts just behind the caster.
+   */
+  function drawCastShadow(ctx) {
+    ctx.save();
+    ctx.translate(16, 24);
+    for (var i = 0; i < 6; i++) {
+      var k = i / 5;
+      ctx.globalAlpha = 0.3 * (1 - k * 0.7);
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.ellipse(38 + k * 30, 0, 36 + k * 40 - k * 20, 13 - k * 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 
@@ -1077,7 +1134,6 @@ var IsoTextures = (function() {
       canvasTexture(scene, 'lava_' + v, TILE_W, TILE_H, function(ctx) { drawLava(ctx, v); });
       canvasTexture(scene, 'wall_n_' + v, TILE_W, 96, function(ctx) { drawWall(ctx, palette, 'n', v); });
       canvasTexture(scene, 'wall_w_' + v, TILE_W, 96, function(ctx) { drawWall(ctx, palette, 'w', v); });
-      canvasTexture(scene, 'flame_' + v, 28, 40, function(ctx) { drawFlame(ctx, v); });
       canvasTexture(scene, 'pool_water_' + v, TILE_W, TILE_H, function(ctx) { drawPool(ctx, dp, 'water', v); });
       canvasTexture(scene, 'pool_lava_' + v, TILE_W, TILE_H, function(ctx) { drawPool(ctx, dp, 'lava', v); });
     });
@@ -1117,11 +1173,16 @@ var IsoTextures = (function() {
     canvasTexture(scene, 'marker_unknown', 56, 64, function(ctx) { drawUnknownMarker(ctx, palette); });
     canvasTexture(scene, 'portal', 96, 96, function(ctx) { drawPortal(ctx); });
 
+    for (var fi = 0; fi < FLAME_FRAMES; fi++) {
+      (function(v) { canvasTexture(scene, 'flame_' + v, 40, 64, function(ctx) { drawFlame(ctx, v); }); })(fi);
+    }
+    canvasTexture(scene, 'light_pool', 256, 128, function(ctx) { drawLightPool(ctx); });
+    canvasTexture(scene, 'cast_shadow', 128, 48, function(ctx) { drawCastShadow(ctx); });
     if (!scene.anims.exists('flame')) {
       scene.anims.create({
         key: 'flame',
-        frames: [{ key: 'flame_0' }, { key: 'flame_1' }, { key: 'flame_2' }, { key: 'flame_1' }],
-        frameRate: 9,
+        frames: [0, 1, 2, 3, 4, 5, 6, 7].map(function(v) { return { key: 'flame_' + v }; }),
+        frameRate: 12,
         repeat: -1
       });
     }

@@ -22,6 +22,31 @@ var IsoScenes = (function() {
   var MONSTER_H = 116;      // regular monster sprite height
   var DRAGON_H = 200;
   var WALK_SPEED = 0.26;    // px per ms
+  // Depth bands: every floor tile draws first, then the warm light pools, then
+  // cast shadows, and only then walls, props, tokens and the owl (which keep
+  // the interleaved IsoModel.depthKey order). A shadow can then stretch over
+  // the neighbouring floor tiles without being covered by them.
+  var FLOOR_BAND = -300000;
+  var POOL_BAND = -200000;
+  var SHADOW_BAND = -100000;
+  var TORCH_SCALE = 0.56;   // 200px torch render -> ~60px on a 96px Kenney wall
+  // cast-shadow heights and radii (grid units; Mr Owl is ~0.9 tall)
+  var CASTERS = {
+    owl: { h: 0.9, r: 0.22 },
+    monster: { h: 0.9, r: 0.32 },
+    boss: { h: 1.5, r: 0.6 },
+    chest: { h: 0.45, r: 0.34 },
+    barrels: { h: 0.7, r: 0.36 },
+    gold: { h: 0.22, r: 0.34 },
+    crystal: { h: 0.7, r: 0.22 },
+    mushrooms: { h: 0.35, r: 0.22 },
+    mushrooms_big: { h: 0.9, r: 0.3 },
+    plants: { h: 0.3, r: 0.25 },
+    statue: { h: 1.3, r: 0.24 },
+    cavein: { h: 0.6, r: 0.45 },
+    barrels_stacked: { h: 0.9, r: 0.4 },
+    furniture: { h: 0.5, r: 0.4 }
+  };
 
   function fx(name, opts) {
     if (typeof FX !== 'undefined' && FX.play) FX.play(name, opts);
@@ -83,6 +108,9 @@ var IsoScenes = (function() {
       });
       // Mr Owl pre-rendered from the rigged 3D model (tools/owl3d/render_iso.py)
       this.load.atlas('owl3d', 'assets/proto/iso/owl3d.png', 'assets/proto/iso/owl3d.json');
+      // wall torch modelled in Blender (tools/iso/render_torch.py)
+      this.load.image('torch3d', 'assets/proto/iso/torch.png');
+      this.load.json('torch3d_meta', 'assets/proto/iso/torch.json');
       // Extracted cutouts for the monsters in this dungeon + the owl
       monsterIds().concat(['knight_owl']).forEach(function(id) {
         self.load.image('cut_' + id, SPRITE_DIR + id + '.png');
@@ -160,6 +188,8 @@ var IsoScenes = (function() {
       this.roomSprites = {};   // roomId -> [gameObjects] (fog controlled)
       this.roomLights = {};    // roomId -> [gameObjects] (only in explored rooms)
       this.roomContents = {};  // roomId -> [gameObjects] tied to the room type (only in explored rooms)
+      this.roomTorches = {};   // roomId -> [{ gx, gy, height }] torch floor points (shadow lights)
+      this.allTorches = [];
       this.decorByTile = {};   // 'gx,gy' -> decor kind (see IsoModel.getRoomDecor)
       this.linkSprites = {};   // linkId -> [gameObjects]
       this.fogOverlays = {};   // roomId|linkId -> Graphics
@@ -236,18 +266,42 @@ var IsoScenes = (function() {
     },
 
     addTorch: function(roomId, t, side) {
-      var self = this;
       var pt = this.wallPoint(t, side, 0.5, this.kenney ? 46 : 30);
       var depth = IsoModel.depthKey(t.gx, t.gy, LAYERS.wall) + 0.5;
-      var bracket = this.add.image(pt.x, pt.y + 14, 'torch_bracket').setDepth(depth);
-      this.bucketFor(t).push(bracket);
-      var glow = this.add.image(pt.x, pt.y - 6, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(0.8);
-      var flame = this.add.sprite(pt.x, pt.y - 10, 'flame_0').setOrigin(0.5, 1).setDepth(depth + 0.2);
-      if (!REDUCED_MOTION) {
-        flame.play({ key: 'flame', startFrame: Math.floor(hash(t.gx, t.gy) * 3) });
-        this.tweens.add({ targets: glow, alpha: 0.95, scale: 1.12, duration: 380 + hash(t.gy, t.gx) * 240, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      var meta = this.cache.json.get('torch3d_meta');
+      var flameX = pt.x, flameY = pt.y - 10, flameScale = 0.7;
+      if (this.textures.exists('torch3d') && meta) {
+        // the render hangs on an 'n' wall; mirrored for 'w' walls
+        var flip = side === 'w';
+        var sc = this.kenney ? TORCH_SCALE : TORCH_SCALE * 0.75;
+        var mx = flip ? 1 - meta.mount.x : meta.mount.x;
+        var torch = this.add.image(pt.x, pt.y, 'torch3d').setOrigin(mx, meta.mount.y).setScale(sc).setFlipX(flip).setDepth(depth);
+        this.bucketFor(t).push(torch);
+        var fx0 = (meta.flame.x - meta.mount.x) * meta.size * sc;
+        flameX = pt.x + (flip ? -fx0 : fx0);
+        flameY = pt.y + (meta.flame.y - meta.mount.y) * meta.size * sc + 4;
+        flameScale = 0.62;
+      } else {
+        this.bucketFor(t).push(this.add.image(pt.x, pt.y + 14, 'torch_bracket').setDepth(depth));
       }
-      this.lightsFor(roomId).push(glow, flame);
+      var glow = this.add.image(flameX, flameY - 14, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(0.9);
+      var flame = this.add.sprite(flameX, flameY, 'flame_0').setOrigin(0.5, 0.92).setScale(flameScale).setDepth(depth + 0.2);
+      // warm pool of light on the floor below
+      var fp = IsoModel.torchFloorPoint(t, side);
+      var inward = side === 'n' ? { gx: fp.gx, gy: fp.gy + 0.45 } : { gx: fp.gx + 0.45, gy: fp.gy };
+      var pp = IsoModel.gridToIso(inward.gx, inward.gy);
+      var pool = this.add.image(pp.x, pp.y, 'light_pool').setDepth(POOL_BAND + IsoModel.depthKey(t.gx, t.gy, 0))
+        .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55).setScale(1.1);
+      if (!REDUCED_MOTION) {
+        flame.play({ key: 'flame', startFrame: Math.floor(hash(t.gx, t.gy) * 8) });
+        var dur = 380 + hash(t.gy, t.gx) * 240;
+        this.tweens.add({ targets: glow, alpha: 0.95, scale: 1.1, duration: dur, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: pool, alpha: 0.7, duration: dur * 1.3, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+      this.lightsFor(roomId).push(glow, flame, pool);
+      var light = { roomId: roomId, gx: fp.gx, gy: fp.gy, height: IsoModel.LIGHT.torchHeight };
+      (this.roomTorches[roomId] = this.roomTorches[roomId] || []).push(light);
+      this.allTorches.push(light);
     },
 
     addProp: function(roomId, gx, gy, key, opts) {
@@ -255,7 +309,7 @@ var IsoScenes = (function() {
       var p = IsoModel.gridToIso(gx, gy);
       var img = this.add.image(p.x + (opts.dx || 0), p.y + (opts.dy || 0), key)
         .setOrigin(opts.ox !== undefined ? opts.ox : 0.5, opts.oy !== undefined ? opts.oy : 1)
-        .setDepth(IsoModel.depthKey(gx, gy, opts.layer !== undefined ? opts.layer : LAYERS.token) + (opts.dz || 0));
+        .setDepth((opts.layer === LAYERS.floor ? FLOOR_BAND : 0) + IsoModel.depthKey(gx, gy, opts.layer !== undefined ? opts.layer : LAYERS.token) + (opts.dz || 0));
       if (opts.scale) img.setScale(opts.scale);
       if (opts.flip) img.setFlipX(true);
       if (opts.alpha !== undefined) img.setAlpha(opts.alpha);
@@ -264,7 +318,81 @@ var IsoScenes = (function() {
         : opts.contents ? this.contentsFor(roomId)
         : (this.roomSprites[roomId] = this.roomSprites[roomId] || []);
       group.push(img);
+      if (opts.cast) this.addShadows(roomId, gx, gy, opts.cast);
       return img;
+    },
+
+    // --- Torchlight and shadows ----------------------------------------------------
+
+    /**
+     * One soft shadow on the floor from a torch (IsoModel.castShadow in screen terms)
+     */
+    placeShadow: function(img, gx, gy, sh, offY) {
+      var p = IsoModel.gridToIso(gx, gy);
+      p.y += offY || 0;
+      // cast_shadow texture: the body runs ~100px from the origin, ~26px across
+      img.setPosition(p.x, p.y).setRotation(sh.angle)
+        .setScale(sh.length / 100, sh.width / 26)
+        .setAlpha(Math.min(1, sh.alpha / 0.6))
+        .setDepth(SHADOW_BAND + (gx + gy) * 4 + 0.1);
+      return img;
+    },
+
+    /**
+     * Static shadows of a prop/token from the torches of its chamber. Without
+     * a target group they join the chamber's light group (shown once explored).
+     * @returns {Array} the shadow images
+     */
+    addShadows: function(roomId, gx, gy, caster, group) {
+      var self = this;
+      var out = [];
+      (this.roomTorches[roomId] || []).forEach(function(torch) {
+        var sh = IsoModel.castShadow({ gx: gx, gy: gy, height: caster.h, radius: caster.r }, torch);
+        if (!sh) return;
+        out.push(self.placeShadow(self.add.image(0, 0, 'cast_shadow').setOrigin(0.12, 0.5), gx, gy, sh));
+      });
+      if (group) {
+        out.forEach(function(img) { group.push(img); });
+      } else {
+        var lights = this.lightsFor(roomId);
+        var lit = this.lastVis[roomId] === 'visible';
+        out.forEach(function(img) { img.setVisible(lit); lights.push(img); });
+      }
+      return out;
+    },
+
+    /**
+     * Mr Owl's shadows from the two nearest lit torches and his brightness,
+     * every frame (he also walks through the corridors between chambers)
+     */
+    updateOwlLighting: function() {
+      if (!this.player || !this.owlShadows) return;
+      var shadows = this.owlShadows;
+      if (!this.player.visible) {
+        shadows.forEach(function(sh) { sh.setVisible(false); });
+        this.owlContact.setVisible(false);
+        return;
+      }
+      var feet = IsoModel.isoToGridExact(this.player.x, this.player.y - 12);
+      var self = this;
+      var lights = this.allTorches.filter(function(t) { return self.lastVis[t.roomId] === 'visible'; });
+      var near = lights.map(function(t) {
+        var dx = feet.gx - t.gx, dy = feet.gy - t.gy;
+        return { t: t, d: dx * dx + dy * dy };
+      }).sort(function(a, b) { return a.d - b.d; }).slice(0, shadows.length);
+      for (var i = 0; i < shadows.length; i++) {
+        var sh = near[i] ? IsoModel.castShadow({ gx: feet.gx, gy: feet.gy, height: CASTERS.owl.h, radius: CASTERS.owl.r }, near[i].t) : null;
+        if (!sh) { shadows[i].setVisible(false); continue; }
+        // the owl sprite stands 12px below the grid point it walks on
+        this.placeShadow(shadows[i], feet.gx, feet.gy, sh, 12).setVisible(true);
+      }
+      var fp = IsoModel.gridToIso(feet.gx, feet.gy);
+      this.owlContact.setPosition(fp.x, fp.y + 12).setDepth(SHADOW_BAND + (feet.gx + feet.gy) * 4 + 0.2).setVisible(true);
+      // darker between torches, warm and full next to one
+      var level = IsoModel.lightLevel(feet.gx, feet.gy, lights);
+      var k = 0.62 + 0.38 * level;
+      var tint = (Math.round(255 * k) << 16) | (Math.round(244 * k) << 8) | Math.round(228 * k);
+      if (tint !== this.owlTint) { this.player.setTint(tint); this.owlTint = tint; }
     },
 
     // --- Build -----------------------------------------------------------------
@@ -292,7 +420,7 @@ var IsoScenes = (function() {
         var dx = rm ? t.gx - rm.gx0 : 0, dy = rm ? t.gy - rm.gy0 : 0;
 
         var floorKey = 'floor_' + t.variant;
-        bucket.push(self.add.image(p.x, p.y, floorKey).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.floor)));
+        bucket.push(self.add.image(p.x, p.y, floorKey).setDepth(FLOOR_BAND + IsoModel.depthKey(t.gx, t.gy, LAYERS.floor)));
         if (room && room.type === 'boss' && self.isContentSlot(dx, dy)) self.addBossLava(t, p, dx + dy);
 
         var v = Math.floor(hash(t.gx, t.gy, 3) * 3);
@@ -355,7 +483,7 @@ var IsoScenes = (function() {
         var room = t.roomId ? rooms[t.roomId] : null;
         var rm = t.roomId ? model.rooms[t.roomId] : null;
         var dx = rm ? t.gx - rm.gx0 : 0, dy = rm ? t.gy - rm.gy0 : 0;
-        var floorDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.floor);
+        var floorDepth = FLOOR_BAND + IsoModel.depthKey(t.gx, t.gy, LAYERS.floor);
         var wallDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.wall);
         var frontDepth = IsoModel.depthKey(t.gx, t.gy, LAYERS.fx) - 0.5;
         var v = Math.floor(hash(t.gx, t.gy, 3) * 3);
@@ -414,7 +542,7 @@ var IsoScenes = (function() {
      * looks like any other chamber
      */
     addBossLava: function(t, p, frame) {
-      var lava = this.add.sprite(p.x, p.y, 'lava_0').setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.floor) + 0.1);
+      var lava = this.add.sprite(p.x, p.y, 'lava_0').setDepth(FLOOR_BAND + IsoModel.depthKey(t.gx, t.gy, LAYERS.floor) + 0.1);
       if (!REDUCED_MOTION) lava.play({ key: 'lava', startFrame: frame % 3 });
       this.contentsFor(t.roomId).push(lava);
     },
@@ -434,7 +562,7 @@ var IsoScenes = (function() {
         arr.push(line);
         [link.a, link.b].forEach(function(rid) {
           var c = IsoModel.getRoomCenter(rid), p = IsoModel.getRoomCenterPx(rid);
-          var ring = self.add.image(p.x, p.y + 4, 'portal').setDepth(IsoModel.depthKey(c.gx, c.gy, LAYERS.floor) + 0.5).setAlpha(0.85);
+          var ring = self.add.image(p.x, p.y + 4, 'portal').setDepth(FLOOR_BAND + IsoModel.depthKey(c.gx, c.gy, LAYERS.floor) + 0.5).setAlpha(0.85);
           arr.push(ring);
           if (!REDUCED_MOTION) self.tweens.add({ targets: ring, alpha: 0.5, duration: 900, yoyo: true, repeat: -1 });
         });
@@ -492,20 +620,21 @@ var IsoScenes = (function() {
           if (self.kenney && self.textures.exists('k_barrels')) {
             var bp0 = IsoModel.gridToIso(g + slotB.dx, h + slotB.dy);
             self.contentsFor(rid).push(self.kTile(seed > 0.75 ? 'k_crates' : 'k_barrels', bp0, IsoModel.depthKey(g + slotB.dx, h + slotB.dy, LAYERS.token) + 0.2));
+            self.addShadows(rid, g + slotB.dx, h + slotB.dy, CASTERS.barrels);
           } else if (seed > 0.6) {
             self.addProp(rid, g + slotB.dx, h + slotB.dy, 'rubble', { dy: 8, dz: -0.5, scale: 0.8, contents: true });
           }
         } else if (type === 'treasure') {
           self.addProp(rid, g + 1, h + 1, 'glow_gold', { oy: 0.5, dy: 4, layer: LAYERS.floor, dz: 0.5, blend: Phaser.BlendModes.ADD, alpha: 0.7, light: true });
-          self.addProp(rid, g + 2, h, 'gold_pile', { dy: 12, contents: true });
-          self.addProp(rid, g, h + 2, 'gold_pile', { dy: 12, scale: 0.8, contents: true });
+          self.addProp(rid, g + 2, h, 'gold_pile', { dy: 12, contents: true, cast: CASTERS.gold });
+          self.addProp(rid, g, h + 2, 'gold_pile', { dy: 12, scale: 0.8, contents: true, cast: CASTERS.gold });
         } else if (type === 'boss') {
           self.addProp(rid, g + 1, h + 1, 'glow_lava', { oy: 0.5, dy: 6, layer: LAYERS.floor, dz: 0.5, blend: Phaser.BlendModes.ADD, alpha: 0.8, light: true });
-          self.addProp(rid, g + 2, h, 'crystal', { dy: 10, dz: 0.3, contents: true });
-          self.addProp(rid, g, h + 2, 'crystal', { dy: 10, dz: 0.3, scale: 0.85, flip: true, contents: true });
+          self.addProp(rid, g + 2, h, 'crystal', { dy: 10, dz: 0.3, contents: true, cast: CASTERS.crystal });
+          self.addProp(rid, g, h + 2, 'crystal', { dy: 10, dz: 0.3, scale: 0.85, flip: true, contents: true, cast: CASTERS.crystal });
           // (back edge tiles may carry decor, so the hoard sits on the front edges)
-          self.addProp(rid, g + 2, h + 1, 'gold_pile', { dy: 12, scale: 0.9, contents: true });
-          self.addProp(rid, g + 1, h + 2, 'gold_pile', { dy: 12, scale: 0.85, contents: true });
+          self.addProp(rid, g + 2, h + 1, 'gold_pile', { dy: 12, scale: 0.9, contents: true, cast: CASTERS.gold });
+          self.addProp(rid, g + 1, h + 2, 'gold_pile', { dy: 12, scale: 0.85, contents: true, cast: CASTERS.gold });
           self.addProp(rid, g + 1, h + 1, 'glow_purple', { oy: 0.5, dy: -30, layer: LAYERS.fx, dz: 0.2, blend: Phaser.BlendModes.ADD, alpha: 0.35, light: true });
         } else {
           // empty chamber: a little set dressing now and then
@@ -524,7 +653,7 @@ var IsoScenes = (function() {
       Object.keys(this.model.rooms).forEach(function(rid) {
         IsoModel.getRoomDecor(rid).forEach(function(d) {
           var p = IsoModel.gridToIso(d.gx, d.gy);
-          var floorDepth = IsoModel.depthKey(d.gx, d.gy, LAYERS.floor) + 0.3;
+          var floorDepth = FLOOR_BAND + IsoModel.depthKey(d.gx, d.gy, LAYERS.floor) + 0.3;
           var tokenDepth = IsoModel.depthKey(d.gx, d.gy, LAYERS.token);
           var sprites = self.roomSprites[rid] = self.roomSprites[rid] || [];
           var glow = function(key, dy, scale, alpha) {
@@ -551,28 +680,30 @@ var IsoScenes = (function() {
               sprites.push(self.add.image(p.x, p.y, 'decor_pit').setDepth(floorDepth));
               break;
             case 'mushrooms':
-              self.addProp(rid, d.gx, d.gy, 'decor_mushrooms', { dy: 12, dz: -0.2 });
+              self.addProp(rid, d.gx, d.gy, 'decor_mushrooms', { dy: 12, dz: -0.2, cast: CASTERS.mushrooms });
               glow('glow_cyan', -8, 0.45, 0.45);
               break;
             case 'mushrooms_big':
-              self.addProp(rid, d.gx, d.gy, 'decor_mushrooms_big', { dy: 10 });
+              self.addProp(rid, d.gx, d.gy, 'decor_mushrooms_big', { dy: 10, cast: CASTERS.mushrooms_big });
               glow('glow_violet', -30, 0.7, 0.5);
               break;
             case 'plants':
-              self.addProp(rid, d.gx, d.gy, 'decor_plants', { dy: 12, dz: -0.2 });
+              self.addProp(rid, d.gx, d.gy, 'decor_plants', { dy: 12, dz: -0.2, cast: CASTERS.plants });
               break;
             case 'statue':
-              self.addProp(rid, d.gx, d.gy, 'decor_statue', { dy: 16 });
+              self.addProp(rid, d.gx, d.gy, 'decor_statue', { dy: 16, cast: CASTERS.statue });
               break;
             case 'cavein':
               kOr('k_supports', null, null, tokenDepth - 0.2);
-              self.addProp(rid, d.gx, d.gy, 'decor_cavein', { dy: 18 });
+              self.addProp(rid, d.gx, d.gy, 'decor_cavein', { dy: 18, cast: CASTERS.cavein });
               break;
             case 'barrels_stacked':
               kOr('k_barrels_stacked', 'rubble', { dy: 8 });
+              self.addShadows(rid, d.gx, d.gy, CASTERS.barrels_stacked);
               break;
             case 'furniture':
               kOr('k_table_broken', 'bones', { dy: 8 });
+              self.addShadows(rid, d.gx, d.gy, CASTERS.furniture);
               break;
           }
         });
@@ -639,6 +770,12 @@ var IsoScenes = (function() {
         this.playerHasWalk = hasFrames && this.anims.exists('owl_walk');
       }
       this.playerBob = null;
+      this.owlShadows = [0, 1].map(function() {
+        return this.add.image(0, 0, 'cast_shadow').setOrigin(0.12, 0.5).setVisible(false);
+      }, this);
+      this.owlTint = null;
+      // small contact shadow that grounds him wherever he stands
+      this.owlContact = this.add.image(0, 0, 'glow_warm').setTint(0x000000).setScale(0.42, 0.2).setAlpha(0.55).setVisible(false);
       if (!REDUCED_MOTION) {
         this.tweens.add({ targets: this.highlight, scaleX: 1.08, scaleY: 1.08, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         this.startIdle();
@@ -738,6 +875,7 @@ var IsoScenes = (function() {
         if (existing && existing.tokenKey === key) return;
         if (existing) {
           if (existing.bobTween) existing.bobTween.stop();
+          (existing.shadows || []).forEach(function(sh) { sh.destroy(); });
           existing.destroy();
           delete self.tokens[rid];
         }
@@ -750,6 +888,9 @@ var IsoScenes = (function() {
         if ((tok.kind === 'monster' || tok.kind === 'boss') && !REDUCED_MOTION) {
           img.bobTween = self.tweens.add({ targets: img, y: p.y + 8, scaleX: 0.98, duration: 1100 + hash(c.gx, c.gy) * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
+        var caster = tok.kind === 'boss' ? CASTERS.boss : (tok.kind === 'monster' ? CASTERS.monster
+          : (tok.kind === 'treasure' || tok.kind === 'treasure_open' ? CASTERS.chest : null));
+        if (caster) img.shadows = self.addShadows(rid, c.gx, c.gy, caster, []);
         self.tokens[rid] = img;
       });
     },
@@ -803,7 +944,7 @@ var IsoScenes = (function() {
       this.currentRoomId = roomId;
       var c = IsoModel.getRoomCenter(roomId), p = IsoModel.getRoomCenterPx(roomId);
       if (!c) return;
-      this.highlight.setPosition(p.x, p.y).setDepth(IsoModel.depthKey(c.gx, c.gy, LAYERS.floor) + 0.6).setVisible(true);
+      this.highlight.setPosition(p.x, p.y).setDepth(SHADOW_BAND + IsoModel.depthKey(c.gx, c.gy, LAYERS.floor) + 0.6).setVisible(true);
       if (snapPlayer || !this.player.visible) {
         this.player.setPosition(p.x, p.y + 12).setVisible(true);
       }
@@ -814,7 +955,7 @@ var IsoScenes = (function() {
       connectedIds(roomId).forEach(function(rid) {
         var rc = IsoModel.getRoomCenter(rid), rp = IsoModel.getRoomCenterPx(rid);
         if (!rc) return;
-        self.reachRings.push(self.add.image(rp.x, rp.y, 'reach_ring').setDepth(IsoModel.depthKey(rc.gx, rc.gy, LAYERS.floor) + 0.6));
+        self.reachRings.push(self.add.image(rp.x, rp.y, 'reach_ring').setDepth(SHADOW_BAND + IsoModel.depthKey(rc.gx, rc.gy, LAYERS.floor) + 0.6));
       });
 
       this.focusOn(p.x, p.y, firstRoom);
@@ -981,6 +1122,8 @@ var IsoScenes = (function() {
     update: function(time, delta) {
       var p1 = this.input.pointer1, p2 = this.input.pointer2;
       var cam = this.cameras.main;
+
+      this.updateOwlLighting();
 
       // Follow the owl while it walks between rooms (smoothed)
       if (this.moving && this.player) {
