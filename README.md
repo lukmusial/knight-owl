@@ -97,6 +97,11 @@ Both pages are built for phones: the engine canvas fills the screen and a 1990s-
   <img src="docs/screenshots/proto-fp-06-dragon-shadow.png" alt="First-person dragon casting a torch shadow" width="560">
 </p>
 <p align="center">
+  <img src="docs/screenshots/proto-fp-07-features.png" alt="First-person runes, water crack, door and timber frame" width="420">
+  &nbsp;
+  <img src="docs/screenshots/proto-fp-08-dressing.png" alt="First-person lava river, statue, skeleton and fallen column" width="420">
+</p>
+<p align="center">
   <img src="docs/screenshots/proto-iso-01-start.png" alt="Isometric start with fog of war" width="420">
   &nbsp;
   <img src="docs/screenshots/proto-iso-06-fog-overview.png" alt="Isometric explored area" width="420">
@@ -111,7 +116,7 @@ npm run proto        # serves www/ on http://localhost:8080
 # open http://localhost:8080/proto/first-person.html or /proto/isometric.html
 ```
 
-The first-person view uses stylised CC0 stone, brick, flagstone, wood and lava textures from 3dtextures.me (colour + normal maps, credits in `www/assets/proto/fp/LICENSE.md`), with procedural fallbacks. Each chamber has two wall torches (iron bracket, wooden handle, animated shader flame); a pool of point lights follows the torches nearest the player, and those in the current chamber cast shadows (walls, props, gate bars and monster silhouettes). Shadow maps only refresh when the lit set changes. Rendering quality adapts to the device: `low` (no shadows, 1x pixel ratio), `medium` (2 shadow-casting torches, 256 px maps, default on phones) and `high` (4, 512 px, default on desktop). It steps down automatically when frames are slow; force a tier with `?quality=low|medium|high` or the HQ/MQ/LQ button in the dock. The isometric view's tiles and props are drawn procedurally from the existing artwork's palette. Real art files can be dropped into `www/assets/proto/` (see [docs/art-prompts.md](docs/art-prompts.md) for the file list and generation prompts, and [docs/asset-libraries.md](docs/asset-libraries.md) for a survey of open-source medieval art packs and their licences). The engine bundles are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
+The first-person view uses stylised CC0 stone, brick, flagstone, wood and lava textures from 3dtextures.me (colour + normal maps, credits in `www/assets/proto/fp/LICENSE.md`), with procedural fallbacks. Each chamber has two wall torches (iron bracket, wooden handle, soot plume, animated shader flame) that stay dark until you walk in and then catch one after another; a pool of point lights follows the torches nearest the player (fading between torches rather than popping), and those in the current chamber cast shadows (walls, props, gate bars and monster silhouettes). Chambers are dressed from a deterministic plan (`FpLayout`, built by `FpProps`): corner rubble, half-broken owl and gargoyle statues, skeletons, dropped armour, fallen columns, glowing rune inscriptions, water trickling from wall cracks into puddles that reflect the torches, lava rivers with irregular crusted banks, doorway frames (arch stones, timber, pillars) and wooden doors that creak open as you pass. A synthesized soundscape (`FpAmbience`) rumbles and bubbles near lava and trickles and drips near water. Shadow maps only refresh when the lit set changes. Rendering quality adapts to the device: `low` (no shadows, 1x pixel ratio), `medium` (2 shadow-casting torches, 256 px maps, default on phones) and `high` (4, 512 px, default on desktop). It steps down automatically when frames are slow; force a tier with `?quality=low|medium|high` or the HQ/MQ/LQ button in the dock. The isometric view's tiles and props are drawn procedurally from the existing artwork's palette. Real art files can be dropped into `www/assets/proto/` (see [docs/art-prompts.md](docs/art-prompts.md) for the file list and generation prompts, and [docs/asset-libraries.md](docs/asset-libraries.md) for a survey of open-source medieval art packs and their licences). The engine bundles are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
 
 ## Third-party assets
 
