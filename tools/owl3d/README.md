@@ -26,3 +26,17 @@ third-person camera (`www/js/proto/fp-owl.js`).
 
 Licences: TRELLIS code and weights are MIT. The input art is the project's
 own illustration.
+
+## Isometric sprites
+
+`render_iso.py` renders the rigged owl from the isometric view's 2:1
+dimetric angle (orthographic, Cycles, transparent background). It renders
+Walk (8 frames) and Idle (6 frames), facing toward the viewer (down-left on
+screen) and away from it (up-right); the game mirrors these for the other
+two directions. `pack_sprites.py` packs the frames into the Phaser atlas
+`www/assets/proto/iso/owl3d.png` / `.json`, with the feet pivot and figure
+height in `meta`:
+```
+blender -b mr_owl.blend --python render_iso.py -- iso_frames 192
+python pack_sprites.py iso_frames ../../www/assets/proto/iso/owl3d
+```

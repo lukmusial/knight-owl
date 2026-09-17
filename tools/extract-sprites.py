@@ -25,10 +25,13 @@ DST = SRC / 'proto' / 'monsters'
 SKIP = {'placeholder', 'start', 'victory'}
 
 # Per-sprite overrides where the default model (isnet-general-use) fails:
-# - giant_snake: isnet drops the coils crossing the dark background; u2net keeps them
+# - giant_snake: isnet drops the coils crossing the dark background and u2net
+#   cut away the back of the neck along the belly; birefnet-general keeps all of it
+# - goblin: isnet lost the lower edge of the left ear against the torch-lit wall;
+#   birefnet-general keeps both ears
 # - bat_swarm: every model keeps the dark cave centre as "subject"; a hue filter
 #   that rejects the teal/blue cave colours and keeps the purple/pink bats works
-MODEL_OVERRIDE = {'giant_snake': 'u2net'}
+MODEL_OVERRIDE = {'giant_snake': 'birefnet-general', 'goblin': 'birefnet-general'}
 FILTER_OVERRIDE = {'bat_swarm': 'hue_purple'}
 
 
