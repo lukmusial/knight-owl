@@ -342,7 +342,7 @@ var CemScenes = (function() {
         var rec = this.tombObjs[id];
         var tomb = rec.tomb;
         var guardian = L.monstersByUid[tomb.guardianUid];
-        var opened = tomb.size === 'large' ? (L.monstersByUid.boss.defeated || this.bossRevealed) : (!guardian || guardian.defeated);
+        var opened = tomb.size === 'large' ? (L.monstersByUid.boss.defeated || this.bossRevealed || this.bossBeaten) : (!guardian || guardian.defeated);
         rec.doorOpen = opened;
         rec.door.visible = opened && rec.door.cemShown !== false;
         rec.glow.setAlpha(opened ? 0.55 : 0);
@@ -818,6 +818,87 @@ var CemScenes = (function() {
       this.time.delayedCall(REDUCED_MOTION ? 0 : CemMonsters.ACTIONS.appear + 200, function() { if (onDone) onDone(); });
     },
 
+    /**
+     * The Grim Reaper falls: three flashes as the last riddle lands, he rears
+     * up in a purple blaze, the scythe-light drains, he collapses into a ring
+     * of light and his stolen souls drift up as wisps; the great tomb's glow
+     * turns gold. Calls back when the moment has passed.
+     */
+    playBossDefeat: function(onDone) {
+      var self = this;
+      var st = this.monsters.boss;
+      if (!st || st.removed || REDUCED_MOTION) {
+        if (st) this.removeMonster('boss');
+        this.bossBeaten = true;
+        this.refreshTombs();
+        if (onDone) this.time.delayedCall(REDUCED_MOTION ? 300 : 0, onDone);
+        return;
+      }
+      var x = st.bx, y = st.by;
+      var depth = st.sprite.depth;
+      st.actions.flinch = 0; st.actions.lunge = 0; st.walking = false;
+      this.setInputEnabled(false);
+      this.focusOn(x, y - 60, false);
+      var glow = this.add.image(x, y - 70, 'glow_purple').setScale(0.9).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth - 0.1);
+      var ring = this.add.image(x, y, 'highlight_ring').setTint(0xb388ff).setScale(0.4).setAlpha(0).setDepth(SHADOW_BAND + 1);
+      var t = this.tweens;
+      // 1. three hits: white flash, shake, a little bigger each time
+      var hits = 0;
+      function hit() {
+        hits++;
+        st.sprite.setTintFill(0xffffff);
+        fx('hit');
+        self.cameras.main.shake(120, 0.003);
+        t.add({ targets: st, bx: x + (hits % 2 ? -8 : 8), duration: 60, yoyo: true, repeat: 1,
+          onComplete: function() { st.bx = x; st.sprite.clearTint(); if (hits < 3) self.time.delayedCall(160, hit); else rear(); } });
+      }
+      // 2. rear up: rise and swell in a purple blaze
+      function rear() {
+        fx('dragon-roar');
+        t.add({ targets: glow, alpha: 1, scale: 2.4, duration: 900, ease: 'Quad.easeOut' });
+        t.add({ targets: st, by: y - 30, duration: 900, ease: 'Sine.easeOut' });
+        st.pulse = t.add({ targets: st.sprite, scaleX: 1.15, scaleY: 1.18, duration: 450, yoyo: true, repeat: 1, ease: 'Sine.easeInOut',
+          onUpdate: function() { st.lockScale = { x: st.sprite.scaleX, y: st.sprite.scaleY }; } });
+        self.time.delayedCall(1000, drain);
+      }
+      // 3. drain: the blaze snaps out, he shudders and collapses into the ring
+      function drain() {
+        t.add({ targets: glow, alpha: 0, scale: 0.3, duration: 350, ease: 'Quad.easeIn' });
+        t.add({ targets: st.sprite, rotation: 0.12, duration: 70, yoyo: true, repeat: 5 });
+        self.time.delayedCall(420, function() {
+          fx('pushback');
+          self.cameras.main.shake(260, 0.006);
+          ring.setAlpha(1);
+          t.add({ targets: ring, scaleX: 3.2, scaleY: 3.2, alpha: 0, duration: 900, ease: 'Quad.easeOut' });
+          st.collapse = { sx: 1, sy: 1, dy: 0, alpha: 1 };
+          t.add({ targets: st.collapse, sx: 1.4, sy: 0.05, dy: 30, alpha: 0, duration: 520, ease: 'Quad.easeIn', onComplete: souls });
+        });
+      }
+      // 4. the souls he kept drift up and away; the tomb light turns gold
+      function souls() {
+        self.removeMonster('boss');
+        self.burst(x, y - 30);
+        for (var i = 0; i < 7; i++) {
+          var wisp = self.add.image(x + (hash(i, 1) - 0.5) * 60, y - 20, 'cem_wisp_glow').setScale(0.5 + hash(i, 2) * 0.5).setAlpha(0.9)
+            .setBlendMode(Phaser.BlendModes.ADD).setDepth(depth + 1);
+          t.add({ targets: wisp, y: y - 160 - hash(i, 3) * 120, x: wisp.x + (hash(i, 4) - 0.5) * 120, alpha: 0, scale: 0.2,
+            duration: 1400 + hash(i, 5) * 900, delay: i * 90, ease: 'Sine.easeOut',
+            onComplete: (function(w) { return function() { w.destroy(); }; })(wisp) });
+        }
+        fx('coins', { volume: 0.5 });
+        self.bossBeaten = true;
+        self.refreshTombs();
+        for (var id in self.tombObjs) {
+          if (!self.tombObjs.hasOwnProperty(id) || self.tombObjs[id].tomb.size !== 'large') continue;
+          var rec = self.tombObjs[id];
+          rec.glow.setTexture('glow_gold');
+          t.add({ targets: rec.glow, alpha: 0.9, scale: 1.4, duration: 1200, ease: 'Sine.easeOut' });
+        }
+        self.time.delayedCall(1500, function() { glow.destroy(); ring.destroy(); if (onDone) onDone(); });
+      }
+      hit();
+    },
+
     /** Procedural motion of every shown monster */
     updateMonsters: function(time) {
       var t = time / 1000;
@@ -834,7 +915,10 @@ var CemScenes = (function() {
           exit: CemMonsters.progress(st.actions.exit, time, A.exit)
         };
         var o = REDUCED_MOTION ? { dx: 0, dy: 0, sx: 1, sy: 1, rot: 0, alpha: 1 } : CemMonsters.pose(st.motion, t, st.phase, ev);
-        st.sprite.setPosition(st.bx + o.dx, st.by + o.dy).setScale(o.sx, o.sy).setRotation(o.rot).setAlpha(o.alpha).setFlipX(st.flip);
+        if (st.lockScale) { o.sx *= st.lockScale.x; o.sy *= st.lockScale.y; }
+        if (st.collapse) { o.sx *= st.collapse.sx; o.sy *= st.collapse.sy; o.dy += st.collapse.dy; o.alpha *= st.collapse.alpha; }
+        st.sprite.setPosition(st.bx + o.dx, st.by + o.dy).setScale(o.sx, o.sy).setAlpha(o.alpha).setFlipX(st.flip);
+        if (!st.pulse || !st.pulse.isPlaying()) st.sprite.setRotation(o.rot);
         st.contact.setPosition(st.bx, st.by).setAlpha(0.5 * o.alpha);
         if (st.glow) st.glow.setPosition(st.bx + o.dx, st.by + o.dy - 40).setAlpha(0.6 * o.alpha);
       }

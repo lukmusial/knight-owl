@@ -895,6 +895,79 @@ var IsoScenes = (function() {
       });
     },
 
+    /**
+     * The dragon yields: three hits as the last riddle lands, it rears up
+     * roaring in a gold blaze, then bows its head, the lava glow cools to
+     * gold, its hoard bursts into sparkles and it fades into the light.
+     * Calls back when the moment has passed.
+     */
+    playDragonDefeat: function(onDone) {
+      var self = this;
+      var rid = Dungeon.getBossId();
+      var img = this.tokens[rid];
+      if (!img || REDUCED_MOTION) {
+        if (onDone) this.time.delayedCall(REDUCED_MOTION ? 300 : 0, onDone);
+        return;
+      }
+      if (img.bobTween) img.bobTween.stop();
+      var c = IsoModel.getRoomCenter(rid), p = IsoModel.getRoomCenterPx(rid);
+      var x = p.x, y = p.y + 12;
+      img.setPosition(x, y).setScale(1, 1);
+      this.setInputEnabled(false);
+      this.focusOn(p.x, p.y - 40, false);
+      var t = this.tweens;
+      var blaze = this.add.image(x, y - 90, 'glow_gold').setScale(1).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(img.depth - 0.1);
+      var lights = (this.roomLights[rid] || []).filter(function(o) { return o.texture && (o.texture.key === 'glow_lava' || o.texture.key === 'glow_purple'); });
+      var hits = 0;
+      function hit() {
+        hits++;
+        img.setTintFill(0xffffff);
+        fx('hit');
+        self.cameras.main.shake(120, 0.003);
+        t.add({ targets: img, x: x + (hits % 2 ? -10 : 10), duration: 60, yoyo: true, repeat: 1,
+          onComplete: function() { img.x = x; img.clearTint(); if (hits < 3) self.time.delayedCall(160, hit); else rear(); } });
+      }
+      function rear() {
+        fx('dragon-roar');
+        t.add({ targets: blaze, alpha: 0.9, scale: 3, duration: 900, ease: 'Quad.easeOut' });
+        t.add({ targets: img, y: y - 34, scaleX: 1.18, scaleY: 1.22, rotation: -0.08, duration: 700, ease: 'Sine.easeOut', onComplete: bow });
+        lights.forEach(function(l) { t.add({ targets: l, alpha: 0.05, duration: 1400 }); });
+      }
+      function bow() {
+        // head down: lean forward and sink, the blaze settles behind it
+        self.time.delayedCall(350, function() {
+          fx('pushback');
+          self.cameras.main.shake(220, 0.005);
+          t.add({ targets: img, y: y + 6, scaleX: 1.08, scaleY: 0.92, rotation: 0.16, duration: 520, ease: 'Bounce.easeOut', onComplete: hoard });
+          t.add({ targets: blaze, scale: 2.2, alpha: 0.6, duration: 600 });
+        });
+      }
+      function hoard() {
+        // the hoard is yours: gold bursts from the piles, the dragon fades into the light
+        fx('coins');
+        var contents = self.roomContents[rid] || [];
+        contents.forEach(function(o, i) {
+          if (!o.texture || o.texture.key !== 'gold_pile') return;
+          for (var k = 0; k < 8; k++) {
+            var a = (k / 8) * Math.PI * 2 + i;
+            var sp = self.add.image(o.x, o.y - 10, 'glow_gold').setScale(0.12).setBlendMode(Phaser.BlendModes.ADD).setDepth(o.depth + 1);
+            t.add({ targets: sp, x: o.x + Math.cos(a) * (40 + hash(i, k) * 40), y: o.y - 30 - Math.abs(Math.sin(a)) * 60 - hash(k, i) * 40,
+              alpha: 0, scale: 0.02, duration: 900 + hash(i, k, 3) * 500, ease: 'Quad.easeOut',
+              onComplete: (function(s2) { return function() { s2.destroy(); }; })(sp) });
+          }
+        });
+        self.time.delayedCall(500, function() {
+          fx('door', { volume: 0.4 });
+          t.add({ targets: img, alpha: 0, y: y - 60, scaleX: 0.9, scaleY: 0.9, duration: 1100, ease: 'Sine.easeIn' });
+          t.add({ targets: blaze, alpha: 0, scale: 0.4, duration: 1300, ease: 'Sine.easeIn', onComplete: function() {
+            blaze.destroy();
+            if (onDone) onDone();
+          } });
+        });
+      }
+      hit();
+    },
+
     // --- Player / camera -----------------------------------------------------------
 
     /**
