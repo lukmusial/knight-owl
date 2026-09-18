@@ -33,6 +33,43 @@ SKIP = {'placeholder', 'start', 'victory'}
 #   that rejects the teal/blue cave colours and keeps the purple/pink bats works
 MODEL_OVERRIDE = {'giant_snake': 'birefnet-general', 'goblin': 'birefnet-general'}
 FILTER_OVERRIDE = {'bat_swarm': 'hue_purple'}
+# The cemetery monsters (FLUX text-to-image) stand in busy scenes: rembg also
+# keeps a tree, the moon or a pumpkin as "subject". Keep only the connected
+# blob(s) that overlap the middle of the picture, where the character stands.
+# 'central': blobs overlapping the middle third; 'largest': the biggest blob;
+# 'glow': the blob with the most bright yellow-green pixels (the wisp, not the tree)
+CENTRAL_ONLY = {'pumpkin_man': 'central', 'will_o_wisp': 'glow', 'banshee': 'largest', 'clown': 'central', 'grim_reaper': 'central'}
+
+
+def keep_central(cut, mode='central'):
+    """Keep the alpha blob(s) that hold the character, drop the scenery blobs."""
+    import numpy as np
+    from scipy import ndimage
+    rgba = np.asarray(cut).copy()
+    alpha = rgba[..., 3] > 40
+    labels, n = ndimage.label(ndimage.binary_closing(alpha, iterations=2))
+    if n <= 1:
+        return cut
+    h, w = alpha.shape
+    sizes = ndimage.sum(alpha, labels, range(1, n + 1))
+    if mode == 'largest':
+        keep = [int(np.argmax(sizes)) + 1]
+    elif mode == 'glow':
+        rgb = rgba[..., :3].astype(np.float32) / 255.0
+        glow = (rgb[..., 1] > 0.6) & (rgb[..., 0] > 0.45) & (rgb[..., 2] < 0.65) & alpha
+        counts = ndimage.sum(glow, labels, range(1, n + 1))
+        keep = [int(np.argmax(counts)) + 1]
+    else:
+        cx0, cx1, cy0, cy1 = int(w * 0.34), int(w * 0.66), int(h * 0.2), int(h * 0.95)
+        central = np.zeros_like(alpha)
+        central[cy0:cy1, cx0:cx1] = True
+        overlap = ndimage.sum(central, labels, range(1, n + 1))
+        keep = [i + 1 for i in range(n) if overlap[i] > 0 and sizes[i] > 0.02 * sizes.max()]
+        if not keep:
+            keep = [int(np.argmax(sizes)) + 1]
+    mask = np.isin(labels, keep)
+    rgba[..., 3] = np.where(mask, rgba[..., 3], 0)
+    return Image.fromarray(rgba, 'RGBA')
 
 
 def hue_purple_cutout(img):
@@ -98,6 +135,8 @@ def main():
         else:
             model = MODEL_OVERRIDE.get(path.stem, args.model)
             cut = remove(img, session=session_for(model), post_process_mask=True)
+        if path.stem in CENTRAL_ONLY:
+            cut = keep_central(cut, CENTRAL_ONLY[path.stem])
         bbox = cut.getbbox()
         if not bbox:
             print('no subject found:', path.name, file=sys.stderr)
