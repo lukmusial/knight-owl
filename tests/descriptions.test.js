@@ -143,4 +143,26 @@ TestRunner.suite('Descriptions Module', () => {
       TestRunner.assertTruthy(labels[label].pl, `${label} should have Polish text`);
     });
   });
+  TestRunner.test('generateBossText picks lines by boss id and streak; dragon wrapper unchanged', () => {
+    const d0 = Descriptions.generateDragonText(0);
+    TestRunner.assertEqual(d0.en, Descriptions.generateBossText(0, { id: 'dragon' }).en, 'dragon wrapper');
+    const r = [0, 1, 2, 3].map(s => Descriptions.generateBossText(s, { id: 'grim_reaper' }));
+    r.forEach((t, i) => {
+      TestRunner.assertTruthy(t.en && t.pl, 'reaper text ' + i + ' bilingual');
+      TestRunner.assert(t.en.toLowerCase().indexOf('reaper') !== -1, 'reaper text ' + i + ' names the reaper');
+    });
+    TestRunner.assert(r[0].en !== r[1].en && r[1].en !== r[2].en, 'distinct streak lines');
+    const unknown = Descriptions.generateBossText(1, { id: 'someone' });
+    TestRunner.assertEqual(unknown.en, Descriptions.generateDragonText(1).en, 'unknown boss borrows dragon lines');
+    TestRunner.assertTruthy(Descriptions.generateBossRetreatMessage({ id: 'grim_reaper' }).pl, 'retreat text');
+  });
+
+  TestRunner.test('getCemeteryTitle returns bilingual titles', () => {
+    ['gate', 'path', 'plaza', 'tomb_large', 'tomb_small', 'nonsense'].forEach(k => {
+      const t = Descriptions.getCemeteryTitle(k);
+      TestRunner.assertTruthy(t.en && t.pl, k + ' bilingual');
+    });
+    TestRunner.assertEqual(Descriptions.getCemeteryTitle('tomb_door', { tombId: 'large' }).en, 'The Great Tomb', 'large door');
+    TestRunner.assertEqual(Descriptions.getCemeteryTitle('tomb_door', { tombId: 't1', guardianDefeated: true }).en, 'Opened Tomb', 'opened small tomb');
+  });
 });

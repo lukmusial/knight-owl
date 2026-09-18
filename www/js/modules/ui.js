@@ -26,6 +26,14 @@ const UI = (function() {
    * @param {string} fallback - Fallback value if not found
    * @returns {string} Label value or fallback
    */
+  // Streak label of the current boss fight ({en, pl} from the monster) or null for the dragon default
+  var bossChallengeLabel = null;
+
+  function challengeLabelText(labels, lang) {
+    if (bossChallengeLabel && bossChallengeLabel[lang]) return bossChallengeLabel[lang];
+    return getLabel(labels, 'dragonChallenge', lang, lang === 'pl' ? 'Wyzwanie Smoka:' : 'Dragon Challenge:');
+  }
+
   function getLabel(labels, key, lang, fallback) {
     if (labels && labels[key] && labels[key][lang]) {
       return labels[key][lang];
@@ -816,12 +824,13 @@ const UI = (function() {
 
     if (elements.dragonProgress) {
       if (isDragon) {
+        bossChallengeLabel = (monster && monster.challengeLabel) || null;
         elements.dragonProgress.classList.remove('hidden');
         elements.dragonProgress.innerHTML = `
           <div class="dragon-streak">
             <span class="streak-label">
-              <span class="label-en">${getLabel(labels, 'dragonChallenge', 'en', 'Dragon Challenge:')}</span>
-              <span class="label-pl">${getLabel(labels, 'dragonChallenge', 'pl', 'Wyzwanie Smoka:')}</span>
+              <span class="label-en">${challengeLabelText(labels, 'en')}</span>
+              <span class="label-pl">${challengeLabelText(labels, 'pl')}</span>
             </span>
             ${[0, 1, 2].map(i => `
               <span class="streak-dot ${i < dragonStreak ? 'filled' : ''}"></span>
@@ -912,8 +921,8 @@ const UI = (function() {
       elements.dragonProgress.innerHTML = `
         <div class="dragon-streak">
           <span class="streak-label">
-            <span class="label-en">${getLabel(labels, 'dragonChallenge', 'en', 'Dragon Challenge:')}</span>
-            <span class="label-pl">${getLabel(labels, 'dragonChallenge', 'pl', 'Wyzwanie Smoka:')}</span>
+            <span class="label-en">${challengeLabelText(labels, 'en')}</span>
+            <span class="label-pl">${challengeLabelText(labels, 'pl')}</span>
           </span>
           ${[0, 1, 2].map(i => `
             <span class="streak-dot ${i < streak ? 'filled' : ''}"></span>
@@ -1249,8 +1258,8 @@ const UI = (function() {
           <span class="header-pl">Gratulacje, ${summary.name}!</span>
         </h2>
         <p class="victory-message">
-          <span class="msg-en">Mr Owl has defeated the dragon and saved the dungeon!</span>
-          <span class="msg-pl">Pan Sowa pokonał smoka i uratował loch!</span>
+          <span class="msg-en">${(summary.victoryMessage && summary.victoryMessage.en) || 'Mr Owl has defeated the dragon and saved the dungeon!'}</span>
+          <span class="msg-pl">${(summary.victoryMessage && summary.victoryMessage.pl) || 'Pan Sowa pokonał smoka i uratował loch!'}</span>
         </p>
 
         <div class="final-stats">

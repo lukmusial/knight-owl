@@ -224,31 +224,114 @@ const Descriptions = (function() {
   }
 
   /**
+   * Boss banter, by monster id. Each boss needs three correct answers in a
+   * row; `streak` picks the line for 0, 1 or 2 answers so far. Unknown bosses
+   * borrow the dragon's lines.
+   */
+  const BOSS_TEXT = {
+    dragon: {
+      intro: {
+        en: 'The mighty dragon speaks in a booming voice: "Brave owl knight! Answer THREE of my riddles correctly, and you may claim my treasure and glory!"',
+        pl: 'Potężny smok przemawia gromkim głosem: "Dzielny rycerzu sowo! Odpowiedz poprawnie na TRZY moje zagadki, a zdobędziesz mój skarb i chwałę!"'
+      },
+      one: {
+        en: 'The dragon nods approvingly: "One answer correct! Two more to go, little knight!"',
+        pl: 'Smok kiwa głową z aprobatą: "Jedna poprawna odpowiedź! Jeszcze dwie, mały rycerzu!"'
+      },
+      two: {
+        en: "The dragon's eyes widen: \"Impressive! Just one more correct answer, and victory is yours!\"",
+        pl: 'Oczy smoka rozszerzają się: "Imponujące! Jeszcze tylko jedna poprawna odpowiedź i zwycięstwo będzie twoje!"'
+      },
+      roar: {
+        en: 'The dragon roars its challenge!',
+        pl: 'Smok ryczy, rzucając wyzwanie!'
+      },
+      retreat: {
+        en: 'The dragon shakes its head. "Wrong answer, brave knight! You must retreat and try again!"',
+        pl: 'Smok kręci głową. "Zła odpowiedź, dzielny rycerzu! Musisz się wycofać i spróbować ponownie!"'
+      }
+    },
+    grim_reaper: {
+      intro: {
+        en: 'The reaper raises his glowing scythe: "So you found all four parts of my key, little owl. Answer THREE of my riddles and the cemetery shall rest!"',
+        pl: 'Żniwiarz unosi świecącą kosę: "A więc znalazłeś wszystkie cztery części mojego klucza, mała sowo. Odpowiedz na TRZY moje zagadki, a cmentarz odpocznie!"'
+      },
+      one: {
+        en: 'The reaper taps the ground with his scythe: "One. The hourglass is still running, owl."',
+        pl: 'Żniwiarz stuka kosą o ziemię: "Jedna. Klepsydra wciąż się sypie, sowo."'
+      },
+      two: {
+        en: 'The reaper\'s hood tilts: "Two! Careful now, one more and the great tomb is yours."',
+        pl: 'Kaptur żniwiarza przechyla się: "Dwie! Ostrożnie, jeszcze jedna i wielki grobowiec będzie twój."'
+      },
+      roar: {
+        en: 'The reaper sweeps his scythe through the mist!',
+        pl: 'Żniwiarz przecina kosą mgłę!'
+      },
+      retreat: {
+        en: 'The reaper points his scythe at the gate. "Wrong, little owl. Back to the gate you go, and try again!"',
+        pl: 'Żniwiarz wskazuje kosą bramę. "Źle, mała sowo. Wracaj do bramy i spróbuj ponownie!"'
+      }
+    }
+  };
+
+  function bossTextFor(monster) {
+    const id = monster && monster.id;
+    return BOSS_TEXT[id] || BOSS_TEXT.dragon;
+  }
+
+  /**
+   * Generate boss encounter text (bilingual)
+   * @param {number} streak - Current correct answer streak
+   * @param {Object} monster - Boss monster (defaults to the dragon)
+   * @returns {Object} Encounter text {en, pl}
+   */
+  function generateBossText(streak, monster) {
+    const t = bossTextFor(monster);
+    if (streak === 0) return t.intro;
+    if (streak === 1) return t.one;
+    if (streak === 2) return t.two;
+    return t.roar;
+  }
+
+  /**
+   * Boss message after a wrong answer (bilingual)
+   * @param {Object} monster - Boss monster
+   * @returns {Object} Retreat text {en, pl}
+   */
+  function generateBossRetreatMessage(monster) {
+    return bossTextFor(monster).retreat;
+  }
+
+  /**
    * Generate dragon encounter text (bilingual)
    * @param {number} streak - Current correct answer streak
    * @returns {Object} Dragon encounter text {en, pl}
    */
   function generateDragonText(streak) {
-    if (streak === 0) {
-      return {
-        en: 'The mighty dragon speaks in a booming voice: "Brave owl knight! Answer THREE of my riddles correctly, and you may claim my treasure and glory!"',
-        pl: 'Potężny smok przemawia gromkim głosem: "Dzielny rycerzu sowo! Odpowiedz poprawnie na TRZY moje zagadki, a zdobędziesz mój skarb i chwałę!"'
-      };
-    } else if (streak === 1) {
-      return {
-        en: 'The dragon nods approvingly: "One answer correct! Two more to go, little knight!"',
-        pl: 'Smok kiwa głową z aprobatą: "Jedna poprawna odpowiedź! Jeszcze dwie, mały rycerzu!"'
-      };
-    } else if (streak === 2) {
-      return {
-        en: "The dragon's eyes widen: \"Impressive! Just one more correct answer, and victory is yours!\"",
-        pl: 'Oczy smoka rozszerzają się: "Imponujące! Jeszcze tylko jedna poprawna odpowiedź i zwycięstwo będzie twoje!"'
-      };
-    }
-    return {
-      en: 'The dragon roars its challenge!',
-      pl: 'Smok ryczy, rzucając wyzwanie!'
+    return generateBossText(streak, { id: 'dragon' });
+  }
+
+  /**
+   * Cemetery level titles for the HUD ribbon (bilingual)
+   * @param {string} kind - Tile kind under Mr Owl or a named spot
+   * @param {Object} opts - { tombId: 'large'|'t1'.., guardianDefeated: bool }
+   * @returns {Object} Title {en, pl}
+   */
+  function getCemeteryTitle(kind, opts) {
+    opts = opts || {};
+    const titles = {
+      gate: { en: 'Cemetery Gate', pl: 'Brama Cmentarza' },
+      path: { en: 'Path Among the Graves', pl: 'Ścieżka Wśród Grobów' },
+      plaza: { en: 'Cemetery Square', pl: 'Cmentarny Plac' },
+      porch: { en: 'Tomb Steps', pl: 'Schody Grobowca' },
+      tomb_door: opts.tombId === 'large'
+        ? { en: 'The Great Tomb', pl: 'Wielki Grobowiec' }
+        : { en: opts.guardianDefeated ? 'Opened Tomb' : 'Small Tomb', pl: opts.guardianDefeated ? 'Otwarty Grobowiec' : 'Mały Grobowiec' },
+      tomb_large: { en: 'The Great Tomb', pl: 'Wielki Grobowiec' },
+      tomb_small: { en: 'Small Tomb', pl: 'Mały Grobowiec' }
     };
+    return titles[kind] || { en: 'Moonlit Cemetery', pl: 'Cmentarz w Blasku Księżyca' };
   }
 
   /**
@@ -462,6 +545,8 @@ const Descriptions = (function() {
       saveGame: { en: 'Save Game', pl: 'Zapisz Grę' },
       playAgain: { en: 'Play Again', pl: 'Zagraj Ponownie' },
       dragonChallenge: { en: 'Dragon Challenge:', pl: 'Wyzwanie Smoka:' },
+      bossChallenge: { en: 'Boss Challenge:', pl: 'Wyzwanie Bossa:' },
+      keyParts: { en: 'Skeleton key', pl: 'Szkieletowy klucz' },
       correctAnswer: { en: 'The correct answer was:', pl: 'Poprawna odpowiedź to:' }
     };
   }
@@ -473,6 +558,9 @@ const Descriptions = (function() {
     generateVictoryMessage,
     generateDefeatMessage,
     generateDragonText,
+    generateBossText,
+    generateBossRetreatMessage,
+    getCemeteryTitle,
     generateVictoryText,
     generateNavigationOptions,
     getMrOwlIntro,

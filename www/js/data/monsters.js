@@ -477,12 +477,99 @@ const MONSTERS = [
     defeatMessagePL: 'Minotaur parska z szacunkiem i z hukiem oddala się w labirynt!'
   },
 
+  // Halloween cemetery monsters (also roam the dungeon at their difficulty)
+  {
+    id: 'pumpkin_man',
+    name: 'Pumpkin Man',
+    namePL: 'Dyniowy Człowiek',
+    difficulty: 2,
+    description: 'A scarecrow-like fellow with a carved pumpkin head, a patched coat and vines for fingers, wobbling along the cemetery paths.',
+    descriptionPL: 'Podobny do stracha na wróble jegomość z głową z wydrążonej dyni, połatanym płaszczem i pnączami zamiast palców, chwiejący się po cmentarnych ścieżkach.',
+    imagePrompt: 'A cartoon pumpkin man with a carved jack-o-lantern head glowing softly from inside, patched brown coat, straw poking from the sleeves, vine fingers, wobbling down a moonlit cemetery path between gravestones, fantasy art style, goofy grin, suitable for children',
+    loot: [
+      { name: 'Pumpkin Seed', namePL: 'Pestka Dyni', value: 9 },
+      { name: 'Candle Stub', namePL: 'Ogarek Świecy', value: 11 },
+      { name: 'Straw Hat', namePL: 'Słomkowy Kapelusz', value: 8 }
+    ],
+    defeatMessage: 'The pumpkin man\'s grin flickers out and he trundles off to the pumpkin patch!',
+    defeatMessagePL: 'Uśmiech dyniowego człowieka gaśnie i toczy się z powrotem na grządkę z dyniami!'
+  },
+  {
+    id: 'will_o_wisp',
+    name: 'Will-o\'-the-Wisp',
+    namePL: 'Błędny Ognik',
+    difficulty: 2,
+    description: 'A mischievous ball of pale green light that bobs over the graves and tries to lead travellers astray.',
+    descriptionPL: 'Psotna kula bladozielonego światła, która podskakuje nad grobami i próbuje sprowadzić wędrowców na manowce.',
+    imagePrompt: 'A cartoon will-o-the-wisp, a floating ball of pale green flame with a tiny cheeky face and wispy glowing trails, hovering over misty cemetery grass at night, gravestones and a crooked tree behind, fantasy art style, playful not scary, suitable for children',
+    loot: [
+      { name: 'Wisp Light', namePL: 'Światełko Ognika', value: 13 },
+      { name: 'Marsh Dew', namePL: 'Bagienna Rosa', value: 10 }
+    ],
+    defeatMessage: 'The wisp winks at you and drifts away over the marsh!',
+    defeatMessagePL: 'Ognik mruga do ciebie i odpływa nad bagno!'
+  },
+  {
+    id: 'banshee',
+    name: 'Banshee',
+    namePL: 'Banshee',
+    difficulty: 3,
+    description: 'A pale, floating spirit in a flowing grey veil whose wail echoes between the tombs.',
+    descriptionPL: 'Blady, unoszący się duch w powiewnym szarym welonie, którego zawodzenie odbija się echem między grobowcami.',
+    imagePrompt: 'A cartoon banshee, a floating ghostly woman in a flowing pale grey veil and dress, long silver hair drifting in the wind, mouth open in a wail, soft blue glow, hovering between stone tombs in a moonlit cemetery, fantasy art style, eerie but gentle, suitable for children',
+    loot: [
+      { name: 'Silver Comb', namePL: 'Srebrny Grzebień', value: 30 },
+      { name: 'Wailing Veil', namePL: 'Zawodzący Welon', value: 26 },
+      { name: 'Moon Pearl', namePL: 'Księżycowa Perła', value: 36 }
+    ],
+    defeatMessage: 'The banshee\'s wail softens into a lullaby as she fades away!',
+    defeatMessagePL: 'Zawodzenie banshee łagodnieje w kołysankę, gdy rozpływa się w powietrzu!'
+  },
+  {
+    id: 'clown',
+    name: 'Cemetery Clown',
+    namePL: 'Cmentarny Klaun',
+    difficulty: 3,
+    description: 'A tall clown in a faded striped suit with a red nose and a rusty bicycle horn, juggling glowing skulls.',
+    descriptionPL: 'Wysoki klaun w wyblakłym pasiastym garniturze z czerwonym nosem i zardzewiałą trąbką rowerową, żonglujący świecącymi czaszkami.',
+    imagePrompt: 'A cartoon clown in a faded purple and orange striped suit, big red nose, tiny hat, oversized shoes, juggling three glowing cartoon skulls, standing by an iron cemetery fence under a full moon, fantasy art style, silly and theatrical, not scary, suitable for children',
+    loot: [
+      { name: 'Squeaky Nose', namePL: 'Piszczący Nos', value: 24 },
+      { name: 'Juggling Ball', namePL: 'Piłka do Żonglowania', value: 28 },
+      { name: 'Bag of Confetti', namePL: 'Torebka Konfetti', value: 33 }
+    ],
+    defeatMessage: 'The clown honks his nose, takes a bow and cartwheels away!',
+    defeatMessagePL: 'Klaun trąbi nosem, kłania się i odjeżdża gwiazdą!'
+  },
+
+  // BOSS - Grim Reaper (cemetery level, the great tomb)
+  {
+    id: 'grim_reaper',
+    name: 'Grim Reaper',
+    namePL: 'Ponury Żniwiarz',
+    difficulty: 4, // Boss difficulty
+    boss: true,
+    challengeLabel: { en: 'Reaper\'s Challenge:', pl: 'Wyzwanie Żniwiarza:' },
+    description: 'A tall hooded figure in a starry purple robe holding a great scythe with a glowing crescent blade. He guards the great tomb and only bows to true wisdom.',
+    descriptionPL: 'Wysoka zakapturzona postać w gwiaździstej fioletowej szacie z wielką kosą o świecącym półksiężycowym ostrzu. Strzeże wielkiego grobowca i kłania się tylko prawdziwej mądrości.',
+    imagePrompt: 'A cartoon grim reaper in a starry deep purple hooded robe, friendly glowing eyes inside the hood, holding a tall wooden scythe with a glowing crescent moon blade, standing in the doorway of a moonlit stone mausoleum with jack-o-lanterns at his feet, fantasy art style, impressive but not scary, suitable for children',
+    loot: [
+      { name: 'Silver Scythe Blade', namePL: 'Srebrne Ostrze Kosy', value: 120 },
+      { name: 'Hourglass of Ages', namePL: 'Klepsydra Wieków', value: 160 },
+      { name: 'Skeleton Key', namePL: 'Szkieletowy Klucz', value: 200 },
+      { name: 'Chest of Moon Coins', namePL: 'Skrzynia Księżycowych Monet', value: 250 }
+    ],
+    defeatMessage: 'The reaper lowers his scythe and tips his hood: "You have outwitted me, wise owl! The cemetery may rest."',
+    defeatMessagePL: 'Żniwiarz opuszcza kosę i uchyla kaptura: "Przechytrzyłeś mnie, mądra sowo! Cmentarz może odpocząć."'
+  },
+
   // BOSS - Dragon (special, only appears in boss room)
   {
     id: 'dragon',
     name: 'Ancient Dragon',
     namePL: 'Starożytny Smok',
     difficulty: 4, // Boss difficulty
+    boss: true,
     description: 'A magnificent dragon with golden scales, wise ancient eyes, and flames flickering from its nostrils.',
     descriptionPL: 'Wspaniały smok o złotych łuskach, mądrych starożytnych oczach i płomieniach migoczących z nozdrzy.',
     imagePrompt: 'A majestic cartoon dragon with golden and red scales, large bat-like wings, wise amber eyes, small flames coming from nostrils, sitting on a pile of treasure in a vast underground cavern, fantasy art style, impressive but not scary, suitable for children',
@@ -528,6 +615,18 @@ function getDragonBoss() {
 }
 
 /**
+ * Find a monster definition by id
+ * @param {string} id - Monster id
+ * @returns {Object|null} The monster object or null
+ */
+function getMonsterById(id) {
+  for (var i = 0; i < MONSTERS.length; i++) {
+    if (MONSTERS[i].id === id) return MONSTERS[i];
+  }
+  return null;
+}
+
+/**
  * Treasure items that can be found in treasure rooms
  * Minor valuable items with bilingual names
  */
@@ -567,5 +666,5 @@ function getRandomTreasure(count) {
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { MONSTERS, getRandomMonster, getDragonBoss, TREASURE_ITEMS, getRandomTreasure };
+  module.exports = { MONSTERS, getRandomMonster, getDragonBoss, getMonsterById, TREASURE_ITEMS, getRandomTreasure };
 }
