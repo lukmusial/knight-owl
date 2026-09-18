@@ -64,6 +64,51 @@ TestRunner.suite('ProtoSession', () => {
     Save.deleteSave('Tester');
     Save.deleteSave('Someone Else');
   });
+
+  TestRunner.test('cemetery runs save their level and restore only in views that play it', () => {
+    Questions.init();
+    var fresh = ProtoSession.startNewCemetery('Grave Tester', 77);
+    TestRunner.assertEqual(fresh.level, 'cemetery', 'cemetery run');
+    TestRunner.assertEqual(ProtoSession.currentRunLevel(), 'cemetery', 'current level');
+    var level = ProtoSession.getCemetery();
+    TestRunner.assertEqual(level.seed, 77, 'seeded level');
+    CemModel.defeatMonster(level, 'g1');
+    var porch = level.tombs[1].porch;
+    level.owl = { gx: porch.gx, gy: porch.gy };
+    CemModel.updateVisibility(level);
+    TestRunner.assertEqual(ProtoSession.autoSave(), true, 'saved');
+    TestRunner.assertEqual(ProtoSession.savedLevel('Grave Tester'), 'cemetery', 'save knows its level');
+    var raw = Save.loadGame('Grave Tester');
+    TestRunner.assertEqual(raw.version, 4, 'save version 4');
+    TestRunner.assertEqual(raw.cemetery.seed, 77, 'cemetery state stored');
+
+    ProtoSession.startNew('Someone Else');
+    TestRunner.assertEqual(ProtoSession.currentRunLevel(), 'dungeon', 'dungeon run resets the level');
+    var refused = ProtoSession.restore('Grave Tester');
+    TestRunner.assertEqual(refused.unsupportedLevel, 'cemetery', 'dungeon-only caller is told to hand over');
+    TestRunner.assertEqual(refused.loaded, false, 'nothing loaded');
+
+    var restored = ProtoSession.restore('Grave Tester', { levels: ['dungeon', 'cemetery'] });
+    TestRunner.assertEqual(restored.loaded, true, 'restored in the iso view');
+    TestRunner.assertEqual(restored.level, 'cemetery', 'level restored');
+    var L = ProtoSession.getCemetery();
+    TestRunner.assertEqual(L.owl.gx + ',' + L.owl.gy, porch.gx + ',' + porch.gy, 'owl position restored');
+    TestRunner.assert(L.keyParts[0] && !L.keyParts[1], 'key parts restored');
+    TestRunner.assertEqual(Player.getName(), 'Grave Tester', 'player restored');
+    TestRunner.assertEqual(ProtoSession.savedLevel('Nobody At All'), null, 'no save, no level');
+    Save.deleteSave('Grave Tester');
+    Save.deleteSave('Someone Else');
+  });
+
+  TestRunner.test('level choice persists and parseParams reads ?level=', () => {
+    TestRunner.assertEqual(ProtoSession.setLevel('cemetery'), true, 'set');
+    TestRunner.assertEqual(ProtoSession.getLevel(), 'cemetery', 'remembered');
+    TestRunner.assertEqual(ProtoSession.setLevel('moon'), false, 'unknown level rejected');
+    TestRunner.assertEqual(ProtoSession.getLevel(), 'cemetery', 'still cemetery');
+    ProtoSession.setLevel('dungeon');
+    TestRunner.assertEqual(ProtoSession.parseParams('?name=A&level=cemetery').level, 'cemetery', 'level param');
+    TestRunner.assertEqual(ProtoSession.parseParams('?name=A&level=nope').level, undefined, 'unknown level ignored');
+  });
 });
 
 TestRunner.suite('Music Module', () => {

@@ -175,6 +175,12 @@ var ProtoFp = (function() {
     var session = restart
       ? ProtoSession.startNew(Player.getName() || 'Mr Owl')
       : ProtoSession.begin('Mr Owl');
+    if (session.unsupportedLevel) {
+      // A cemetery save only plays in the isometric view: hand it over
+      UI.showToast('This adventure continues in the isometric view. Ta przygoda trwa w widoku izometrycznym.', 'info');
+      window.location.href = ProtoSession.launchUrl('iso', session.name, 'continue', true);
+      return;
+    }
     ProtoHud.setName(session.name);
 
     world = FpWorld.fromDungeon();
