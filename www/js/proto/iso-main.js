@@ -2,7 +2,10 @@
  * ProtoIso
  * Bootstrap and game flow for the isometric prototype page. Mirrors the
  * encounter flow of js/main.js (enterRoom, combat, matching, treasure,
- * dragon victory) without save/profile persistence.
+ * dragon victory) with ProtoSession handling saves and profiles.
+ * Two levels: the dungeon (this file) and the Halloween cemetery
+ * (cem-main.js); a picker before the run chooses, a continued save keeps
+ * its own level.
  */
 
 var ProtoIso = (function() {
@@ -12,6 +15,7 @@ var ProtoIso = (function() {
   var busy = false;
   var currentNavOptions = [];
   var gameInProgress = false;
+  var currentLevel = 'dungeon';
 
   function fx(name, opts) {
     if (typeof FX !== 'undefined' && FX.play) FX.play(name, opts);
@@ -86,19 +90,92 @@ var ProtoIso = (function() {
     if (iconBtns && sfxBtn) iconBtns.insertBefore(sfxBtn, iconBtns.lastElementChild);
     ProtoHud.loadSprites().then(function() { ProtoHud.useSpritesInModals(); });
 
-    // New run or restored save from the launch parameters (?name=&action=)
-    Questions.init();
-    session = ProtoSession.begin('Explorer');
-    ProtoHud.setName(session.name);
-
     // Canvas drag must not be interpreted as a swipe by the document-level input
     if (typeof InputAdapter !== 'undefined') {
       try { InputAdapter.setInputEnabled('touch', false); } catch (e) { /* ignore */ }
       InputAdapter.on('navigate', function(data) {
-        if (data && data.direction) handleDirectionNavigation(data.direction);
+        if (!data || !data.direction) return;
+        if (currentLevel === 'cemetery') ProtoCem.handleDirection(data.direction);
+        else handleDirectionNavigation(data.direction);
       });
     }
 
+    Questions.init();
+    chooseLevel(function(levelId) {
+      currentLevel = levelId;
+      if (levelId === 'cemetery' && typeof ProtoCem !== 'undefined' && typeof CemModel !== 'undefined') {
+        session = ProtoSession.begin('Explorer', { level: 'cemetery', levels: ['dungeon', 'cemetery'] });
+        if (session.level === 'cemetery') {
+          document.body.classList.add('level-cemetery');
+          game = ProtoCem.start(session, { onGame: function(g) { attachLifecycle(g); } });
+          watchViewport();
+          return;
+        }
+      } else {
+        session = ProtoSession.begin('Explorer', { levels: ['dungeon'] });
+      }
+      currentLevel = 'dungeon';
+      startDungeon();
+    });
+  }
+
+  /**
+   * Pick the level for this run: ?level= wins, a continued save keeps its
+   * level, otherwise a picker card is shown (last choice preselected).
+   */
+  function chooseLevel(done) {
+    var p = ProtoSession.parseParams();
+    if (p.level) { done(p.level); return; }
+    var name = p.name || 'Explorer';
+    if (p.action === 'continue') {
+      var saved = ProtoSession.savedLevel(name);
+      if (saved) { done(saved); return; }
+    }
+    var picker = document.createElement('div');
+    picker.id = 'iso-level-picker';
+    picker.className = 'iso-level-picker';
+    picker.innerHTML =
+      '<div class="iso-level-panel hud-frame">' +
+        '<div class="iso-level-title"><span class="label-en">Choose your adventure</span><span class="label-pl">Wybierz przygodę</span></div>' +
+        '<div class="iso-level-cards">' +
+          '<button type="button" class="iso-level-card" data-level="dungeon">' +
+            '<span class="iso-level-art dungeon"></span>' +
+            '<span class="iso-level-name">Dungeon<small>Loch</small></span>' +
+            '<span class="iso-level-desc"><span class="label-en">Torch-lit chambers and the dragon.</span><span class="label-pl">Komnaty w blasku pochodni i smok.</span></span>' +
+          '</button>' +
+          '<button type="button" class="iso-level-card" data-level="cemetery">' +
+            '<span class="iso-level-art cemetery"></span>' +
+            '<span class="iso-level-name">Halloween Cemetery<small>Cmentarz na Halloween</small></span>' +
+            '<span class="iso-level-desc"><span class="label-en">Moonlit paths, four tombs, the Grim Reaper.</span><span class="label-pl">Ścieżki w blasku księżyca, cztery grobowce, Ponury Żniwiarz.</span></span>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(picker);
+    var current = ProtoSession.getLevel();
+    var cards = picker.querySelectorAll('.iso-level-card');
+    Array.prototype.forEach.call(cards, function(card) {
+      card.classList.toggle('selected', card.getAttribute('data-level') === current);
+      card.addEventListener('click', function() {
+        var levelId = card.getAttribute('data-level');
+        ProtoSession.setLevel(levelId);
+        fx('tap');
+        picker.parentNode.removeChild(picker);
+        done(levelId);
+      });
+    });
+  }
+
+  function attachLifecycle(g) {
+    if (typeof AppLifecycle !== 'undefined') {
+      AppLifecycle.on({
+        pause: function() { if (g && typeof g.pause === 'function') g.pause(); },
+        resume: function() { if (g && typeof g.resume === 'function') g.resume(); }
+      });
+    }
+  }
+
+  function startDungeon() {
+    ProtoHud.setName(session.name);
     showLoading(true);
 
     game = new Phaser.Game({
@@ -123,12 +200,7 @@ var ProtoIso = (function() {
     watchViewport();
 
     // Idle in the background: no rendering, tweens or walk timers until the app returns
-    if (typeof AppLifecycle !== 'undefined') {
-      AppLifecycle.on({
-        pause: function() { if (game && typeof game.pause === 'function') game.pause(); },
-        resume: function() { if (game && typeof game.resume === 'function') game.resume(); }
-      });
-    }
+    attachLifecycle(game);
 
     game.registry.set('isoCallbacks', {
       onReady: function(s) {
@@ -408,6 +480,7 @@ var ProtoIso = (function() {
     enterRoom: enterRoom,
     getScene: function() { return scene; },
     getGame: function() { return game; },
+    getLevel: function() { return currentLevel; },
     isBusy: function() { return busy; }
   };
 })();

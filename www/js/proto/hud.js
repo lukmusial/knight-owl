@@ -178,7 +178,55 @@ var ProtoHud = (function() {
     var title = (typeof Descriptions !== 'undefined' && Descriptions.getRoomTitle)
       ? Descriptions.getRoomTitle(room)
       : { en: room.type, pl: room.type };
+    setRibbon(title);
+  }
+
+  /**
+   * Any bilingual title in the ribbon
+   * @param {Object} title - { en, pl }
+   */
+  function setRibbon(title) {
+    if (!els.ribbon || !title) return;
     els.ribbon.innerHTML = '<span class="title-en">' + title.en + '</span><span class="title-pl">' + title.pl + '</span>';
+  }
+
+  /**
+   * Replace the dock note (hint text)
+   * @param {Object} note - { en, pl }
+   */
+  function setNote(note) {
+    var el = els.root && els.root.querySelector('.hud-dock-note');
+    if (!el || !note) return;
+    el.innerHTML = '<span class="label-en">' + (note.en || '') + '</span><span class="label-pl">' + (note.pl || '') + '</span>';
+  }
+
+  var KEY_ICON = '<svg viewBox="0 0 24 24"><path d="M7 3a5 5 0 1 0 4.6 7H14v3h3v-3h4V7h-9.4A5 5 0 0 0 7 3zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>';
+
+  /**
+   * Skeleton key fragments in the dock (cemetery level): `have` of `total`
+   * lit up. The row is created on first use and hidden when total is 0.
+   */
+  function setKeyParts(have, total) {
+    if (!els.root) return;
+    var row = els.keys;
+    if (!row) {
+      row = el('div', 'hud-keys');
+      row.setAttribute('title', 'Skeleton key / Szkieletowy klucz');
+      var side = els.root.querySelector('.hud-dock-side');
+      if (side) side.insertBefore(row, side.firstChild);
+      els.keys = row;
+    }
+    if (!total) { row.style.display = 'none'; return; }
+    row.style.display = '';
+    var html = '';
+    for (var i = 0; i < total; i++) html += '<span class="hud-key' + (i < have ? ' have' : '') + '">' + KEY_ICON + '</span>';
+    var prev = row.getAttribute('data-have');
+    row.innerHTML = html;
+    row.setAttribute('data-have', String(have));
+    if (prev !== null && Number(prev) < have) {
+      var gained = row.querySelectorAll('.hud-key')[have - 1];
+      if (gained) { gained.classList.add('gained'); setTimeout(function() { gained.classList.remove('gained'); }, 1200); }
+    }
   }
 
   var facingDir = null;
@@ -301,6 +349,9 @@ var ProtoHud = (function() {
     updateStats: updateStats,
     setName: setName,
     setRoom: setRoom,
+    setRibbon: setRibbon,
+    setNote: setNote,
+    setKeyParts: setKeyParts,
     setMinimap: setMinimap,
     setCompass: setCompass,
     setLoot: setLoot,
