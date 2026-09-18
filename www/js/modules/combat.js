@@ -10,13 +10,25 @@ const Combat = (function() {
   let dragonPhase = false;
 
   /**
+   * Boss monsters need three correct answers in a row (the dragon, the
+   * grim reaper). A boss is marked by `boss: true` or difficulty 4; the
+   * dragon id is kept for older fixtures without either field.
+   * @param {Object} monster - Monster object
+   * @returns {boolean} Whether this is a boss fight
+   */
+  function isBoss(monster) {
+    if (!monster) return false;
+    return monster.boss === true || monster.difficulty === 4 || monster.id === 'dragon';
+  }
+
+  /**
    * Start a monster encounter
    * @param {Object} monster - Monster object from room
    * @param {number} difficulty - Difficulty level based on depth
    * @returns {Object} Encounter data
    */
   function startEncounter(monster, difficulty) {
-    dragonPhase = monster.id === 'dragon';
+    dragonPhase = isBoss(monster);
 
     currentEncounter = {
       monster: monster,
@@ -34,6 +46,7 @@ const Combat = (function() {
       monster: monster,
       question: currentQuestion,
       isDragon: dragonPhase,
+      isBoss: dragonPhase,
       dragonStreak: dragonPhase ? Player.getDragonStreak() : 0
     };
   }
@@ -87,6 +100,7 @@ const Combat = (function() {
         const result = {
           success: true,
           dragonDefeated: true,
+          bossDefeated: true,
           streak: streak,
           loot: loot,
           message: Descriptions.generateVictoryMessage(monster),
@@ -108,7 +122,7 @@ const Combat = (function() {
           success: true,
           dragonDefeated: false,
           streak: streak,
-          message: Descriptions.generateDragonText(streak),
+          message: Descriptions.generateBossText(streak, monster),
           explanation: prevQuestion ? '' : 'Well done!',
           correctAnswer: prevQuestion.options[prevQuestion.correctIndex],
           sentence: prevQuestion.sentence || null,
@@ -162,7 +176,7 @@ const Combat = (function() {
         correctAnswer: currentQuestion.options[currentQuestion.correctIndex],
         sentence: currentQuestion.sentence || null,
         category: currentQuestion.category,
-        message: 'The dragon shakes its head. "Wrong answer, brave knight! You must retreat and try again!"',
+        message: Descriptions.generateBossRetreatMessage(currentEncounter.monster),
         explanation: currentQuestion.explanation
       };
 
@@ -259,6 +273,7 @@ const Combat = (function() {
 
   // Public API
   return {
+    isBoss,
     startEncounter,
     submitAnswer,
     hasActiveEncounter,

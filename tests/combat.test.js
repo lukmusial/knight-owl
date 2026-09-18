@@ -634,4 +634,43 @@ TestRunner.suite('Combat Module', () => {
       TestRunner.assertTruthy(result.correctAnswer, 'Should include correct answer');
     }
   });
+  TestRunner.test('isBoss recognises the dragon, boss flag and difficulty 4', () => {
+    TestRunner.assert(Combat.isBoss({ id: 'dragon' }), 'dragon id is a boss');
+    TestRunner.assert(Combat.isBoss({ id: 'grim_reaper', boss: true }), 'boss flag is a boss');
+    TestRunner.assert(Combat.isBoss({ id: 'x', difficulty: 4 }), 'difficulty 4 is a boss');
+    TestRunner.assert(!Combat.isBoss({ id: 'zombie', difficulty: 1 }), 'regular monster is not a boss');
+    TestRunner.assert(!Combat.isBoss(null), 'null is not a boss');
+  });
+
+  TestRunner.test('grim reaper fights like the dragon: three in a row, reaper banter', () => {
+    setup();
+    const reaper = getMonsterById('grim_reaper');
+    TestRunner.assertTruthy(reaper, 'reaper defined');
+    const encounter = Combat.startEncounter(reaper, 3);
+    TestRunner.assert(encounter.isDragon && encounter.isBoss, 'boss encounter');
+    TestRunner.assertEqual(encounter.dragonStreak, 0, 'streak starts at 0');
+    const r1 = Combat.submitAnswer(encounter.question.correctIndex);
+    TestRunner.assert(!r1.dragonDefeated, 'not defeated after one');
+    TestRunner.assert(r1.message.en.indexOf('reaper') !== -1, 'reaper banter, not dragon: ' + r1.message.en);
+    const r2 = Combat.submitAnswer(r1.nextQuestion.correctIndex);
+    const r3 = Combat.submitAnswer(r2.nextQuestion.correctIndex);
+    TestRunner.assert(r3.dragonDefeated && r3.bossDefeated, 'defeated after three');
+    TestRunner.assertEqual(r3.loot.length, reaper.loot.length, 'reaper loot awarded');
+  });
+
+  TestRunner.test('boss wrong answer message is bilingual and boss-specific', () => {
+    setup();
+    const reaper = getMonsterById('grim_reaper');
+    const encounter = Combat.startEncounter(reaper, 3);
+    const wrong = (encounter.question.correctIndex + 1) % encounter.question.options.length;
+    const result = Combat.submitAnswer(wrong);
+    TestRunner.assert(result.pushedBack, 'pushed back');
+    TestRunner.assertTruthy(result.message.pl, 'polish retreat text');
+    TestRunner.assert(result.message.en.indexOf('gate') !== -1, 'reaper retreat mentions the gate');
+    setup();
+    const dragon = Combat.startEncounter({ id: 'dragon', name: 'Dragon', loot: [] }, 3);
+    const wrong2 = (dragon.question.correctIndex + 1) % dragon.question.options.length;
+    const dr = Combat.submitAnswer(wrong2);
+    TestRunner.assert(dr.message.en.indexOf('dragon') !== -1, 'dragon retreat text kept');
+  });
 });
