@@ -23,6 +23,11 @@ var ProtoCem = (function() {
     s: { en: 'South', pl: 'Południe' },
     w: { en: 'West', pl: 'Zachód' }
   };
+  // Background loops (www/assets/music/): pick with ?music=gothic|quirky|ominous,
+  // remembered in localStorage; 'none' switches the music off
+  var MUSIC_TRACKS = { gothic: 'cemetery-gothic', quirky: 'cemetery-quirky', ominous: 'cemetery-ominous' };
+  var MUSIC_DEFAULT = 'ominous';
+  var MUSIC_KEY = 'mrowl_cem_music';
   var VICTORY_MESSAGE = {
     en: 'Mr Owl banished the Grim Reaper and the cemetery may rest!',
     pl: 'Pan Sowa przegonił Ponurego Żniwiarza i cmentarz może odpocząć!'
@@ -47,6 +52,27 @@ var ProtoCem = (function() {
     if (el) el.classList.toggle('hidden', !show);
   }
 
+  /** Which cemetery loop to play: URL parameter, then the remembered choice, then the default */
+  function musicChoice() {
+    var choice = null;
+    try {
+      var m = /[?&]music=([a-z]+)/.exec(typeof location !== 'undefined' ? location.search : '');
+      if (m) choice = m[1];
+      if (choice && typeof localStorage !== 'undefined') localStorage.setItem(MUSIC_KEY, choice);
+      if (!choice && typeof localStorage !== 'undefined') choice = localStorage.getItem(MUSIC_KEY);
+    } catch (e) { /* storage blocked */ }
+    if (choice === 'none') return null;
+    return MUSIC_TRACKS[choice] || MUSIC_TRACKS[MUSIC_DEFAULT];
+  }
+
+  function startMusic() {
+    if (typeof Music === 'undefined') return;
+    var track = musicChoice();
+    if (!track) return;
+    Music.init();
+    Music.play('assets/music/' + track + '.mp3');
+  }
+
   // ---------------------------------------------------------------------------
   // Start
   // ---------------------------------------------------------------------------
@@ -64,6 +90,7 @@ var ProtoCem = (function() {
     ProtoHud.setNote({ en: 'Tap a lit path to walk. Find the 4 parts of the skeleton key.', pl: 'Dotknij oświetlonej ścieżki. Znajdź 4 części szkieletowego klucza.' });
     ProtoHud.setKeyParts(CemModel.keyPartCount(level), 4);
     showLoading(true);
+    startMusic();
 
     game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -282,9 +309,15 @@ var ProtoCem = (function() {
     var fxDone = (typeof UI.playAnswerFx === 'function') ? UI.playAnswerFx(answerIndex, result) : Promise.resolve();
     fxDone.then(function() {
       if (result.dragonDefeated) {
-        finalizeReaperVictory();
+        // the reaper falls on the map first, then the result card and the victory screen
         UI.hideQuizModal();
-        UI.showResultModal(result, showVictory);
+        document.body.classList.remove('modal-open');
+        scene.setInputEnabled(false);
+        scene.playBossDefeat(function() {
+          finalizeReaperVictory();
+          document.body.classList.add('modal-open');
+          UI.showResultModal(result, showVictory);
+        });
         return;
       }
       if (result.success && !result.defeated && result.nextQuestion) {
@@ -371,12 +404,13 @@ var ProtoCem = (function() {
   function finalizeReaperVictory() {
     gameInProgress = false;
     CemModel.defeatMonster(level, 'boss');
-    if (scene) scene.playDefeat('boss', null);
+    if (scene) { scene.removeMonster('boss'); scene.refreshTombs(); }
     ProtoSession.autoSave();
   }
 
   function showVictory() {
     gameInProgress = false;
+    if (typeof Music !== 'undefined') Music.stop(1500);
     ProtoSession.finishRun();
     var summary = Player.getGameSummary();
     summary.victoryMessage = VICTORY_MESSAGE;

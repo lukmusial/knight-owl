@@ -370,9 +370,15 @@ var ProtoIso = (function() {
 
     fxDone.then(function() {
       if (result.dragonDefeated) {
-        finalizeDragonVictory();
+        // the dragon yields on the map first, then the result card and the victory screen
         UI.hideQuizModal();
-        UI.showResultModal(result, showVictory);
+        document.body.classList.remove('modal-open');
+        scene.setInputEnabled(false);
+        scene.playDragonDefeat(function() {
+          finalizeDragonVictory();
+          document.body.classList.add('modal-open');
+          UI.showResultModal(result, showVictory);
+        });
         return;
       }
       if (result.success && !result.defeated && result.nextQuestion) {
