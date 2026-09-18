@@ -1,0 +1,421 @@
+{
+ "ppt": 128,
+ "sprites": {
+  "grave_0": {
+   "kit": "graveyard",
+   "src": [
+    "gravestone-bevel"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "grave_1": {
+   "kit": "graveyard",
+   "src": [
+    "gravestone-cross"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "grave_2": {
+   "kit": "graveyard",
+   "src": [
+    "gravestone-round"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "grave_3": {
+   "kit": "graveyard",
+   "src": [
+    "gravestone-wide"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "grave_4": {
+   "kit": "graveyard",
+   "src": [
+    "gravestone-broken"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "grave_5": {
+   "kit": "graveyard",
+   "src": [
+    "gravestone-decorative"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "grave_cross_large": {
+   "kit": "graveyard",
+   "src": [
+    "gravestone-cross-large"
+   ],
+   "scale": 1.2,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "grave_mound": {
+   "kit": "graveyard",
+   "src": [
+    "grave"
+   ],
+   "scale": 1.0,
+   "rot": 90,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "tree_0": {
+   "kit": "graveyard",
+   "src": [
+    "pine-crooked"
+   ],
+   "scale": 1.0,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "tree_1": {
+   "kit": "nature",
+   "src": [
+    "tree_thin_dark"
+   ],
+   "scale": 1.5,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "tree_2": {
+   "kit": "nature",
+   "src": [
+    "tree_default_dark"
+   ],
+   "scale": 1.4,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "tree_3": {
+   "kit": "graveyard",
+   "src": [
+    "pine-fall-crooked"
+   ],
+   "scale": 1.0,
+   "rot": 180,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "statue_0": {
+   "kit": "graveyard",
+   "src": [
+    "pillar-obelisk"
+   ],
+   "scale": 1.2,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "statue_1": {
+   "kit": "graveyard",
+   "src": [
+    "cross-column"
+   ],
+   "scale": 1.2,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "statue_2": {
+   "kit": "nature",
+   "src": [
+    "statue_column"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "bench": {
+   "kit": "graveyard",
+   "src": [
+    "bench"
+   ],
+   "scale": 1.1,
+   "rot": 0,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "pumpkin_0": {
+   "kit": "graveyard",
+   "src": [
+    "pumpkin"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "pumpkin_1": {
+   "kit": "graveyard",
+   "src": [
+    "pumpkin-carved"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "pumpkin_2": {
+   "kit": "graveyard",
+   "src": [
+    "pumpkin-tall-carved"
+   ],
+   "scale": 1.3,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "rock_0": {
+   "kit": "graveyard",
+   "src": [
+    "rocks"
+   ],
+   "scale": 1.0,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "rock_1": {
+   "kit": "nature",
+   "src": [
+    "rock_largeA"
+   ],
+   "scale": 1.0,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "lantern_post": {
+   "kit": "graveyard",
+   "src": [
+    "lightpost-single"
+   ],
+   "scale": 1.15,
+   "footprint": [
+    1,
+    1
+   ],
+   "light": "top"
+  },
+  "fence_n": {
+   "kit": "nature",
+   "src": [
+    "fence_simple"
+   ],
+   "scale": 1.0,
+   "offset": [
+    0,
+    0.5,
+    0
+   ],
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "fence_w": {
+   "kit": "nature",
+   "src": [
+    "fence_simple"
+   ],
+   "scale": 1.0,
+   "rot": 90,
+   "offset": [
+    -0.5,
+    0,
+    0
+   ],
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "gate_n": {
+   "kit": "nature",
+   "src": [
+    "fence_gate"
+   ],
+   "scale": 1.0,
+   "offset": [
+    0,
+    0.5,
+    0
+   ],
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "fence_post": {
+   "kit": "graveyard",
+   "src": [
+    "border-pillar"
+   ],
+   "scale": 1.0,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "tomb_small": {
+   "footprint": [
+    2,
+    2
+   ],
+   "door": [
+    0,
+    -1.0,
+    0
+   ],
+   "parts": [
+    {
+     "kit": "graveyard",
+     "src": [
+      "crypt-small"
+     ],
+     "scale": 1.35
+    },
+    {
+     "kit": "graveyard",
+     "src": [
+      "crypt-small-roof"
+     ],
+     "scale": 1.35,
+     "pos": [
+      0,
+      0,
+      1.35
+     ]
+    }
+   ]
+  },
+  "tomb_large": {
+   "footprint": [
+    3,
+    3
+   ],
+   "door": [
+    0,
+    -1.5,
+    0
+   ],
+   "parts": [
+    {
+     "kit": "graveyard",
+     "src": [
+      "crypt-large"
+     ],
+     "scale": 1.3
+    },
+    {
+     "kit": "graveyard",
+     "src": [
+      "crypt-large-roof"
+     ],
+     "scale": 1.3,
+     "pos": [
+      0,
+      0,
+      1.3
+     ]
+    },
+    {
+     "kit": "graveyard",
+     "src": [
+      "pillar-obelisk"
+     ],
+     "scale": 1.1,
+     "pos": [
+      -1.35,
+      -1.35,
+      0
+     ]
+    },
+    {
+     "kit": "graveyard",
+     "src": [
+      "pillar-obelisk"
+     ],
+     "scale": 1.1,
+     "pos": [
+      1.35,
+      -1.35,
+      0
+     ]
+    }
+   ]
+  },
+  "bones": {
+   "kit": "graveyard",
+   "src": [
+    "debris"
+   ],
+   "scale": 1.0,
+   "footprint": [
+    1,
+    1
+   ]
+  },
+  "coffin": {
+   "kit": "graveyard",
+   "src": [
+    "coffin"
+   ],
+   "scale": 1.0,
+   "footprint": [
+    1,
+    1
+   ]
+  }
+ }
+}
