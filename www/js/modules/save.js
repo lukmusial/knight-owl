@@ -130,9 +130,11 @@ const Save = (function() {
    * @param {Object} dungeonState - Dungeon state from Dungeon module
    * @param {Array} usedQuestionIds - Used question IDs from Questions module
    * @param {Object} mapState - Map state from DungeonMap module
+   * @param {Array} usedMatchingIds - Used matching set ids
+   * @param {Object} extra - Optional { level: 'dungeon'|'cemetery', cemetery: CemModel state }
    * @returns {boolean} Whether save succeeded
    */
-  function saveGame(playerState, dungeonState, usedQuestionIds, mapState, usedMatchingIds) {
+  function saveGame(playerState, dungeonState, usedQuestionIds, mapState, usedMatchingIds, extra) {
     if (!isStorageAvailable()) {
       console.error('Storage is not available');
       return false;
@@ -144,15 +146,18 @@ const Save = (function() {
       return false;
     }
 
+    extra = extra || {};
     const saveData = {
-      version: 3,
+      version: 4,
       savedAt: Date.now(),
       player: playerState,
       dungeon: dungeonState,
       usedQuestions: usedQuestionIds,
       mapState: mapState,
-      usedMatchingQuestions: usedMatchingIds || []
+      usedMatchingQuestions: usedMatchingIds || [],
+      level: extra.level || 'dungeon'
     };
+    if (extra.cemetery) saveData.cemetery = extra.cemetery;
 
     try {
       const key = getKey(playerName);
@@ -203,8 +208,8 @@ const Save = (function() {
 
       const saveData = JSON.parse(data);
 
-      // Validate save data structure
-      if (!saveData.player || !saveData.dungeon) {
+      // Validate save data structure (a cemetery run carries its own level state)
+      if (!saveData.player || (!saveData.dungeon && !saveData.cemetery)) {
         console.error('Invalid save data structure');
         return null;
       }
@@ -214,6 +219,15 @@ const Save = (function() {
       console.error('Failed to load game:', e);
       return null;
     }
+  }
+
+  /**
+   * Level a save belongs to ('dungeon' for saves older than version 4)
+   * @param {Object} saveData - Record from loadGame
+   * @returns {string} 'dungeon' | 'cemetery'
+   */
+  function getLevel(saveData) {
+    return (saveData && saveData.level) || 'dungeon';
   }
 
   /**
@@ -419,6 +433,7 @@ const Save = (function() {
   return {
     saveGame,
     loadGame,
+    getLevel,
     hasSave,
     deleteSave,
     listSaves,

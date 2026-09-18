@@ -290,6 +290,13 @@ const Game = (function() {
     }
 
     if (launchSelectedView(playerName, 'continue')) return;
+    // A cemetery run only plays in the isometric view: hand it over
+    if (typeof ProtoSession !== 'undefined' && ProtoSession.savedLevel(playerName) === 'cemetery') {
+      UI.showToast('This adventure continues in the isometric view. Ta przygoda trwa w widoku izometrycznym.', 'info');
+      if (typeof Music !== 'undefined') Music.stop(300);
+      window.location.href = ProtoSession.launchUrl('iso', playerName, 'continue');
+      return;
+    }
     loadGame(playerName);
   }
 

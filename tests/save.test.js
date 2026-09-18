@@ -99,4 +99,17 @@ TestRunner.suite('Save Module', () => {
 
   // Clean up after tests
   Save.clearAllSaves();
+  TestRunner.test('saveGame stores the level and cemetery state, older saves read as dungeon', () => {
+    const player = { name: 'LevelSaver', currentRoom: 'x', inventory: [] };
+    TestRunner.assert(Save.saveGame(player, { rooms: {}, entranceId: null, bossId: null }, [], null, [], { level: 'cemetery', cemetery: { seed: 5 } }), 'saved');
+    const data = Save.loadGame('LevelSaver');
+    TestRunner.assertEqual(data.version, 4, 'version 4');
+    TestRunner.assertEqual(Save.getLevel(data), 'cemetery', 'level kept');
+    TestRunner.assertEqual(data.cemetery.seed, 5, 'cemetery state kept');
+    TestRunner.assert(Save.saveGame(player, { rooms: {} }, []), 'saved without extra');
+    TestRunner.assertEqual(Save.getLevel(Save.loadGame('LevelSaver')), 'dungeon', 'defaults to dungeon');
+    TestRunner.assertEqual(Save.getLevel({ version: 3, player: {} }), 'dungeon', 'legacy record is a dungeon save');
+    TestRunner.assertEqual(Save.getLevel(null), 'dungeon', 'null is a dungeon');
+    Save.deleteSave('LevelSaver');
+  });
 });
