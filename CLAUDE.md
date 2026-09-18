@@ -114,6 +114,8 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 
 **Cemetery level** (cem-model.js): 30x26 tile grid with a 1-tile fence ring, 4 small tombs (2x2, level-3 guardians with key parts 1..4) + 1 large tomb (3x3, Grim Reaper), ~16 wandering monsters banded by lane distance from the gate, visibility radius 3 around Mr Owl plus 2.5 around each lamp post
 
+**Cemetery music**: `ProtoCem` plays `assets/music/cemetery-<name>.mp3` (`?music=gothic|quirky|ominous|none`, remembered in `mrowl_cem_music`); loops are made by `tools/music/generate_loop.py`
+
 **Save Format** (version 4): `{ player, dungeon, usedQuestions, mapState, usedMatchingQuestions, level: 'dungeon'|'cemetery', cemetery? }` (older versions load as dungeon saves)
 
 ## Bilingual Content Pattern
