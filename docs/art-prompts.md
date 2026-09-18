@@ -44,3 +44,30 @@ Nothing above is required. Missing files fall back to:
 
 - First-person: crops of `assets/directions/n_s.png` tiled into wall/floor/ceiling textures, then procedural stone blocks if the crop is blocked (e.g. on `file://`); monster billboards are the original PNGs with a soft elliptical alpha mask.
 - Isometric: procedurally drawn diamonds and wall faces coloured from a palette sampled off `assets/directions/e_w.png`; tokens are circular cut-outs of the original monster PNGs.
+
+## Cemetery monsters (text-to-image)
+
+The five Halloween monsters were painted with `tools/art/generate_monster.py` on the
+`black-forest-labs/FLUX.1-schnell` Space (seed 7 unless noted), from the `imagePrompt`
+in `www/js/data/monsters.js` plus this style line:
+
+> painterly cartoon fantasy illustration for a children's game, kid-friendly, warm soft
+> lighting, rich colours, soft edges, full body character centred in a Halloween night
+> cemetery scene with moonlight, glowing lanterns and gravestones, no text, no watermark,
+> no frame
+
+| File | Prompt (before the style line) |
+|------|--------------------------------|
+| `pumpkin_man.png` | `imagePrompt` of `pumpkin_man` |
+| `will_o_wisp.png` | `imagePrompt` of `will_o_wisp` |
+| `banshee.png` | `imagePrompt` of `banshee` |
+| `clown.png` | `imagePrompt` of `clown` |
+| `grim_reaper.png` | seed 11, prompt override: "A cartoon grim reaper in a starry deep purple hooded robe, friendly glowing eyes inside the hood, holding a tall wooden scythe with a glowing crescent blade, standing alone in the open doorway of a dark stone mausoleum, cloudy moonless night sky, nothing behind the character, fantasy art style, impressive but not scary, suitable for children" (the first roll put the moon behind the scythe, which the cutout kept) |
+
+Cutouts: `tools/extract-sprites.py --only pumpkin_man,will_o_wisp,banshee,clown,grim_reaper`
+keeps only the character's blob for these scene-heavy pictures.
+
+## Cemetery props (`www/assets/proto/iso/cemetery/`)
+
+Not prompted: rendered from Kenney's CC0 Graveyard Kit and Nature Kit with
+`tools/iso/render_kit.py` (manifest `tools/iso/cemetery_models.json`, see `tools/iso/README.md`).

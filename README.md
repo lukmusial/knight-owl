@@ -32,7 +32,7 @@ When you enter a room with a monster, a quiz appears. Questions cover Polish voc
 
 ### Launch Screen and Views
 
-The launch screen lets you pick how the dungeon is shown: **Classic**, **Isometric** or **3D** (first-person). Picking a card only remembers the choice; the run starts with "New Adventure" or "Continue Adventure". Saves are shared between views, so a run started in one view can be continued in another.
+The launch screen lets you pick how the dungeon is shown: **Classic**, **Isometric** or **3D** (first-person). Picking a card only remembers the choice; the run starts with "New Adventure" or "Continue Adventure". Saves are shared between views, so a run started in one view can be continued in another. The isometric view also offers a second level, the **Halloween Cemetery** (see [Prototype Views](#prototype-views)); a cemetery save continues in the isometric view whichever card is selected.
 
 ### Sound and Effects
 
@@ -106,6 +106,19 @@ Isometric view:
 
 45-second play recordings with sound: [3D view](docs/videos/3d-play.mp4) and [isometric view](docs/videos/iso-play.mp4).
 
+### Halloween Cemetery (isometric view)
+
+The isometric page asks which adventure to play: the dungeon or the **Halloween Cemetery**, a second level with its own rules. A moonlit graveyard inside a picket fence is generated from a seed (`js/proto/cem-model.js`): organic lanes are carved between scattered waypoints over a noisy cost field, graves line the lanes, dead trees, benches, statues, pumpkins, spider webs and lamp posts fill the grounds, four small tombs sit one per quarter and the great tomb lies farthest from the gate. Mr Owl walks tile by tile (tap a lit lane or use the four arrows); the night hides everything beyond his lantern radius and the lamp posts, and remembered ground stays dim. Monsters that fit the theme (zombies, skeletons, ghosts, spiders, witches and the new pumpkin man, will-o'-the-wisp, banshee and cemetery clown) patrol the lanes with their own gait (shamble, hover, waddle, bounce, skitter, glide) and lunge at Mr Owl when they reach him. A correct answer makes the monster fade, sink or run off with its loot; a wrong one knocks Mr Owl back to the cemetery gate. Each small tomb is guarded by a level-3 monster holding one part of the **skeleton key** (the dock shows the four fragments); with all four the chained door of the great tomb opens and the **Grim Reaper** rises. He fights like the dragon, three correct answers in a row, and beating him completes the level. Cemetery runs autosave like dungeon runs and carry their level in the save.
+
+The props are Kenney's CC0 [Graveyard Kit](https://kenney.nl/assets/graveyard-kit) and [Nature Kit](https://kenney.nl/assets/nature-kit) rendered in Blender at the view's 2:1 angle (`tools/iso/render_kit.py`, see [tools/iso/README.md](tools/iso/README.md)); the ground, webs, moon, mist and fog are painted procedurally, and procedural stand-ins take over for any sprite that is missing. The five new monsters were illustrated with FLUX.1-schnell (`tools/art/generate_monster.py`, see [tools/art/README.md](tools/art/README.md)) and cut out with `tools/extract-sprites.py`. `npm run test:cem` plays the whole level headlessly (walk, lose, guardian, key, reaper, victory, continue).
+
+<p align="center">
+  <img src="docs/screenshots/cem-04-level-picker.png" alt="Isometric: level picker, dungeon or Halloween cemetery" width="200">
+  <img src="docs/screenshots/cem-01-gate.png" alt="Cemetery: Mr Owl at the gate under the lamp posts" width="200">
+  <img src="docs/screenshots/cem-02-tomb-key.png" alt="Cemetery: first skeleton key part won at a small tomb" width="200">
+  <img src="docs/screenshots/cem-03-reaper.png" alt="Cemetery: the Grim Reaper's three-question challenge" width="200">
+</p>
+
 Run them from an http server (canvas image processing is blocked on `file://`):
 
 ```bash
@@ -120,6 +133,7 @@ The first-person view uses stylised CC0 stone, brick, flagstone, wood and lava t
 | Asset | Author / licence | Used for |
 |-------|------------------|----------|
 | [Isometric Miniature Dungeon](https://kenney.nl/assets/isometric-miniature-dungeon) | Kenney, CC0 | Floors, walls, archways, stairs, chests and props (barrels, broken table, timber supports, holed walls) in the isometric view (`www/assets/proto/iso/kenney/`, downscaled to 128x256). The pack has no statues, water, lava, mushrooms or plants, so those decor pieces are painted procedurally in `js/proto/iso-textures.js` |
+| [Graveyard Kit](https://kenney.nl/assets/graveyard-kit), [Nature Kit](https://kenney.nl/assets/nature-kit) | Kenney, CC0 | Gravestones, crypts, lamp posts, pumpkins, benches, pillars, rocks, coffins, picket fence and gate, trees of the Halloween cemetery, rendered to isometric sprites with `tools/iso/render_kit.py` (`www/assets/proto/iso/cemetery/`) |
 | [RPG Audio](https://kenney.nl/assets/rpg-audio) | Kenney, CC0 | Footsteps, clicks, doors, coins and hit clips in the isometric view (`www/assets/audio/kenney/`, converted to mp3) |
 | [RPG GUI construction kit v1.0](https://opengameart.org/content/rpg-gui-construction-kit-v10) | Lamoot, CC-BY 3.0 | Wooden panels, bronze frames, bars and arrow buttons of the isometric view's HUD and modals (`www/assets/proto/ui/rpggui/`, pieces cropped from the sheet; credited on the launch screen) |
 
@@ -131,7 +145,7 @@ Kenney's packs are CC0 (no attribution required); Lamoot's kit is CC-BY and is c
 npm test
 ```
 
-270+ unit tests covering dungeon generation, combat mechanics, question selection, save/load, and more.
+390+ unit tests covering dungeon and cemetery generation, combat mechanics, question selection, save/load, and more. `npm run test:cem` runs the headless browser smoke test of the cemetery level (needs Google Chrome; uses `puppeteer-core`).
 
 ## Project Structure
 

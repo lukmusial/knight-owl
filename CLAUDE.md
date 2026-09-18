@@ -13,6 +13,7 @@ Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game wher
 **Run tests**:
 - Unit tests: `npm test` or `node tests/run-tests.js`
 - Browser test runner: Open `tests/test-runner.html`
+- Cemetery smoke test (headless Chrome, plays the whole level): `npm run test:cem`
 - E2E tests: `npm run test:e2e` (requires Maestro and running emulator)
 
 **Mobile builds**:
@@ -63,7 +64,10 @@ const ModuleName = (function() {
 | FpWorld / FpRenderer | `js/proto/fp-*.js` | First-person prototype (pure grid model + three.js renderer + bootstrap) |
 | FpMonsters | `js/proto/fp-monsters.js` | 3D models of the level-1 monsters (`assets/proto/fp/monsters/`, pipeline in `tools/monsters3d/`), procedural idle/flinch/lunge |
 | FpOwl | `js/proto/fp-owl.js` | Rigged 3D Mr Owl (`assets/proto/fp/mr_owl.glb`, pipeline in `tools/owl3d/`) and the third-person camera placement |
-| IsoModel / scenes | `js/proto/iso-*.js` | Isometric fog-of-war prototype (pure tile model + Phaser scenes + bootstrap) |
+| IsoModel / scenes | `js/proto/iso-*.js` | Isometric fog-of-war prototype (pure tile model + Phaser scenes + bootstrap; `iso-main.js` also holds the dungeon/cemetery level picker) |
+| CemModel | `js/proto/cem-model.js` | Halloween cemetery level: seeded organic generator (fence, gate, lanes, graves, tombs, lanterns, decor), A* walking, wandering monsters with proximity attacks, skeleton-key gating, night visibility, save state (pure, node-tested) |
+| CemMonsters / CemMinimap | `js/proto/cem-monsters.js`, `cem-minimap.js` | Procedural gaits and reactions of the 2D monster cutouts; SVG minimap of the cemetery (pure) |
+| CemTextures / CemScenes / ProtoCem | `js/proto/cem-textures.js`, `cem-scenes.js`, `cem-main.js` | Procedural night art + Kenney kit sprite manifest (`assets/proto/iso/cemetery/`, rendered by `tools/iso/render_kit.py`), Phaser scene, and the cemetery game flow (encounters, key parts, Grim Reaper, victory) |
 
 ### Platform Abstraction Layer
 
@@ -106,9 +110,11 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 - MIN_MONSTER_ROOMS: 20
 - Difficulty scaling: depths 1-7 (easy), 8-14 (medium), 15+ (hard)
 
-**Dragon Boss**: 3 consecutive correct answers required; wrong answer resets streak and pushes player back
+**Bosses** (`Combat.isBoss`: `boss: true` or difficulty 4): the dragon in the dungeon and the Grim Reaper in the cemetery need 3 consecutive correct answers; a wrong answer resets the streak and pushes the player back (cemetery: back to the gate)
 
-**Save Format** (version 2): `{ player, dungeon, usedQuestions, mapState }`
+**Cemetery level** (cem-model.js): 30x26 tile grid with a 1-tile fence ring, 4 small tombs (2x2, level-3 guardians with key parts 1..4) + 1 large tomb (3x3, Grim Reaper), ~16 wandering monsters banded by lane distance from the gate, visibility radius 3 around Mr Owl plus 2.5 around each lamp post
+
+**Save Format** (version 4): `{ player, dungeon, usedQuestions, mapState, usedMatchingQuestions, level: 'dungeon'|'cemetery', cemetery? }` (older versions load as dungeon saves)
 
 ## Bilingual Content Pattern
 
