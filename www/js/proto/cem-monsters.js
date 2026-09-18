@@ -1,0 +1,181 @@
+/**
+ * CemMonsters
+ * Procedural motion for the 2D monster cutouts of the cemetery level (pure,
+ * no Phaser). Mirrors FpMonsters.pose for the isometric view: every monster
+ * gets an idle/walk motion by kind, a lunge toward Mr Owl, a flinch and an
+ * exit when defeated. Offsets are in screen pixels (dy negative = up).
+ */
+
+var CemMonsters = (function() {
+  // idle/walk motion by monster id; anything else shambles
+  var MOTION = {
+    zombie: 'shamble', skeleton: 'shamble', skeleton_king: 'shamble', skeleton_queen: 'shamble', frankenstein: 'shamble',
+    ghost: 'hover', lost_soul: 'hover', banshee: 'hover', will_o_wisp: 'hover', bat_swarm: 'hover', witch: 'hover', demilich: 'hover',
+    pumpkin_man: 'waddle', vampire_bunny: 'bounce', clown: 'bounce',
+    spider: 'skitter',
+    grim_reaper: 'glide', vampire_lord: 'glide', lich: 'glide', spirit_of_the_mine: 'glide'
+  };
+  // how a defeated monster leaves
+  var EXIT = {
+    ghost: 'fade', lost_soul: 'fade', banshee: 'fade', will_o_wisp: 'fade', spirit_of_the_mine: 'fade', demilich: 'fade',
+    zombie: 'sink', skeleton: 'sink', skeleton_king: 'sink', skeleton_queen: 'sink', frankenstein: 'sink', lich: 'sink',
+    grim_reaper: 'vanish', vampire_lord: 'vanish', witch: 'vanish'
+  };
+  var MOTIONS = ['shamble', 'hover', 'waddle', 'bounce', 'skitter', 'glide'];
+  // action durations (ms)
+  var ACTIONS = { appear: 900, lunge: 700, flinch: 500, exit: 1100 };
+  // tile-to-tile walk duration by motion (ms)
+  var WALK_MS = { shamble: 720, hover: 460, waddle: 660, bounce: 560, skitter: 400, glide: 600 };
+  var LUNGE_PX = 42;
+
+  function motionOf(id) {
+    return Object.prototype.hasOwnProperty.call(MOTION, id) ? MOTION[id] : 'shamble';
+  }
+
+  function exitOf(id) {
+    return Object.prototype.hasOwnProperty.call(EXIT, id) ? EXIT[id] : 'runaway';
+  }
+
+  function walkMs(motion) {
+    return WALK_MS[motion] || WALK_MS.shamble;
+  }
+
+  /** Sprite faces left when it moves left on screen */
+  function facing(dx) {
+    return dx < 0;
+  }
+
+  function easeOutBack(t) {
+    var c = 1.7;
+    return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2);
+  }
+
+  /**
+   * Screen-space offsets for a monster at time t (seconds)
+   * @param {string} motion - one of MOTIONS
+   * @param {number} t - clock seconds
+   * @param {number} phase - per-instance offset so neighbours are not in sync
+   * @param {Object} ev - { walking, dir: {x, y} (screen unit vector toward the
+   *   target), lunge, flinch, appear, exit (progress 0..1 or -1), exitStyle }
+   * @returns {Object} { dx, dy, sx, sy, rot, alpha }
+   */
+  function pose(motion, t, phase, ev) {
+    ev = ev || {};
+    var walking = !!ev.walking;
+    var rate = walking ? 1.9 : 1;
+    var p = t * 2 * Math.PI / 2.4 * rate + (phase || 0);
+    var s = Math.sin(p);
+    var out = { dx: 0, dy: 0, sx: 1, sy: 1, rot: 0, alpha: 1 };
+    switch (motion) {
+      case 'hover':
+        out.dy = -(walking ? 9 : 6) - (walking ? 7 : 5) * (1 + Math.sin(p * 1.6)) / 2 * 2;
+        out.rot = (walking ? 0.07 : 0.04) * Math.sin(p * 0.8);
+        break;
+      case 'waddle':
+        out.rot = (walking ? 0.13 : 0.05) * s;
+        out.sy = 1 - (walking ? 0.05 : 0.02) * Math.abs(s);
+        out.sx = 1 + (walking ? 0.04 : 0.015) * Math.abs(s);
+        break;
+      case 'bounce':
+        var hop = Math.abs(Math.sin(p));
+        out.dy = -(walking ? 12 : 4) * hop;
+        out.sy = 1 + (walking ? 0.08 : 0.03) * hop;
+        out.sx = 1 - (walking ? 0.05 : 0.02) * hop;
+        break;
+      case 'skitter':
+        var fast = Math.sin(p * 3.2);
+        out.dx = (walking ? 3 : 1.2) * fast;
+        out.dy = -(walking ? 2 : 0.8) * Math.abs(Math.sin(p * 4.4));
+        out.rot = (walking ? 0.05 : 0.02) * Math.sin(p * 2.2);
+        break;
+      case 'glide':
+        out.dy = -3 - 3 * (1 + Math.sin(p * 0.8)) / 2;
+        out.sx = 1 + 0.02 * Math.sin(p * 0.6);
+        out.rot = (walking ? 0.03 : 0.015) * Math.sin(p * 0.4);
+        break;
+      default: // shamble
+        out.rot = (walking ? 0.08 : 0.03) * s;
+        out.sy = 1 + (walking ? 0.03 : 0.02) * Math.sin(p * 2);
+        out.dy = walking ? -3 * Math.abs(Math.sin(p)) : 0;
+    }
+    var dir = ev.dir || { x: 0, y: 1 };
+    if (ev.flinch >= 0 && ev.flinch <= 1) {
+      // recoil away from Mr Owl and shiver
+      var f = Math.sin(ev.flinch * Math.PI);
+      out.dx -= dir.x * 14 * f;
+      out.dy -= dir.y * 14 * f;
+      out.rot += 0.12 * Math.sin(ev.flinch * Math.PI * 6) * (1 - ev.flinch);
+      out.sy *= 1 - 0.08 * f;
+    }
+    if (ev.lunge >= 0 && ev.lunge <= 1) {
+      // wind up, snap toward Mr Owl, settle back
+      var l = ev.lunge;
+      var fwd = l < 0.25 ? -0.25 * (l / 0.25) : (l < 0.5 ? -0.25 + 1.25 * ((l - 0.25) / 0.25) : 1 * (1 - (l - 0.5) / 0.5));
+      out.dx += dir.x * LUNGE_PX * fwd;
+      out.dy += dir.y * LUNGE_PX * fwd;
+      out.sy *= 1 + 0.1 * Math.max(0, fwd);
+      out.sx *= 1 - 0.04 * Math.max(0, fwd);
+    }
+    if (ev.appear >= 0 && ev.appear <= 1) {
+      var a = ev.appear;
+      var grow = a < 0.7 ? Math.max(0.001, easeOutBack(a / 0.7)) : 1;
+      out.sx *= grow; out.sy *= grow;
+      out.dy += 24 * (1 - Math.min(1, a / 0.6));
+      out.alpha *= Math.min(1, a / 0.35);
+    }
+    if (ev.exit >= 0 && ev.exit <= 1) {
+      var x = ev.exit;
+      var style = ev.exitStyle || 'runaway';
+      if (style === 'fade') {
+        out.dy -= 30 * x;
+        out.alpha *= 1 - x;
+        out.sx *= 1 + 0.15 * x; out.sy *= 1 + 0.15 * x;
+      } else if (style === 'sink') {
+        out.dy += 46 * x * x;
+        out.sy *= Math.max(0.05, 1 - 0.7 * x);
+        out.alpha *= 1 - Math.max(0, (x - 0.55) / 0.45);
+      } else if (style === 'vanish') {
+        var v = x * x;
+        var k = Math.max(0.001, 1 - v);
+        out.sx *= k * (1 + 0.6 * Math.sin(x * Math.PI * 5) * (1 - x));
+        out.sy *= k;
+        out.dy -= 18 * x;
+        out.alpha *= 1 - Math.max(0, (x - 0.5) / 0.5);
+      } else {
+        // run away from Mr Owl, bobbing, then fade
+        var go = Math.max(0, (x - 0.15) / 0.85);
+        out.dx -= dir.x * 170 * go * go;
+        out.dy -= dir.y * 170 * go * go;
+        out.dy -= 8 * Math.abs(Math.sin(go * Math.PI * 5)) * (1 - go);
+        out.alpha *= 1 - Math.max(0, (x - 0.6) / 0.4);
+      }
+    }
+    return out;
+  }
+
+  /** Progress of a timed action (0..1) or -1 when not running */
+  function progress(startMs, nowMs, durMs) {
+    if (!startMs) return -1;
+    var t = (nowMs - startMs) / durMs;
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  return {
+    MOTION: MOTION,
+    MOTIONS: MOTIONS,
+    EXIT: EXIT,
+    ACTIONS: ACTIONS,
+    WALK_MS: WALK_MS,
+    LUNGE_PX: LUNGE_PX,
+    motionOf: motionOf,
+    exitOf: exitOf,
+    walkMs: walkMs,
+    facing: facing,
+    pose: pose,
+    progress: progress
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = CemMonsters;
+}
