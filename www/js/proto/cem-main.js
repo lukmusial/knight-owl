@@ -42,6 +42,22 @@ var ProtoCem = (function() {
     if (typeof FX !== 'undefined' && FX.play) FX.play(name, opts);
   }
 
+  /**
+   * Scene animations call back when they finish; if the render loop stalls
+   * (a backgrounded tab, a very slow frame) this makes sure the game still
+   * moves on after `ms`.
+   */
+  function once(ms, fn) {
+    var done = false;
+    function run() {
+      if (done) return;
+      done = true;
+      fn();
+    }
+    setTimeout(run, ms);
+    return run;
+  }
+
   function toast(en, pl, type) {
     UI.showToast(en + ' ' + pl, type || 'info');
   }
@@ -316,11 +332,14 @@ var ProtoCem = (function() {
     var m = CemModel.encounterMonsterFor(level, uid);
     if (!m) { level.encounterUid = null; busy = false; idle(); return; }
     if (typeof FX !== 'undefined') FX.haptic('onEncounter');
-    scene.playAttack(uid, function() {
+    // the lunge plays first; if the render loop stalls (a backgrounded tab, a
+    // slow frame) the quiz still opens on a plain timer
+    var open = once(CemMonsters.ACTIONS.lunge + 400, function() {
       if (!gameInProgress) return;
       if (m.encounterType === 'matching' && typeof Matching !== 'undefined') startMatchingEncounter(m);
       else startCombat(m);
     });
+    scene.playAttack(uid, open);
   }
 
   function startCombat(m) {
@@ -342,11 +361,12 @@ var ProtoCem = (function() {
         UI.hideQuizModal();
         document.body.classList.remove('modal-open');
         scene.setInputEnabled(false);
-        scene.playBossDefeat(function() {
+        var afterBoss = once(5200, function() {
           finalizeReaperVictory();
           document.body.classList.add('modal-open');
           UI.showResultModal(result, showVictory);
         });
+        scene.playBossDefeat(afterBoss);
         return;
       }
       if (result.success && !result.defeated && result.nextQuestion) {
@@ -387,20 +407,20 @@ var ProtoCem = (function() {
       CemModel.respawnAtGate(level);
       document.body.classList.remove('modal-open');
       scene.setInputEnabled(false);
-      scene.owlFlinch(function() {
-        scene.retreatToGate(function() {
-          scene.onTilesRevealed();
-          updateHud();
-          toast('Mr Owl wakes up at the cemetery gate.', 'Pan Sowa budzi się przy bramie cmentarza.');
-          idle();
-        });
+      var backAtGate = once(2200, function() {
+        scene.placeOwl(CemModel.owlTile(level), true);
+        scene.onTilesRevealed();
+        updateHud();
+        toast('Mr Owl wakes up at the cemetery gate.', 'Pan Sowa budzi się przy bramie cmentarza.');
+        idle();
       });
+      scene.owlFlinch(function() { scene.retreatToGate(backAtGate); });
       return;
     }
     var r = CemModel.defeatMonster(level, uid);
     document.body.classList.remove('modal-open');
     scene.setInputEnabled(false);
-    scene.playDefeat(uid, function() {
+    var afterDefeat = once(CemMonsters.ACTIONS.flinch + CemMonsters.ACTIONS.exit + 600, function() {
       scene.refreshTombs();
       scene.refreshVisibility();
       if (r.keyPart) {
@@ -415,6 +435,7 @@ var ProtoCem = (function() {
       updateHud();
       idle();
     });
+    scene.playDefeat(uid, afterDefeat);
   }
 
   function startBossEncounter() {
@@ -428,9 +449,11 @@ var ProtoCem = (function() {
     CemModel.startBossEncounter(level);
     currentUid = 'boss';
     if (typeof FX !== 'undefined') FX.haptic('onEncounter');
-    scene.revealBoss(function() {
+    var open = once(CemMonsters.ACTIONS.appear + 600, function() {
+      if (!gameInProgress) return;
       startCombat(CemModel.encounterMonsterFor(level, 'boss'));
     });
+    scene.revealBoss(open);
   }
 
   function finalizeReaperVictory() {

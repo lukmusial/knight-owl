@@ -157,6 +157,27 @@ var CemTextures = (function() {
     });
   }
 
+  /**
+   * Soft elliptical light used to cut holes in the night: an iso-shaped
+   * falloff so the reveal around Mr Owl reads as a circle on the ground.
+   */
+  function drawSoftLight(ctx, w, h) {
+    var cx = w / 2, cy = h / 2;
+    var img = ctx.createImageData(w, h);
+    var d = img.data;
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var nx = (x - cx) / (w / 2), ny = (y - cy) / (h / 2);
+        var r = Math.sqrt(nx * nx + ny * ny);
+        var a = r >= 1 ? 0 : Math.pow(1 - r, 1.6);
+        var i = (y * w + x) * 4;
+        d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+        d[i + 3] = Math.round(255 * a);
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
   function drawVignette(ctx, size) {
     var g = ctx.createRadialGradient(size / 2, size / 2, size * 0.18, size / 2, size / 2, size * 0.55);
     g.addColorStop(0, 'rgba(5,6,12,0)');
@@ -525,6 +546,8 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_door_dark', 48, 72, function(ctx) { drawDoorDark(ctx, 48, 72); });
     canvasTexture(scene, 'cem_lock', 40, 40, function(ctx) { drawLock(ctx, 40); });
     canvasTexture(scene, 'cem_glow_green', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(120,255,170,0.4)'); });
+    canvasTexture(scene, 'cem_glow_red', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(255,70,50,0.55)'); });
+    canvasTexture(scene, 'cem_soft_light', 256, 128, function(ctx) { drawSoftLight(ctx, 256, 128); });
 
     // stand-in props
     for (var gv = 0; gv < 6; gv++) {
