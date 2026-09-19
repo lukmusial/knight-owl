@@ -127,7 +127,7 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 
 **Cemetery rendering** (cem-world.js): ground, prop shadows and lantern pools are baked into pooled 8x8-tile render textures; props live in depth-band Layers with cell culling; the night is an erased fog texture that follows Mr Owl (`buildFog`). `?perf=1` shows frame rate, logic time, draw calls and the chunk pool
 
-**Night reveal**: tiles within `VIS_OWL` of Mr Owl are lit; tiles out to `VIS_OWL + SEEN_EXTRA` become remembered (dim) first, so ground surfaces under the dark edge of the fog and brightens as he nears rather than popping; props of newly seen tiles fade in (`fadeIn`). The night is a plain sprite: `cem_dark_ring`, a dark square with a soft hole, carried by Mr Owl at `FOG_DARK` (0.62) alpha, with additive `cem_soft_light` glows at the lanterns and the Reaper (`fogGlow`). No render texture, mask or erase blend: an Android WebView got all three wrong. There is no moon
+**Night reveal**: tiles within `VIS_OWL` of Mr Owl are lit; tiles out to `VIS_OWL + SEEN_EXTRA` become remembered (dim) first, so ground surfaces under the dark edge of the fog and brightens as he nears rather than popping; props of newly seen tiles fade in (`fadeIn`). The moving night is switched off (`FOG_ENABLED` false in cem-scenes.js); when on it is a plain sprite: `cem_dark_ring`, a dark square with a soft hole, carried by Mr Owl at `FOG_DARK` (0.62) alpha, with additive `cem_soft_light` glows at the lanterns and the Reaper (`fogGlow`). No render texture, mask or erase blend: an Android WebView got all three wrong. There is no moon
 
 **Fliers**: `HOVER_PX` in cem-scenes.js lifts bats, wisps and spectres above their ground shadow
 
