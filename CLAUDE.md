@@ -120,11 +120,17 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 
 **Cemetery rendering** (cem-world.js): ground, prop shadows and lantern pools are baked into pooled 8x8-tile render textures; props live in depth-band Layers with cell culling; the night is a masked overlay that follows Mr Owl (`buildFog`). `?perf=1` shows frame rate, logic time, draw calls and the chunk pool
 
+**Tomb doorways**: the crypt art has its own arch; the kit manifest's `portal` (sill centre and arch size as sprite fractions, measured off `tomb_small.png`/`tomb_large.png`, kept in `tools/iso/cemetery_models.json`) says where. `CemTextures.makeDoorLights` builds the arch light and the ground spill at that pixel size, `buildTombs` hangs them on the sill, `refreshTombs` tints them (gold waiting, blue taken, red sealed). A crypt without a portal gets a drawn opening instead
+
+**The Reaper's entrance**: `CemModel.bossRises` fires a `boss_rises` event the first time Mr Owl comes within `REVEAL_RADIUS` tiles of the great tomb's door holding all four parts; the flow calls `revealBoss(null, true)`, which stands him on the door tile in a `smokeBurst` and keeps him shown from afar (`keepShown`). Entering the door then starts the fight without a second reveal
+
 **Eight-way facing**: both Mr Owl and the cemetery monsters are rendered in five facings (`down`, `down_right`, `right`, `up_right`, `up`); `CemMonsters.facingFor(gx, gy, facings)` maps a grid direction onto one of eight screen directions, mirroring three of them. Sheets that still carry the old `front`/`back` pair keep working. Monsters hold a heading that turns toward where they are going (`turnMonster`, `TURN_RATE`) and roam on eight directions (`CemModel.DIRS8`, diagonals need both straight neighbours clear)
 
 **Cemetery monsters**: rendered sprite sheets (`assets/proto/iso/monsters/<id>.png|json`, built by `tools/monsters3d/render_monster_iso.py` + `render_all.sh`, packed with `tools/owl3d/pack_sprites.py --quant 128`) with walk/idle/attack/hit clips in five facings; `CemMonsters.clipFor` picks the clip, `pose` adds the reactions. Missing sheets fall back to the still cutout
 
 **Cemetery music**: `ProtoCem` plays `assets/music/cemetery-<name>.mp3` (`?music=gothic|quirky|ominous|carousel|shanty|lullaby|none`, remembered in `mrowl_cem_music`); loops are made by `tools/music/generate_loop.py` (ACE-Step)
+
+**Victory screen**: styled by `rpggui.css` like every other panel (wooden board, parchment stats, wooden bar button); the cemetery's loading veil says "Entering a haunted cemetery" via `setLoadingText` in cem-main.js
 
 **Encounter card**: `MonsterStage` (js/modules/monster-stage.js) lifts the character off the painted scene onto its own layer over an inpainted backdrop (`assets/proto/monsters/<id>_bg.jpg`), plays sheet frames when they exist and reacts to answers (hit, lunge, exit styles in css/fx.css). With a sheet it uses the model's facings: it opens with its back turned and spins round to meet the player, squares up before a reaction, and turns away to walk off when beaten. Backdrops are painted by `tools/extract-sprites.py --bg-only`, which inpaints the character out and blends the patch back with a distance feather
 
