@@ -9,7 +9,7 @@ OUT="$ROOT/www/assets/proto/iso/monsters"
 mkdir -p "$OUT"
 # id:motion:yaw (motion names match CemMonsters.MOTION)
 for spec in \
-  zombie:shamble:0 skeleton:shamble:0 ghost:hover:0 lost_soul:hover:0 banshee:hover:0 \
+  zombie:shamble:0 skeleton:shamble:0 ghost:hover:0 lost_soul:hover:90 banshee:hover:0 \
   pumpkin_man:waddle:0 spider:skitter:0 bat_swarm:flap:0 giant_rat:scurry:0 grim_reaper:glide:0
 do
   id="${spec%%:*}"; rest="${spec#*:}"; motion="${rest%%:*}"; yaw="${rest##*:}"
