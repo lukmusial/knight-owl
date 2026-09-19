@@ -1,5 +1,14 @@
 {
  "monsters": [
+  "banshee",
+  "bat_swarm",
+  "ghost",
+  "giant_rat",
+  "grim_reaper",
+  "lost_soul",
+  "pumpkin_man",
+  "skeleton",
+  "spider",
   "zombie"
  ]
 }
