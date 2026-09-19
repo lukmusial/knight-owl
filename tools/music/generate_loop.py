@@ -37,6 +37,19 @@ TRACKS = {
         'Dark but quirky Halloween waltz for a children\'s game, playful pizzicato strings, bouncy bassoon and '
         'clarinet, xylophone and tubular bells, creaky harpsichord, spooky fun like a haunted carnival, '
         'minor key, 3/4 waltz at 120 bpm, mischievous and light-hearted, instrumental, loopable, no vocals'),
+    # quieter wandering music: loosely after Grieg's Peer Gynt and the Tristram theme
+    'cemetery-fjord': (
+        'Calm ambient morning over a misty fjord for a children\'s game, loosely in the spirit of Grieg\'s Morning Mood, '
+        'soft solo flute and oboe passing a gentle pastoral melody, warm sustained strings, slow 66 bpm, major key with '
+        'a wistful minor turn, sparse and unhurried, background music, instrumental, loopable, no vocals'),
+    'cemetery-tristram': (
+        'Melancholic ambient solo acoustic guitar for a quiet village at night in a children\'s game, loosely in the '
+        'spirit of the Tristram theme, slow fingerpicked arpeggios in D minor, occasional low bowed string drone and '
+        'distant wind, 60 bpm, sparse, mournful but gentle, background music, instrumental, loopable, no vocals'),
+    'cemetery-solveig': (
+        'Quiet ambient nocturne for a children\'s game, loosely in the spirit of Grieg\'s Solveig\'s Song, slow '
+        'soft strings and a distant wordless hummed melody, harp, very sparse, 56 bpm, minor key resolving warmly, '
+        'still and tender, background music, instrumental, loopable, no vocals'),
     'cemetery-ominous': (
         'Ominous slow cemetery ambience for a children\'s game, low sustained cello and double bass drone, '
         'sparse tolling bell, breathy low flute, occasional soft timpani heartbeat, wind through dead trees, '

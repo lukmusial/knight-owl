@@ -30,8 +30,14 @@ var ProtoCem = (function() {
   };
   // Background loops (www/assets/music/): pick with ?music=gothic|quirky|ominous,
   // remembered in localStorage; 'none' switches the music off
-  var MUSIC_TRACKS = { gothic: 'cemetery-gothic', quirky: 'cemetery-quirky', ominous: 'cemetery-ominous' };
-  var MUSIC_DEFAULT = 'ominous';
+  var MUSIC_TRACKS = {
+    shanty: 'cemetery-shanty', gothic: 'cemetery-gothic', quirky: 'cemetery-quirky', ominous: 'cemetery-ominous',
+    carousel: 'cemetery-carousel', lullaby: 'cemetery-lullaby',
+    // quieter, for wandering: a Grieg-like morning over the fjord, a Tristram-like guitar, a Solveig-like song
+    fjord: 'cemetery-fjord', tristram: 'cemetery-tristram', solveig: 'cemetery-solveig'
+  };
+  var MUSIC_DEFAULT = 'shanty';
+  var BOSS_TRACK = 'cemetery-quirky';        // the Reaper fights to the dark carnival tune
   var MUSIC_KEY = 'mrowl_cem_music';
   var VICTORY_MESSAGE = {
     en: 'Mr Owl banished the Grim Reaper and the cemetery may rest!',
@@ -93,6 +99,16 @@ var ProtoCem = (function() {
     } catch (e) { /* storage blocked */ }
     if (choice === 'none') return null;
     return MUSIC_TRACKS[choice] || MUSIC_TRACKS[MUSIC_DEFAULT];
+  }
+
+  var roamTrack = null;
+
+  /** Fade over to a track (the boss tune, or back to the roaming one) */
+  function switchMusic(track) {
+    if (typeof Music === 'undefined' || !track) return;
+    if (musicChoice() === null) return;       // music is off
+    roamTrack = track;
+    Music.play('assets/music/' + track + '.mp3');
   }
 
   function startMusic() {
@@ -418,6 +434,7 @@ var ProtoCem = (function() {
     currentUid = null;
     if (result.pushedBack) {
       // lost: back to the gate; the monster stays where it was
+      if (uid === 'boss') switchMusic(roamTrack);
       CemModel.respawnAtGate(level);
       document.body.classList.remove('modal-open');
       scene.setInputEnabled(false);
@@ -471,6 +488,7 @@ var ProtoCem = (function() {
     scene.setInputEnabled(false);
     CemModel.startBossEncounter(level);
     currentUid = 'boss';
+    switchMusic(BOSS_TRACK);
     if (typeof FX !== 'undefined') FX.haptic('onEncounter');
     var open = once(CemMonsters.ACTIONS.appear + 600, function() {
       if (!gameInProgress) return;
