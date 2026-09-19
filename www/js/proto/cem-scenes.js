@@ -91,6 +91,7 @@ var CemScenes = (function() {
       this.load.image('palette_src', 'assets/directions/n_s_e.png');
       this.load.atlas('owl3d', 'assets/proto/iso/owl3d.png', 'assets/proto/iso/owl3d.json');
       CemTextures.loadKit(this);
+      this.load.json('cem_anim_index', 'assets/proto/iso/monsters/index.json');
       monsterIds(this).concat(['knight_owl']).forEach(function(id) {
         self.load.image('cut_' + id, SPRITE_DIR + id + '.png');
       });
@@ -141,8 +142,19 @@ var CemScenes = (function() {
         }
       }
 
+      // Rendered monster sprite sheets (optional): whatever the index lists
+      var animIndex = this.cache.json.exists('cem_anim_index') ? this.cache.json.get('cem_anim_index') : null;
+      var animIds = (animIndex && animIndex.monsters) || [];
+      var wanted = monsterIds(this);
+      var animQueued = 0;
+      for (var ai = 0; ai < animIds.length; ai++) {
+        if (wanted.indexOf(animIds[ai]) === -1) continue;
+        this.load.atlas('anim_' + animIds[ai], 'assets/proto/iso/monsters/' + animIds[ai] + '.png',
+          'assets/proto/iso/monsters/' + animIds[ai] + '.json');
+        animQueued++;
+      }
       // Rendered Kenney kit sprites (optional): queue them from the manifest
-      var queued = CemTextures.queueKitImages(this);
+      var queued = CemTextures.queueKitImages(this) + animQueued;
       var kitDone = new Promise(function(resolve) {
         if (!queued) { resolve(); return; }
         self.load.once('complete', function() { resolve(); });
@@ -151,7 +163,31 @@ var CemScenes = (function() {
       jobs.push(kitDone);
 
       Promise.all(jobs).then(function() {
-        console.log('CemTextures: ' + (CemTextures.hasKit() ? 'Kenney graveyard kit' : 'procedural stand-ins'));
+        // one animation set per monster that has a rendered sheet
+        var made = [];
+        for (var i = 0; i < wanted.length; i++) {
+          var id = wanted[i];
+          if (!self.textures.exists('anim_' + id)) continue;
+          var meta = self.textures.get('anim_' + id).customData.meta || {};
+          var clips = meta.clips || {};
+          var facings = meta.facings || ['front', 'back'];
+          for (var f = 0; f < facings.length; f++) {
+            for (var clip in clips) {
+              if (!clips.hasOwnProperty(clip)) continue;
+              var key = 'anim_' + id + '_' + clip + '_' + facings[f];
+              if (self.anims.exists(key)) continue;
+              self.anims.create({
+                key: key,
+                frames: self.anims.generateFrameNames('anim_' + id, { prefix: facings[f] + '_' + clip + '_', start: 0, end: clips[clip] - 1 }),
+                frameRate: clip === 'walk' ? 10 : (clip === 'idle' ? 4 : 12),
+                repeat: (clip === 'walk' || clip === 'idle') ? -1 : 0
+              });
+            }
+          }
+          made.push(id);
+        }
+        console.log('CemTextures: ' + (CemTextures.hasKit() ? 'Kenney graveyard kit' : 'procedural stand-ins') +
+          (made.length ? ', animated: ' + made.join(', ') : ', still monster art'));
         self.scene.start('Cemetery');
       });
     }
@@ -756,9 +792,19 @@ var CemScenes = (function() {
     },
 
     spawnMonster: function(m) {
-      var key = this.textures.exists('mon_' + m.id) ? 'mon_' + m.id : 'mon_' + CemModel.BOSS_ID;
+      var animated = this.textures.exists('anim_' + m.id);
+      var key = animated ? 'anim_' + m.id : (this.textures.exists('mon_' + m.id) ? 'mon_' + m.id : 'mon_' + CemModel.BOSS_ID);
       var p = IsoModel.gridToIso(m.gx, m.gy);
-      var sprite = this.add.sprite(p.x, p.y + 12, key).setOrigin(0.5, 1).setVisible(false);
+      var sprite;
+      var animScale = 1;
+      if (animated) {
+        var meta = this.textures.get(key).customData.meta || {};
+        var pivot = meta.pivot || { x: 0.5, y: 0.95 };
+        animScale = (m.role === 'boss' ? REAPER_H : MONSTER_H) / (meta.figureHeight || 120);
+        sprite = this.add.sprite(p.x, p.y + 12, key, 'front_idle_0').setOrigin(pivot.x, pivot.y).setScale(animScale).setVisible(false);
+      } else {
+        sprite = this.add.sprite(p.x, p.y + 12, key).setOrigin(0.5, 1).setVisible(false);
+      }
       var contact = this.add.image(p.x, p.y + 12, 'glow_warm').setTint(0x000000).setScale(0.4, 0.19).setAlpha(0.5).setVisible(false);
       var glow = null;
       if (m.id === 'will_o_wisp' || m.id === 'lost_soul' || m.id === 'ghost' || m.id === 'banshee') {
@@ -771,7 +817,8 @@ var CemScenes = (function() {
         motion: CemMonsters.motionOf(m.id), phase: hash(m.gx, m.gy, 17) * Math.PI * 2,
         walking: false, dir: { x: 0, y: 1 }, flip: false,
         actions: { lunge: 0, flinch: 0, appear: 0, exit: 0 }, exitStyle: CemMonsters.exitOf(m.id),
-        shown: false, removed: false, tween: null
+        shown: false, removed: false, tween: null,
+        anim: animated, animScale: animScale, lastClip: null, lastFacing: null
       };
       this.monsters[m.uid] = state;
       this.setMonsterDepth(state);
@@ -814,9 +861,11 @@ var CemScenes = (function() {
       if (!st || st.removed) return;
       var self = this;
       var q = IsoModel.gridToIso(to.gx, to.gy);
-      var dx = q.x - st.bx;
+      var dx = q.x - st.bx, dy = q.y + 12 - st.by;
       st.gx = to.gx; st.gy = to.gy;
-      if (Math.abs(dx) > 1) st.flip = CemMonsters.facing(dx);
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      st.dir = { x: dx / len, y: dy / len };
+      if (!st.anim && Math.abs(dx) > 1) st.flip = CemMonsters.facing(dx);
       st.walking = true;
       if (st.tween) st.tween.stop();
       if (REDUCED_MOTION) {
@@ -963,8 +1012,9 @@ var CemScenes = (function() {
         fx('dragon-roar');
         t.add({ targets: glow, alpha: 1, scale: 2.4, duration: 900, ease: 'Quad.easeOut' });
         t.add({ targets: st, by: y - 30, duration: 900, ease: 'Sine.easeOut' });
-        st.pulse = t.add({ targets: st.sprite, scaleX: 1.15, scaleY: 1.18, duration: 450, yoyo: true, repeat: 1, ease: 'Sine.easeInOut',
-          onUpdate: function() { st.lockScale = { x: st.sprite.scaleX, y: st.sprite.scaleY }; } });
+        var base = st.animScale || 1;
+        st.pulse = t.add({ targets: st.sprite, scaleX: 1.15 * base, scaleY: 1.18 * base, duration: 450, yoyo: true, repeat: 1, ease: 'Sine.easeInOut',
+          onUpdate: function() { st.lockScale = { x: st.sprite.scaleX / base, y: st.sprite.scaleY / base }; } });
         self.time.delayedCall(1000, drain);
       }
       // 3. drain: the blaze snaps out, he shudders and collapses into the ring
@@ -1020,7 +1070,17 @@ var CemScenes = (function() {
           appear: CemMonsters.progress(st.actions.appear, time, A.appear),
           exit: CemMonsters.progress(st.actions.exit, time, A.exit)
         };
+        if (st.anim) ev.animated = true;
         var o = REDUCED_MOTION ? { dx: 0, dy: 0, sx: 1, sy: 1, rot: 0, alpha: 1 } : CemMonsters.pose(st.motion, t, st.phase, ev);
+        if (st.anim && !REDUCED_MOTION) {
+          var c = CemMonsters.clipFor(ev);
+          if (c.clip !== st.lastClip || c.facing !== st.lastFacing) {
+            var key = 'anim_' + st.m.id + '_' + c.clip + '_' + c.facing;
+            if (this.anims.exists(key)) st.sprite.play(key, true);
+            st.lastClip = c.clip; st.lastFacing = c.facing;
+          }
+          st.flip = c.flip;
+        }
         if (st.lockScale) { o.sx *= st.lockScale.x; o.sy *= st.lockScale.y; }
         if (st.collapse) { o.sx *= st.collapse.sx; o.sy *= st.collapse.sy; o.dy += st.collapse.dy; o.alpha *= st.collapse.alpha; }
         st.sprite.setPosition(st.bx + o.dx, st.by + o.dy).setScale(o.sx, o.sy).setAlpha(o.alpha).setFlipX(st.flip);

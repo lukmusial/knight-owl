@@ -22,7 +22,7 @@ for im in imgs.values():
 pad = 2
 box = (max(0, box[0] - pad), max(0, box[1] - pad), min(meta['size'], box[2] + pad), min(meta['size'], box[3] + pad))
 fw, fh = box[2] - box[0], box[3] - box[1]
-cols = 8
+cols = int(sys.argv[3]) if len(sys.argv) > 3 else 8
 rows = (len(names) + cols - 1) // cols
 sheet = Image.new('RGBA', (cols * fw, rows * fh), (0, 0, 0, 0))
 frames = {}

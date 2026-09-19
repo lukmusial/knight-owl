@@ -71,4 +71,29 @@ TestRunner.suite('CemMonsters', () => {
     TestRunner.assertEqual(CemMonsters.facing(-3), true, 'moving left flips');
     TestRunner.assertEqual(CemMonsters.facing(3), false, 'moving right does not flip');
   });
+  TestRunner.test('clipFor picks the reaction over the gait and mirrors by direction', () => {
+    var hit = CemMonsters.clipFor({ walking: true, lunge: 0.5, flinch: 0.5, dir: { x: 0, y: 1 } });
+    TestRunner.assertEqual(hit.clip, 'hit', 'being hit beats everything');
+    TestRunner.assertEqual(CemMonsters.clipFor({ walking: true, lunge: 0.5, dir: { x: 0, y: 1 } }).clip, 'attack', 'attacking beats walking');
+    TestRunner.assertEqual(CemMonsters.clipFor({ walking: true, dir: { x: 0, y: 1 } }).clip, 'walk', 'walking');
+    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 0, y: 1 } }).clip, 'idle', 'idle by default');
+    TestRunner.assertEqual(CemMonsters.clipFor({ exit: 0.4, dir: { x: 0, y: 1 } }).clip, 'hit', 'leaving keeps the hurt pose');
+
+    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 1, y: 1 } }).facing, 'front', 'coming toward the viewer');
+    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 1, y: -1 } }).facing, 'back', 'walking away');
+    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: -1, y: 1 } }).flip, true, 'front sheet mirrors going left');
+    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 1, y: 1 } }).flip, false, 'front sheet as rendered going right');
+    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 1, y: -1 } }).flip, true, 'back sheet mirrors the other way');
+  });
+
+  TestRunner.test('a rendered walk cycle damps the procedural gait but not the reactions', () => {
+    var plain = CemMonsters.pose('shamble', 0.4, 0, { walking: true });
+    var anim = CemMonsters.pose('shamble', 0.4, 0, { walking: true, animated: true });
+    TestRunner.assert(Math.abs(anim.rot) < Math.abs(plain.rot), 'less roll when the sheet strides');
+    TestRunner.assert(Math.abs(anim.dy) <= Math.abs(plain.dy), 'less bob when the sheet strides');
+    var dir = { x: 0, y: 1 };
+    var lungePlain = CemMonsters.pose('shamble', 0, 0, { lunge: 0.5, dir: dir });
+    var lungeAnim = CemMonsters.pose('shamble', 0, 0, { lunge: 0.5, dir: dir, animated: true });
+    TestRunner.assert(Math.abs(lungeAnim.dy - lungePlain.dy) < 1e-6, 'the lunge still reaches Mr Owl');
+  });
 });
