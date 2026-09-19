@@ -14,6 +14,7 @@ Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game wher
 - Unit tests: `npm test` or `node tests/run-tests.js`
 - Browser test runner: Open `tests/test-runner.html`
 - Cemetery smoke test (headless Chrome, plays the whole level): `npm run test:cem`
+- Cemetery performance readout (headless Chrome, walks a long route, prints the `?perf=1` numbers): `npm run test:cem:perf`
 - E2E tests: `npm run test:e2e` (requires Maestro and running emulator)
 
 **Mobile builds**:
