@@ -20,6 +20,15 @@ OUT_DIR = os.path.join(os.path.dirname(__file__), 'out')
 DEST = os.path.join(ROOT, 'www', 'assets', 'music')
 
 TRACKS = {
+    'cemetery-carousel': (
+        'Haunted carousel waltz for a children\'s Halloween game, detuned calliope organ and music box, slow 3/4 at '
+        '90 bpm, creaking rhythm, glockenspiel, distant organ swells, eerie but playful, minor key, instrumental, loopable, no vocals'),
+    'cemetery-shanty': (
+        'Graveyard sea shanty for dancing skeletons in a children\'s game, fiddle lead, accordion, bones and woodblock '
+        'percussion, stomping 6/8 at 100 bpm, minor key, jaunty and spooky, instrumental, loopable, no vocals'),
+    'cemetery-lullaby': (
+        'Moonlit cemetery lullaby for a children\'s game, soft wordless choir pad, celesta and harp arpeggios, slow 60 bpm, '
+        'gentle and mysterious, minor key with a warm resolve, instrumental, loopable, no vocals'),
     'cemetery-gothic': (
         'Gothic cemetery night theme for a children\'s adventure game, slow pipe organ chords and a haunting '
         'music box melody, deep church bell tolling, soft choir pad, distant thunder, minor key, 70 bpm, 4/4, '
@@ -38,6 +47,30 @@ TRACKS = {
 def opt(name, default=None):
     a = sys.argv
     return a[a.index(name) + 1] if name in a and a.index(name) + 1 < len(a) else default
+
+
+def gen_ace_step(prompt, seconds, seed, steps):
+    """ACE-Step (Apache-2.0 model) on the official Space; instrumental via the [inst] lyric tag."""
+    from gradio_client import Client
+    from huggingface_hub import get_token
+    c = Client('ACE-Step/ACE-Step', verbose=False, token=get_token())
+    res = c.predict(api_name='/__call__', audio_duration=float(seconds), prompt=prompt, lyrics='[inst]',
+                    infer_step=int(steps), guidance_scale=15.0, scheduler_type='euler', cfg_type='apg',
+                    omega_scale=10.0, manual_seeds=str(seed), guidance_interval=0.5, guidance_interval_decay=0.0,
+                    min_guidance_scale=3.0, use_erg_tag=True, use_erg_lyric=False, use_erg_diffusion=True)
+    path = res[0] if isinstance(res, (list, tuple)) else res
+    return path if isinstance(path, str) else path['path']
+
+
+def gen_diffrhythm(prompt, seed, steps):
+    """DiffRhythm (Apache-2.0) on the official Space; empty lyrics = instrumental, 95 s clip."""
+    from gradio_client import Client
+    from huggingface_hub import get_token
+    c = Client('ASLP-lab/DiffRhythm', verbose=False, token=get_token())
+    res = c.predict(api_name='/infer_music', lrc='', ref_audio_path=None, text_prompt=prompt, seed=int(seed),
+                    randomize_seed=False, steps=int(steps), cfg_strength=4.0, file_type='wav',
+                    odeint_method='euler', preference_infer='quality first', Music_Duration=95)
+    return res if isinstance(res, str) else res['path']
 
 
 def gen_stable_audio(prompt, seconds, steps):
@@ -90,8 +123,10 @@ def make_loop(src, dest, xfade=3.0):
 def main():
     names = [a for a in sys.argv[1:] if not a.startswith('--') and not a.replace('.', '').isdigit()] or list(TRACKS)
     names = [n for n in names if n in TRACKS]
-    seconds = float(opt('--seconds', 30))
-    steps = int(opt('--steps', 100))
+    seconds = float(opt('--seconds', 40))
+    steps = int(opt('--steps', 60))
+    backend = opt('--backend')   # ace | diffrhythm | stable | musicgen | local
+    seed = int(opt('--seed', 7))
     os.makedirs(OUT_DIR, exist_ok=True)
     for name in names:
         dest = os.path.join(DEST, name + '.mp3')
@@ -105,27 +140,39 @@ def main():
         t0 = time.time()
         wav = os.path.join(OUT_DIR, name + '.wav')
         src, via = None, None
-        if '--local' not in sys.argv:
+        order = ['ace', 'diffrhythm', 'stable', 'musicgen', 'local']
+        if '--local' in sys.argv:
+            order = ['local']
+        elif backend:
+            order = [backend]
+        for be in order:
             for attempt in range(2):
                 try:
-                    src, via = gen_stable_audio(prompt, seconds, steps), 'stable-audio-open'
+                    if be == 'ace':
+                        src, via = gen_ace_step(prompt, seconds, seed, steps), 'ACE-Step (Apache-2.0)'
+                    elif be == 'diffrhythm':
+                        src, via = gen_diffrhythm(prompt, seed, 32), 'DiffRhythm (Apache-2.0)'
+                    elif be == 'stable':
+                        src, via = gen_stable_audio(prompt, seconds, 100), 'Stable Audio Open (Community License)'
+                    elif be == 'musicgen':
+                        src, via = gen_musicgen(prompt), 'musicgen space (CC-BY-NC placeholder)'
+                    else:
+                        src, via = gen_local(prompt, seconds, wav), 'local musicgen-small (CC-BY-NC placeholder)'
                     break
                 except Exception as e:
-                    print(name, 'stable audio attempt', attempt + 1, 'failed:', str(e)[:200], flush=True)
+                    print(name, be, 'attempt', attempt + 1, 'failed:', str(e)[:200].replace('\n', ' '), flush=True)
                     time.sleep(10)
-            if not src:
-                try:
-                    src, via = gen_musicgen(prompt), 'musicgen space (CC-BY-NC placeholder)'
-                except Exception as e:
-                    print(name, 'musicgen space failed:', str(e)[:200], flush=True)
+            if src:
+                break
         if not src:
-            try:
-                src, via = gen_local(prompt, seconds, wav), 'local musicgen-small (CC-BY-NC placeholder)'
-            except Exception as e:
-                print(name, 'FAILED', str(e)[:300], flush=True)
-                continue
+            print(name, 'FAILED on every backend', flush=True)
+            continue
+        import json
+        json.dump({'track': name, 'backend': via, 'prompt': prompt, 'seed': seed, 'seconds': seconds,
+                   'date': time.strftime('%Y-%m-%d')}, open(os.path.join(OUT_DIR, name + '.json'), 'w'), indent=1)
         if src != wav:
-            subprocess.check_call(['ffmpeg', '-y', '-loglevel', 'error', '-i', src, wav])
+            # trim long clips (DiffRhythm gives 95 s) to the requested length before looping
+            subprocess.check_call(['ffmpeg', '-y', '-loglevel', 'error', '-i', src, '-t', str(seconds), wav])
         make_loop(wav, dest)
         print(name, 'ok %.0fs via %s -> %s (%d KB)' % (time.time() - t0, via, os.path.relpath(dest, ROOT), os.path.getsize(dest) // 1024), flush=True)
 

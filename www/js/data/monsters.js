@@ -480,6 +480,7 @@ const MONSTERS = [
   // Halloween cemetery monsters (also roam the dungeon at their difficulty)
   {
     id: 'pumpkin_man',
+    theme: 'cemetery',
     name: 'Pumpkin Man',
     namePL: 'Dyniowy Człowiek',
     difficulty: 2,
@@ -496,6 +497,7 @@ const MONSTERS = [
   },
   {
     id: 'will_o_wisp',
+    theme: 'cemetery',
     name: 'Will-o\'-the-Wisp',
     namePL: 'Błędny Ognik',
     difficulty: 2,
@@ -511,6 +513,7 @@ const MONSTERS = [
   },
   {
     id: 'banshee',
+    theme: 'cemetery',
     name: 'Banshee',
     namePL: 'Banshee',
     difficulty: 3,
@@ -527,6 +530,7 @@ const MONSTERS = [
   },
   {
     id: 'clown',
+    theme: 'cemetery',
     name: 'Cemetery Clown',
     namePL: 'Cmentarny Klaun',
     difficulty: 3,
@@ -545,6 +549,7 @@ const MONSTERS = [
   // BOSS - Grim Reaper (cemetery level, the great tomb)
   {
     id: 'grim_reaper',
+    theme: 'cemetery',
     name: 'Grim Reaper',
     namePL: 'Ponury Żniwiarz',
     difficulty: 4, // Boss difficulty
@@ -590,7 +595,8 @@ const MONSTERS = [
  * @returns {Object} A monster object
  */
 function getRandomMonster(difficulty, usedIds) {
-  var all = MONSTERS.filter(function(m) { return m.difficulty === difficulty; });
+  // themed monsters (theme: 'cemetery') belong to their own level, never to the dungeon
+  var all = MONSTERS.filter(function(m) { return m.difficulty === difficulty && !m.theme; });
   if (all.length === 0) {
     return MONSTERS.find(function(m) { return m.difficulty === 1; }); // Fallback to easy
   }
