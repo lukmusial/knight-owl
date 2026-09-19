@@ -150,8 +150,8 @@ var ProtoCem = (function() {
     var r = CemModel.tickOwl(level, steer, dt);
     if (r.tileChanged) {
       if (level.newlySeen.length) {
+        if (scene) scene.onTilesRevealed(level.newlySeen);
         level.newlySeen.length = 0;
-        if (scene) scene.onTilesRevealed();
       }
       updateRibbon();
       saveDirty = true;
