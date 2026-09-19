@@ -152,11 +152,13 @@ var CemWorld = (function() {
      * @param {Object} obj - Phaser game object, already positioned
      * @param {number} gx - tile it stands on
      * @param {number} gy
-     * @param {Object} opts - { light: true to put it in the lights layer }
+     * @param {Object} opts - { light: true to put it in the lights layer,
+     *   ground: true to lay it on the ground under everything that stands }
      */
     function addProp(obj, gx, gy, opts) {
       opts = opts || {};
       if (opts.light) lightsLayer.add(obj);
+      else if (opts.ground) groundLayer.add(obj);
       else bands[Math.min(bands.length - 1, Math.max(0, bandOf(gx, gy)))].add(obj);
       var c = cellFor(gx, gy);
       c.objs.push(obj);

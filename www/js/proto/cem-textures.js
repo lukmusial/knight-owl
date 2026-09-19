@@ -280,22 +280,32 @@ var CemTextures = (function() {
    * spreads as it goes, so it meets the doorway with no seam.
    */
   function drawDoorSpill(ctx, w, cx, cy) {
+    // Soft pools of light laid along the tile's +y axis, growing and fading
+    // as they go: overlapping radial gradients have no edge to see, where a
+    // filled wedge would. The first sits on the sill so the light starts in
+    // the doorway with no seam.
     var dx = -0.894, dy = 0.447;
     var reach = w * SPILL_REACH;
-    var spread = w * 0.9;
-    var a = { x: cx - w / 2, y: cy - w * DOOR_SLOPE / 2 };
-    var b = { x: cx + w / 2, y: cy + w * DOOR_SLOPE / 2 };
-    var c = { x: b.x + dx * reach + 0.447 * spread, y: b.y + dy * reach + 0.894 * spread };
-    var d = { x: a.x + dx * reach - 0.447 * spread, y: a.y + dy * reach - 0.894 * spread };
-    var g = ctx.createRadialGradient(cx, cy, w * 0.15, cx, cy, reach);
-    g.addColorStop(0, 'rgba(255,255,255,0.9)');
-    g.addColorStop(0.3, 'rgba(255,255,255,0.4)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
-    ctx.closePath();
-    ctx.fill();
+    var steps = 7;
+    for (var i = 0; i < steps; i++) {
+      var t = i / (steps - 1);
+      var px = cx + dx * reach * t, py = cy + dy * reach * t;
+      var r = w * (0.55 + 1.3 * t);
+      var a = 0.62 * (1 - t) * (1 - t) + 0.05;
+      var g = ctx.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, 'rgba(255,255,255,' + a.toFixed(3) + ')');
+      g.addColorStop(0.55, 'rgba(255,255,255,' + (a * 0.45).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(1, 0.5);                     // the floor is a 2:1 diamond
+      ctx.translate(-px, -py);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(px, py, r, r, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   /**

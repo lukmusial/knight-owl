@@ -21,6 +21,21 @@ var MonsterStage = (function() {
     grim_reaper: 'vanish', vampire_lord: 'vanish', witch: 'vanish', dragon: 'vanish'
   };
 
+  /**
+   * How big each creature stands on the card, relative to the size the
+   * painting gave it. The illustrations were painted to fill the frame, so a
+   * spider came out as tall as a knight and the Reaper no taller; this is the
+   * card's counterpart of the map's per-species height.
+   */
+  var CARD_SCALE = {
+    spider: 0.3, giant_rat: 0.45, bat_swarm: 0.55, ghost: 0.75, lost_soul: 0.75, will_o_wisp: 0.6,
+    grim_reaper: 1.4, dragon: 1.3
+  };
+
+  function cardScale(id) {
+    return Object.prototype.hasOwnProperty.call(CARD_SCALE, id) ? CARD_SCALE[id] : 1;
+  }
+
   var index = null;          // sprite index.json (bbox per monster)
   var indexPromise = null;
   var atlases = {};          // id -> atlas json or false
@@ -57,14 +72,15 @@ var MonsterStage = (function() {
    * @param {Object} meta - atlas meta (optional)
    * @returns {Object} { ax, ay, aw, ah } in percent
    */
-  function layout(entry, imgW, imgH, meta) {
+  function layout(entry, imgW, imgH, meta, scale) {
     var b = entry && entry.bbox ? entry.bbox : [0, 0, imgW, imgH];
+    var k = scale || 1;
     var x0 = b[0], y0 = b[1], w = b[2] - b[0], h = b[3] - b[1];
     if (meta && meta.pivot && meta.figureHeight && meta.frameW && meta.frameH) {
-      // the sheet's feet pivot lands on the bottom of the painted character
-      var ah = h / Math.max(0.2, meta.pivot.y);
-      var aw = ah * (meta.frameW / meta.frameH) * (imgH / imgW) * (imgW / imgH);
-      aw = ah * (meta.frameW / meta.frameH);
+      // the sheet's feet pivot lands on the bottom of the painted character;
+      // the species scale grows or shrinks the figure about that foot point
+      var ah = h / Math.max(0.2, meta.pivot.y) * k;
+      var aw = ah * (meta.frameW / meta.frameH);
       return {
         ax: (x0 + w / 2 - aw / 2) / imgW * 100,
         ay: (y0 + h - ah * meta.pivot.y) / imgH * 100,
@@ -72,7 +88,9 @@ var MonsterStage = (function() {
         ah: ah / imgH * 100
       };
     }
-    return { ax: x0 / imgW * 100, ay: y0 / imgH * 100, aw: w / imgW * 100, ah: h / imgH * 100 };
+    // cutout: scale about the bottom centre of the painted character
+    var cw = w * k, ch = h * k;
+    return { ax: (x0 + w / 2 - cw / 2) / imgW * 100, ay: (y0 + h - ch) / imgH * 100, aw: cw / imgW * 100, ah: ch / imgH * 100 };
   }
 
   /** CSS background values that show one frame of a sheet */
@@ -251,7 +269,7 @@ var MonsterStage = (function() {
         }
         var natW = img.naturalWidth || 800, natH = img.naturalHeight || 600;
         function place() {
-          var box = layout(entry, img.naturalWidth || natW, img.naturalHeight || natH, meta);
+          var box = layout(entry, img.naturalWidth || natW, img.naturalHeight || natH, meta, cardScale(id));
           actor.style.left = box.ax.toFixed(2) + '%';
           actor.style.top = box.ay.toFixed(2) + '%';
           actor.style.width = box.aw.toFixed(2) + '%';
@@ -327,6 +345,8 @@ var MonsterStage = (function() {
     ANIM_DIR: ANIM_DIR,
     EXIT: EXIT,
     layout: layout,
+    cardScale: cardScale,
+    CARD_SCALE: CARD_SCALE,
     frameStyle: frameStyle,
     ensure: ensure,
     actorFor: actorFor,

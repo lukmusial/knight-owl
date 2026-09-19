@@ -30,6 +30,7 @@ var CemModel = (function() {
     GATE_SAFE_RADIUS: 3,
     GRACE_MS: 1500,
     VIS_OWL: 4,                 // Euclidean tile radius revealed around Mr Owl
+    SEEN_EXTRA: 2.5,            // tiles beyond VIS_OWL that become remembered (dim) before they are lit
     VIS_LANTERN: 3,
     OWL_SPEED: 3.2,             // tiles per second
     OWL_RADIUS: 0.3,            // collision circle in tiles
@@ -1599,15 +1600,26 @@ var CemModel = (function() {
         level.newlySeen.push(idx);   // the renderer drains this to reveal ground and props
       }
     }
+    function remember(gx, gy) {
+      var idx = index(level, gx, gy);
+      if (level.seen[idx]) return;
+      level.seen[idx] = 1;
+      level.vis[idx] = Math.max(level.vis[idx], 1);
+      level.seenVersion++;
+      level.newlySeen.push(idx);
+    }
     var o = owlPos(level);
     var r = cfg.VIS_OWL;
-    var cr = Math.ceil(r);
+    var rs = r + (cfg.SEEN_EXTRA || 0);      // remembered, not yet lit
+    var cr = Math.ceil(rs);
     for (var dy = -cr; dy <= cr; dy++) {
       for (var dx = -cr; dx <= cr; dx++) {
         var gx = Math.round(o.x) + dx, gy = Math.round(o.y) + dy;
         if (!inside(level, gx, gy)) continue;
         var ox = gx - o.x, oy = gy - o.y;
-        if (ox * ox + oy * oy <= r * r) light(gx, gy);
+        var d2 = ox * ox + oy * oy;
+        if (d2 <= r * r) light(gx, gy);
+        else if (d2 <= rs * rs) remember(gx, gy);
       }
     }
     var lr = cfg.VIS_LANTERN;
