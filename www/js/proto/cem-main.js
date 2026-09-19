@@ -16,6 +16,11 @@ var ProtoCem = (function() {
   var currentUid = null;
   var lastTick = 0;
   var tickEvent = null;
+  var steer = { x: 0, y: 0 };
+  var stick = null;
+  var saveDirty = false;
+  var lastSave = 0;
+  var lastIdle = 0;
 
   var DIR_LABELS = {
     n: { en: 'North', pl: 'Północ' },
@@ -106,10 +111,55 @@ var ProtoCem = (function() {
     game.registry.set('cemLevel', level);
     game.registry.set('cemCallbacks', {
       onReady: onReady,
-      onTileTap: onTileTap
+      onTileTap: onTileTap,
+      onSteer: onSteerScreen,
+      onFrame: onFrame
     });
+    mountStick();
     if (opts.onGame) opts.onGame(game);
     return game;
+  }
+
+  /** The dock thumb-stick (and drag-steering) both feed setSteer */
+  function mountStick() {
+    var el = document.getElementById('cem-stick');
+    if (!el || typeof CemStick === 'undefined') return;
+    el.hidden = false;
+    stick = CemStick.mount(el, {
+      onChange: function(x, y) { onSteerScreen(x, y); }
+    });
+  }
+
+  /** Screen-space push from the stick, a drag or the keys */
+  function onSteerScreen(x, y) {
+    var g = CemStick.toGrid(x, y);
+    setSteer(g.x, g.y);
+  }
+
+  function setSteer(gx, gy) {
+    steer.x = gx || 0;
+    steer.y = gy || 0;
+  }
+
+  /**
+   * One frame of the model: walk Mr Owl, act on what he walks into.
+   * @returns {Object} { vx, vy } for the scene's animation
+   */
+  function onFrame(dt) {
+    if (!level || !gameInProgress || busy) return null;
+    var r = CemModel.tickOwl(level, steer, dt);
+    if (r.tileChanged) {
+      if (level.newlySeen.length) {
+        level.newlySeen.length = 0;
+        if (scene) scene.onTilesRevealed();
+      }
+      updateRibbon();
+      saveDirty = true;
+      lastIdle = Date.now();
+    }
+    if (r.arrived) lastIdle = Date.now();
+    if (r.events.length) handleEvents(r.events);
+    return r;
   }
 
   function onReady(s) {
@@ -118,13 +168,15 @@ var ProtoCem = (function() {
     gameInProgress = true;
     console.log('ProtoCem: renderer ' + (game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas') + ', seed ' + level.seed);
     lastTick = Date.now();
+    lastSave = lastTick;
     tickEvent = scene.time.addEvent({ delay: 250, loop: true, callback: tick });
+    UI.hideDirectionBar();
     updateHud();
     if (level.completed) {
       showVictory();
       return;
     }
-    showNavigation();
+    idle();
   }
 
   // ---------------------------------------------------------------------------
@@ -147,11 +199,16 @@ var ProtoCem = (function() {
       scene.refreshMonsters();
       ProtoHud.setMinimap(CemMinimap.render(level));
     }
-    if (encounter) {
-      // Mid-walk: stop at the next tile; arrive() then opens the encounter.
-      // Otherwise (idle at a tile) start it right away.
-      if (scene.moving) scene.cancelWalk();
-      else if (!busy) beginEncounter(encounter.uid);
+    if (encounter && !busy) beginEncounter(encounter.uid);
+
+    // autosave once he has settled, and at most every five seconds
+    if (saveDirty && !busy && gameInProgress) {
+      var quiet = lastIdle === 0 || now - lastIdle > 800;
+      if (quiet && now - lastSave > 5000) {
+        ProtoSession.autoSave();
+        lastSave = now;
+        saveDirty = false;
+      }
     }
   }
 
@@ -169,7 +226,7 @@ var ProtoCem = (function() {
       return;
     }
     if (!t.walk) return;
-    var path = CemModel.pathTo(level, level.owl, { gx: gx, gy: gy });
+    var path = CemModel.pathTo(level, CemModel.owlTile(level), { gx: gx, gy: gy });
     if (!path.length) {
       var tomb = CemModel.tombOfDoor(level, t);
       if (tomb && tomb.size === 'large') sealedToast();
@@ -178,7 +235,9 @@ var ProtoCem = (function() {
       return;
     }
     scene.showTap(gx, gy);
-    walkPath(path);
+    setSteer(0, 0);
+    if (stick) stick.reset();
+    CemModel.setPath(level, path);
   }
 
   function sealedToast() {
@@ -188,51 +247,18 @@ var ProtoCem = (function() {
     fx('creak', { volume: 0.5 });
   }
 
-  function walkPath(path) {
-    busy = true;
-    UI.hideDirectionBar();
-    if (typeof FX !== 'undefined') FX.haptic('onNavigation');
-    scene.walkTo(path, afterStep, arrive);
-  }
-
-  /** Called by the scene each time Mr Owl reaches a tile; false stops the walk */
-  function afterStep(tile) {
-    var r = CemModel.moveOwl(level, tile.gx, tile.gy);
-    if (!r.ok) {
-      // the tile closed while walking (a locked door): stop here
-      scene.refreshVisibility();
-      return false;
-    }
-    scene.refreshVisibility();
-    updateHud();
-    return handleEvents(r.events);
-  }
-
-  /** @returns {boolean} false when the walk must stop */
+  /** Act on what Mr Owl walked into this frame */
   function handleEvents(events) {
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.type === 'encounter') {
-        // the walk stops at this tile; arrive() starts the encounter
-        return false;
-      }
-      if (e.type === 'enter_large_tomb') {
-        scene.time.delayedCall(0, startBossEncounter);
-        return false;
-      }
+      if (e.type === 'encounter') { beginEncounter(e.uid); return false; }
+      if (e.type === 'enter_large_tomb') { startBossEncounter(); return false; }
       if (e.type === 'tomb_locked') sealedToast();
     }
     return true;
   }
 
-  function arrive() {
-    // a monster reached Mr Owl while he walked (or he walked into one)
-    if (level.encounterUid && !currentUid) { beginEncounter(level.encounterUid); return; }
-    if (level.encounterUid) return;
-    busy = false;
-    showNavigation();
-  }
-
+  /** A swipe or arrow key nudges him one tile (the stick is the main control) */
   function handleDirection(direction) {
     if (busy || !scene || !gameInProgress) return;
     var dirId = null;
@@ -241,7 +267,8 @@ var ProtoCem = (function() {
     var d = null;
     for (var i = 0; i < CemModel.DIRS.length; i++) if (CemModel.DIRS[i].id === dirId) d = CemModel.DIRS[i];
     if (!d) return;
-    var gx = level.owl.gx + d.dx, gy = level.owl.gy + d.dy;
+    var t0 = CemModel.owlTile(level);
+    var gx = t0.gx + d.dx, gy = t0.gy + d.dy;
     var t = CemModel.tileAt(level, gx, gy);
     if (!t || !t.walk) return;
     if (!CemModel.canEnter(level, gx, gy)) {
@@ -249,29 +276,29 @@ var ProtoCem = (function() {
       if (tomb && tomb.size === 'large') sealedToast();
       return;
     }
-    walkPath([{ gx: level.owl.gx, gy: level.owl.gy }, { gx: gx, gy: gy }]);
+    CemModel.setPath(level, [{ gx: gx, gy: gy }]);
   }
 
-  function showNavigation() {
+  /** Back to free roaming after an encounter or a respawn */
+  function idle() {
     if (level.encounterUid && !currentUid) { beginEncounter(level.encounterUid); return; }
-    ProtoSession.autoSave();
-    var options = [];
-    for (var i = 0; i < CemModel.DIRS.length; i++) {
-      var d = CemModel.DIRS[i];
-      var gx = level.owl.gx + d.dx, gy = level.owl.gy + d.dy;
-      var t = CemModel.tileAt(level, gx, gy);
-      if (!t || !t.walk) continue;
-      var tomb = CemModel.tombOfDoor(level, t);
-      options.push({
-        roomId: d.id,
-        direction: DIR_LABELS[d.id],
-        explored: CemModel.visibilityAt(level, gx, gy) > 0 && !tomb,
-        type: tomb ? (tomb.size === 'large' ? 'boss' : 'monster') : 'path'
-      });
-    }
-    UI.renderDirectionBar(options, function(dirId) { handleDirection(dirId); });
     setModalOpen(false);
+    if (stick) stick.setEnabled(true);
+    setSteer(0, 0);
     busy = false;
+    saveDirty = true;
+    lastIdle = 0;   // save at the next tick
+  }
+
+  /** Teleport for tests and debugging */
+  function teleport(gx, gy) {
+    CemModel.setOwlTile(level, gx, gy);
+    setSteer(0, 0);
+    if (scene) {
+      scene.placeOwl(CemModel.owlTile(level), true);
+      scene.onTilesRevealed();
+      updateHud();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -279,16 +306,20 @@ var ProtoCem = (function() {
   // ---------------------------------------------------------------------------
 
   function beginEncounter(uid) {
-    if (!gameInProgress) return;
+    if (!gameInProgress || busy) return;
     busy = true;
     currentUid = uid;
     level.encounterUid = uid;
+    setSteer(0, 0);
+    level.owl.path = [];
+    if (stick) stick.setEnabled(false);
     UI.hideDirectionBar();
     scene.setInputEnabled(false);
     var m = CemModel.encounterMonsterFor(level, uid);
-    if (!m) { level.encounterUid = null; busy = false; showNavigation(); return; }
+    if (!m) { level.encounterUid = null; busy = false; idle(); return; }
     if (typeof FX !== 'undefined') FX.haptic('onEncounter');
     scene.playAttack(uid, function() {
+      if (!gameInProgress) return;
       if (m.encounterType === 'matching' && typeof Matching !== 'undefined') startMatchingEncounter(m);
       else startCombat(m);
     });
@@ -360,10 +391,10 @@ var ProtoCem = (function() {
       scene.setInputEnabled(false);
       scene.owlFlinch(function() {
         scene.retreatToGate(function() {
-          scene.refreshVisibility();
+          scene.onTilesRevealed();
           updateHud();
           toast('Mr Owl wakes up at the cemetery gate.', 'Pan Sowa budzi się przy bramie cmentarza.');
-          showNavigation();
+          idle();
         });
       });
       return;
@@ -384,13 +415,16 @@ var ProtoCem = (function() {
         }
       }
       updateHud();
-      showNavigation();
+      idle();
     });
   }
 
   function startBossEncounter() {
-    if (!gameInProgress || level.monstersByUid.boss.defeated) return;
+    if (!gameInProgress || busy || level.monstersByUid.boss.defeated) return;
     busy = true;
+    setSteer(0, 0);
+    level.owl.path = [];
+    if (stick) stick.setEnabled(false);
     UI.hideDirectionBar();
     scene.setInputEnabled(false);
     CemModel.startBossEncounter(level);
@@ -421,17 +455,8 @@ var ProtoCem = (function() {
   // HUD
   // ---------------------------------------------------------------------------
 
-  function updateHud() {
-    var stats = Player.getQuestionStats();
-    ProtoHud.updateStats({
-      monstersDefeated: Player.getMonstersDefeated(),
-      questionsCorrect: stats.correct,
-      questionsTotal: stats.total,
-      totalLoot: Player.getTotalLootValue()
-    });
-    ProtoHud.setLoot(Player.getInventory());
-    ProtoHud.setMinimap(CemMinimap.render(level));
-    ProtoHud.setKeyParts(CemModel.keyPartCount(level), 4);
+  /** Just the parchment ribbon: called on every tile change */
+  function updateRibbon() {
     var t = CemModel.tileAt(level, level.owl.gx, level.owl.gy);
     var kind = 'path';
     var opts = {};
@@ -448,13 +473,33 @@ var ProtoCem = (function() {
         }
       }
     }
+    if (kind === lastRibbon) return;
+    lastRibbon = kind;
     ProtoHud.setRibbon(Descriptions.getCemeteryTitle(kind, opts));
+  }
+  var lastRibbon = null;
+
+  function updateHud() {
+    var stats = Player.getQuestionStats();
+    ProtoHud.updateStats({
+      monstersDefeated: Player.getMonstersDefeated(),
+      questionsCorrect: stats.correct,
+      questionsTotal: stats.total,
+      totalLoot: Player.getTotalLootValue()
+    });
+    ProtoHud.setLoot(Player.getInventory());
+    ProtoHud.setMinimap(CemMinimap.render(level));
+    ProtoHud.setKeyParts(CemModel.keyPartCount(level), 4);
+    lastRibbon = null;
+    updateRibbon();
   }
 
   return {
     start: start,
     handleDirection: handleDirection,
     onTileTap: onTileTap,
+    setSteer: setSteer,
+    teleport: teleport,
     getLevel: function() { return level; },
     getScene: function() { return scene; },
     isBusy: function() { return busy; }

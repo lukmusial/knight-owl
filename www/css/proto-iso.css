@@ -127,3 +127,44 @@ body.proto .direction-bar {
   100% { transform: scale(1); }
 }
 body.level-cemetery .hud-dock.has-loot .hud-dock-note { display: none; }
+
+/* --- Thumb-stick (cemetery): drag the knob and Mr Owl walks that way --- */
+.hud-stick {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  touch-action: none;
+  align-self: center;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(232, 182, 74, 0.18), transparent 62%),
+    linear-gradient(180deg, rgba(50, 42, 34, 0.9), rgba(24, 20, 16, 0.92));
+  box-shadow: inset 0 0 0 2px var(--hud-bronze, #8a5a2b), inset 0 0 14px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.hud-stick::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1px dashed rgba(232, 182, 74, 0.25);
+}
+.hud-stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  margin: -25px 0 0 -25px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f1d27a, #8a5a2b 70%, #4a3210);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 0 0 2px rgba(255, 240, 200, 0.25);
+  transition: transform 0.06s linear;
+}
+.hud-stick.active .hud-stick-knob { transition: none; box-shadow: 0 0 12px rgba(241, 210, 122, 0.7), inset 0 0 0 2px rgba(255, 240, 200, 0.4); }
+.hud-stick.disabled { opacity: 0.4; pointer-events: none; }
+/* the cemetery steers with the stick, so the compass cross stays out of the way */
+body.proto.level-cemetery #direction-bar { display: none !important; }
+@media (orientation: landscape) and (max-height: 520px) {
+  .hud-stick { width: 92px; height: 92px; }
+  .hud-stick-knob { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
+}
