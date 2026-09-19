@@ -15,6 +15,7 @@ Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game wher
 - Browser test runner: Open `tests/test-runner.html`
 - Cemetery smoke test (headless Chrome, plays the whole level): `npm run test:cem`
 - Cemetery performance readout (headless Chrome, walks a long route, prints the `?perf=1` numbers): `npm run test:cem:perf`
+- 3D view render-loop check (headless Chrome, walks 20 steps, fails if the view starts running more than one animation loop): `npm run test:fp:perf`
 - Cemetery playthrough video (headless Chrome on the GPU, plays gate to Grim Reaper and encodes it with ffmpeg): `npm run record:cem`
 - E2E tests: `npm run test:e2e` (requires Maestro and running emulator)
 
@@ -64,6 +65,7 @@ const ModuleName = (function() {
 | AppLifecycle | `js/modules/lifecycle.js` | Idles the game in the background (suspends music/SFX, stops TTS and render loops); Android sends `app-pause`/`app-resume` from `MainActivity` |
 | ProtoSharedDom | `js/proto/shared-dom.js` | Shared modal markup for the standalone prototype pages |
 | FpWorld / FpRenderer | `js/proto/fp-*.js` | First-person prototype (pure grid model + three.js renderer + bootstrap) |
+| FpLayout | `js/proto/fp-layout.js` | Pure chamber geometry, torch and lava layout, and the gothic wall dressing (`wallFeatures`: bricked-up lancet windows, a blind arcade, a niche) |
 | FpMonsters | `js/proto/fp-monsters.js` | 3D models of the level-1 monsters (`assets/proto/fp/monsters/`, pipeline in `tools/monsters3d/`), procedural idle/flinch/lunge |
 | FpOwl | `js/proto/fp-owl.js` | Rigged 3D Mr Owl (`assets/proto/fp/mr_owl.glb`, pipeline in `tools/owl3d/`) and the third-person camera placement |
 | IsoModel / scenes | `js/proto/iso-*.js` | Isometric fog-of-war prototype (pure tile model + Phaser scenes + bootstrap; `iso-main.js` also holds the dungeon/cemetery level picker) |
@@ -108,6 +110,10 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 ```
 
 ## Key Configurations
+
+**3D view lighting** (fp-renderer.js): Mr Owl carries his own light, a point lantern plus a soft forward beam (`LANTERN_INTENSITY`, `BEAM_INTENSITY`, both flickering), so whatever he faces is modelled from the front instead of being a silhouette against the torches. Lava throws a churning light and a heat haze standing over the river, and the crust beside it stays warm. A wall torch is 50 for scale
+
+**3D view render loop** (fp-renderer.js): `frame()` holds `inFrame` for its whole run, because anything it calls that wants the loop going (`assignLights`, `setVisibility`, a nested tween) would otherwise pass `startLoop`'s guard and fork a second, permanent animation-frame chain. That cost one extra chain per walked step and is what made the view grind to a halt while exploring. `npm run test:fp:perf` guards it. Encounter entities hang off `cells[id].group` (see `entityHost`) so the chamber culling covers them
 
 **Dungeon Generation** (dungeon.js):
 - MAZE_WIDTH: 7, MAZE_HEIGHT: 6 (creates 42-cell grid)
