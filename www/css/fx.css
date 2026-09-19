@@ -289,3 +289,74 @@
     display: none;
   }
 }
+
+/* --- Encounter card: the painted scene is the backdrop, the monster is a
+   layer on top that breathes and reacts to the answers --- */
+.monster-stage {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.monster-actor {
+  position: absolute;
+  background-repeat: no-repeat;
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.monster-actor.fx-actor-idle { animation: fx-actor-breathe 2.6s ease-in-out infinite; }
+@keyframes fx-actor-breathe {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-1.5%) scaleY(1.025); }
+}
+.monster-actor.fx-lunge { animation: fx-actor-lunge 700ms ease-out; }
+@keyframes fx-actor-lunge {
+  0% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-2%) scale(0.96); }
+  50% { transform: translateY(8%) scale(1.22); }
+  100% { transform: translateY(0) scale(1); }
+}
+.monster-actor.fx-hit { animation: fx-actor-hit 550ms ease-out; }
+@keyframes fx-actor-hit {
+  0% { transform: translate(0, 0); filter: brightness(1); }
+  20% { transform: translate(-3%, -2%) rotate(-4deg); filter: brightness(2.4); }
+  45% { transform: translate(3%, 0) rotate(3deg); filter: brightness(1.6); }
+  70% { transform: translate(-2%, 0) rotate(-2deg); }
+  100% { transform: translate(0, 0); filter: brightness(1); }
+}
+.monster-actor.fx-taunt { animation: fx-actor-taunt 700ms ease-in-out; }
+@keyframes fx-actor-taunt {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8%) scale(1.05); }
+}
+.monster-actor.fx-exit-fade { animation: fx-actor-fade 1100ms ease-in forwards; }
+@keyframes fx-actor-fade {
+  to { transform: translateY(-30%) scale(1.15); opacity: 0; }
+}
+.monster-actor.fx-exit-sink { animation: fx-actor-sink 1100ms ease-in forwards; }
+@keyframes fx-actor-sink {
+  60% { transform: translateY(24%) scaleY(0.55); opacity: 0.8; }
+  to { transform: translateY(46%) scaleY(0.2); opacity: 0; }
+}
+.monster-actor.fx-exit-vanish { animation: fx-actor-vanish 1100ms ease-in forwards; }
+@keyframes fx-actor-vanish {
+  30% { transform: translateY(-6%) scale(1.06) rotate(6deg); }
+  to { transform: translateY(-12%) scale(0.02) rotate(-20deg); opacity: 0; }
+}
+.monster-actor.fx-exit-runaway { animation: fx-actor-runaway 1100ms ease-in forwards; }
+@keyframes fx-actor-runaway {
+  30% { transform: translate(-8%, -4%) scale(0.98); }
+  to { transform: translate(140%, -6%) scale(0.85); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .monster-actor { animation: none !important; }
+}
+
+.monster-stage img.monster-scene {
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+  display: block;
+  max-width: 100%;
+  max-height: inherit;
+}

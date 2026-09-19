@@ -375,28 +375,32 @@ const UI = (function() {
     var correctIdx = currentQuizQuestion ? currentQuizQuestion.correctIndex : -1;
     var correctBtn = elements.answersContainer.querySelector('.answer-btn[data-index="' + correctIdx + '"]');
     var img = elements.monsterImage;
+    // the painted scene stays put; the character layer is what reacts
+    var actor = (typeof MonsterStage !== 'undefined' && MonsterStage.actorFor(img)) || img;
+    var monsterId = currentQuizMonsterId;
     var content = elements.quizModal ? elements.quizModal.querySelector('.modal-content') : null;
 
     if (result.success) {
       FX.play('correct');
       FX.haptic('onCorrectAnswer');
       return FX.answerFeedback(btn, true).then(function() {
+        if (typeof MonsterStage !== 'undefined') MonsterStage.play(img, 'hit');
         if (result.dragonDefeated) {
           FX.play('dragon-roar');
           FX.haptic('onDragonDefeated');
-          return FX.monsterDefeat(img);
+          return monsterLeaves(img, actor, monsterId);
         }
         if (result.defeated) {
           FX.play('hit');
-          return FX.monsterHit(img).then(function() {
+          return FX.monsterHit(actor).then(function() {
             FX.play('defeat-monster');
             FX.haptic('onMonsterDefeated');
-            return FX.monsterDefeat(img);
+            return monsterLeaves(img, actor, monsterId);
           });
         }
         // Dragon fight continues
         FX.play('hit');
-        return FX.monsterHit(img);
+        return FX.monsterHit(actor);
       });
     }
 
@@ -404,9 +408,20 @@ const UI = (function() {
     FX.haptic('onWrongAnswer');
     return FX.answerFeedback(btn, false, correctBtn).then(function() {
       FX.play('attack');
-      return FX.monsterAttack(img, content);
+      if (typeof MonsterStage !== 'undefined') MonsterStage.play(img, 'attack');
+      return FX.monsterAttack(actor, content);
     });
   }
+
+  /** The monster leaves the card in its own way (fades, sinks, vanishes, runs) */
+  function monsterLeaves(img, actor, id) {
+    if (actor !== img && typeof MonsterStage !== 'undefined') {
+      return FX.monsterExit(actor, MonsterStage.exitStyleFor(id));
+    }
+    return FX.monsterDefeat(img);
+  }
+
+  var currentQuizMonsterId = null;
 
   /**
    * Show a specific screen
@@ -760,6 +775,7 @@ const UI = (function() {
     if (!elements.quizModal) return;
 
     const { monster, question, isDragon, dragonStreak } = encounter;
+    currentQuizMonsterId = monster ? monster.id : null;
     const labels = getLabels();
     currentQuizQuestion = question;
 
@@ -774,7 +790,8 @@ const UI = (function() {
 
     if (elements.monsterImage) {
       // Use monster-specific image, fallback to placeholder
-      elements.monsterImage.src = `assets/${monster.id}.png`;
+      if (typeof MonsterStage !== 'undefined') MonsterStage.show(elements.monsterImage, monster.id);
+      else elements.monsterImage.src = `assets/${monster.id}.png`;
       elements.monsterImage.alt = monster.name;
       elements.monsterImage.onerror = function() {
         this.src = 'assets/placeholder.svg';
@@ -933,6 +950,8 @@ const UI = (function() {
         var dots = elements.dragonProgress.querySelectorAll('.streak-dot');
         FX.streakPulse(dots[streak - 1]);
         playSfx('streak');
+        var taunt = MonsterStage && MonsterStage.actorFor(elements.monsterImage);
+        if (taunt) FX.animateClass(taunt, 'fx-taunt', 700);
       }
     }
 
@@ -1358,7 +1377,8 @@ const UI = (function() {
     // Set monster info
     if (elements.matchingMonsterImage) {
       if (hasFx()) FX.resetMonster(elements.matchingMonsterImage);
-      elements.matchingMonsterImage.src = 'assets/' + (monster.id || 'placeholder') + '.png';
+      if (typeof MonsterStage !== 'undefined' && monster.id) MonsterStage.show(elements.matchingMonsterImage, monster.id);
+      else elements.matchingMonsterImage.src = 'assets/' + (monster.id || 'placeholder') + '.png';
       elements.matchingMonsterImage.onerror = function() {
         elements.matchingMonsterImage.src = 'assets/placeholder.svg';
       };

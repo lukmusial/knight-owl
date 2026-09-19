@@ -10,6 +10,8 @@ import shutil, sys, time, os
 from gradio_client import Client, handle_file
 from huggingface_hub import get_token
 ids = sys.argv[1].split(',')
+# restyled characters come in as <id>_3dlook.png; everything else uses the cutout
+SUFFIX = sys.argv[2] if len(sys.argv) > 2 else '_in.png'
 client = Client('trellis-community/TRELLIS', verbose=False, token=get_token())
 for mid in ids:
     if os.path.exists(mid + '.glb'):
@@ -18,7 +20,8 @@ for mid in ids:
     try:
         try: client.predict(api_name='/start_session')
         except Exception: pass
-        pre = client.predict(handle_file(mid + '_in.png'), api_name='/preprocess_image')
+        src = mid + SUFFIX if os.path.exists(mid + SUFFIX) else mid + '_in.png'
+        pre = client.predict(handle_file(src), api_name='/preprocess_image')
         pre = pre if isinstance(pre, str) else pre['path']
         res = client.predict(handle_file(pre), [], 42, 7.5, 12, 3.0, 12, 'stochastic', 0.9, 1024, api_name='/generate_and_extract_glb')
         glb = res[2] if isinstance(res[2], str) else res[2]['path']

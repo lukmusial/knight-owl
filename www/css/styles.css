@@ -784,7 +784,7 @@ body {
   margin-bottom: 20px;
 }
 
-.monster-display img {
+.monster-display .monster-stage, .monster-display img {
   max-width: 448px;
   max-height: 400px;
   width: auto;

@@ -102,11 +102,37 @@ def hue_purple_cutout(img):
 
 
 
+def paint_out(img, cut):
+    """The illustration with the character painted out, so an animated sprite
+    can move across the scene without its twin showing underneath."""
+    import numpy as np
+    try:
+        import cv2
+    except ImportError:
+        return None
+    rgb = np.asarray(img.convert('RGB'))[:, :, ::-1].copy()
+    alpha = np.asarray(cut.convert('RGBA'))[:, :, 3]
+    mask = (alpha > 30).astype(np.uint8) * 255
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    mask = cv2.dilate(mask, k, iterations=2)
+    # inpaint at half size (cheap, and the smear reads as depth of field), then
+    # blur and darken inside the hole so it sits back behind the character
+    small = cv2.resize(rgb, (rgb.shape[1] // 2, rgb.shape[0] // 2), interpolation=cv2.INTER_AREA)
+    small_mask = cv2.resize(mask, (small.shape[1], small.shape[0]), interpolation=cv2.INTER_NEAREST)
+    filled = cv2.inpaint(small, small_mask, 7, cv2.INPAINT_TELEA)
+    filled = cv2.resize(filled, (rgb.shape[1], rgb.shape[0]), interpolation=cv2.INTER_LINEAR)
+    blurred = cv2.GaussianBlur(filled, (9, 9), 0)
+    m3 = (mask > 0)[:, :, None]
+    out = np.where(m3, (blurred * 0.88).astype(np.uint8), rgb)
+    return Image.fromarray(out[:, :, ::-1])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--only', default='')
     ap.add_argument('--max', type=int, default=512)
     ap.add_argument('--model', default='isnet-general-use')
+    ap.add_argument('--no-bg', action='store_true', help='skip the inpainted background plates')
     args = ap.parse_args()
 
     from rembg import remove, new_session
@@ -137,6 +163,7 @@ def main():
             cut = remove(img, session=session_for(model), post_process_mask=True)
         if path.stem in CENTRAL_ONLY:
             cut = keep_central(cut, CENTRAL_ONLY[path.stem])
+        uncropped = cut
         bbox = cut.getbbox()
         if not bbox:
             print('no subject found:', path.name, file=sys.stderr)
@@ -147,11 +174,18 @@ def main():
             cut = cut.resize((round(cut.width * scale), round(cut.height * scale)), Image.LANCZOS)
         out = DST / path.name
         cut.save(out, optimize=True)
-        index[path.stem] = {
+        entry = {
             'w': cut.width, 'h': cut.height,
-            # subject bounding box in the original 800x436 illustration
+            # subject bounding box in the original illustration
             'bbox': list(bbox)
         }
+        if not args.no_bg:
+            full = Image.open(path).convert('RGBA')
+            plate = paint_out(full, uncropped)
+            if plate is not None:
+                plate.convert('RGB').save(DST / (path.stem + '_bg.jpg'), quality=85, optimize=True)
+                entry['bg'] = True
+        index[path.stem] = entry
         print(f'{path.stem}: {cut.width}x{cut.height} ({out.stat().st_size // 1024} KB)')
 
     with open(index_path, 'w') as f:
