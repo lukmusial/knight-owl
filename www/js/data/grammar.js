@@ -1165,10 +1165,10 @@ const GRAMMAR_QUESTIONS = [
     category: 'grammar',
     prompt: 'Choose the correct superlative adjective:',
     sentence: 'Smok jest ___ potworem (The dragon is the strongest monster)',
-    hint: 'Superlative form of "silny"',
-    options: ['silny', 'silniejszy', 'najsilniejszy', 'silna'],
+    hint: 'Superlative form of "silny", in the same case as "potworem"',
+    options: ['silnym', 'silniejszym', 'najsilniejszym', 'silną'],
     correctIndex: 2,
-    explanation: 'Rule: Superlative adds "naj-" to comparative. Silny → silniejszy → najsilniejszy (strong → stronger → strongest).'
+    explanation: 'Rule: Superlative adds "naj-" to comparative: silny → silniejszy → najsilniejszy (strong → stronger → strongest). After "jest" with a noun, both take the instrumental case: "najsilniejszym potworem".'
   },
   {
     id: 'gram_104',

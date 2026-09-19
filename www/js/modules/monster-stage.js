@@ -28,7 +28,7 @@ var MonsterStage = (function() {
    * card's counterpart of the map's per-species height.
    */
   var CARD_SCALE = {
-    spider: 0.5, giant_rat: 0.9, bat_swarm: 0.55, ghost: 0.75, lost_soul: 0.75, will_o_wisp: 0.6,
+    spider: 0.5, giant_rat: 0.9, bat_swarm: 1, ghost: 0.75, lost_soul: 0.75, will_o_wisp: 0.6,
     grim_reaper: 1.4, dragon: 1.3
   };
 
