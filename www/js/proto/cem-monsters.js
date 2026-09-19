@@ -62,6 +62,7 @@ var CemMonsters = (function() {
   function pose(motion, t, phase, ev) {
     ev = ev || {};
     var walking = !!ev.walking;
+    var gait = ev.animated ? 0.35 : 1;   // a rendered walk cycle already strides
     var rate = walking ? 1.9 : 1;
     var p = t * 2 * Math.PI / 2.4 * rate + (phase || 0);
     var s = Math.sin(p);
@@ -97,6 +98,11 @@ var CemMonsters = (function() {
         out.rot = (walking ? 0.08 : 0.03) * s;
         out.sy = 1 + (walking ? 0.03 : 0.02) * Math.sin(p * 2);
         out.dy = walking ? -3 * Math.abs(Math.sin(p)) : 0;
+    }
+    if (gait !== 1) {
+      out.dx *= gait; out.dy *= gait; out.rot *= gait;
+      out.sx = 1 + (out.sx - 1) * gait;
+      out.sy = 1 + (out.sy - 1) * gait;
     }
     var dir = ev.dir || { x: 0, y: 1 };
     if (ev.flinch >= 0 && ev.flinch <= 1) {
@@ -153,6 +159,27 @@ var CemMonsters = (function() {
     return out;
   }
 
+  /**
+   * Which clip of a rendered sprite sheet to play, and which way to face.
+   * Reactions win over walking: a monster being hit shows that, not its gait.
+   * @param {Object} ev - { walking, dir:{x,y}, lunge, flinch, exit }
+   * @returns {Object} { clip, facing, flip }
+   */
+  function clipFor(ev) {
+    ev = ev || {};
+    var dir = ev.dir || { x: 0, y: 1 };
+    var facing = dir.y >= 0 ? 'front' : 'back';
+    var clip = 'idle';
+    if ((ev.flinch >= 0 && ev.flinch <= 1) || (ev.exit >= 0 && ev.exit <= 1)) clip = 'hit';
+    else if (ev.lunge >= 0 && ev.lunge <= 1) clip = 'attack';
+    else if (ev.walking) clip = 'walk';
+    return {
+      clip: clip,
+      facing: facing,
+      flip: facing === 'front' ? dir.x < 0 : dir.x > 0
+    };
+  }
+
   /** Progress of a timed action (0..1) or -1 when not running */
   function progress(startMs, nowMs, durMs) {
     if (!startMs) return -1;
@@ -171,6 +198,7 @@ var CemMonsters = (function() {
     exitOf: exitOf,
     walkMs: walkMs,
     facing: facing,
+    clipFor: clipFor,
     pose: pose,
     progress: progress
   };
