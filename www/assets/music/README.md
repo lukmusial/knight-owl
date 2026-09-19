@@ -15,14 +15,25 @@ comparison, prompts and the ffmpeg loop recipe) and replace this file.
 
 ## Cemetery loops (candidates)
 
-`cemetery-gothic.mp3`, `cemetery-quirky.mp3`, `cemetery-ominous.mp3` — three
-27 s seamless loops for the Halloween cemetery level, mono 96 kbps, generated
-with `tools/music/generate_loop.py` (prompts in the script). The isometric
-page plays `cemetery-ominous` by default; `?music=gothic|quirky|ominous|none`
-on `proto/isometric.html` switches (the choice is remembered). Once one is
-chosen, delete the other two.
+Six 27-40 s seamless loops for the Halloween cemetery, mono 96 kbps, made with
+`tools/music/generate_loop.py` (prompts live in that script, provenance in
+`tools/music/out/<name>.json`):
 
-Same licence caveat as the start theme: the Hugging Face Spaces were down,
-so these were generated locally with MusicGen (CC-BY-NC weights) and are
-development placeholders; `generate_loop.py` prefers the Stable Audio Open
-Space (Community License) when it is up.
+| File | Mood |
+|---|---|
+| `cemetery-gothic.mp3` | pipe organ, music box, tolling bell |
+| `cemetery-quirky.mp3` | haunted-carnival waltz, pizzicato, bassoon |
+| `cemetery-ominous.mp3` | low drone, sparse bell, timpani heartbeat |
+| `cemetery-carousel.mp3` | detuned calliope waltz, glockenspiel |
+| `cemetery-shanty.mp3` | skeleton sea shanty, fiddle, bones percussion |
+| `cemetery-lullaby.mp3` | wordless choir, celesta and harp |
+
+The isometric page plays `cemetery-ominous` by default;
+`?music=gothic|quirky|ominous|carousel|shanty|lullaby|none` switches and the
+choice is remembered. Pick one for release and delete the rest.
+
+All six were generated with **ACE-Step** (`ACE-Step/ACE-Step` on Hugging Face,
+Apache-2.0 model and code, instrumental via the `[inst]` tag). Unlike the
+MusicGen start theme there is no non-commercial clause on these files.
+`generate_loop.py` falls back to DiffRhythm (Apache-2.0), Stable Audio Open
+(Community License) and finally a local MusicGen (CC-BY-NC, development only).

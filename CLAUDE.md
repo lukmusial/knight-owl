@@ -67,6 +67,8 @@ const ModuleName = (function() {
 | IsoModel / scenes | `js/proto/iso-*.js` | Isometric fog-of-war prototype (pure tile model + Phaser scenes + bootstrap; `iso-main.js` also holds the dungeon/cemetery level picker) |
 | CemModel | `js/proto/cem-model.js` | Halloween cemetery level: seeded organic generator (fence, gate, lanes, graves, tombs, lanterns, decor), A* walking, wandering monsters with proximity attacks, skeleton-key gating, night visibility, save state (pure, node-tested) |
 | CemMonsters / CemMinimap | `js/proto/cem-monsters.js`, `cem-minimap.js` | Procedural gaits and reactions of the 2D monster cutouts; SVG minimap of the cemetery (pure) |
+| CemWorld / CemStick / CemPerf | `js/proto/cem-world.js`, `cem-stick.js`, `cem-perf.js` | Chunked ground and depth bands; dock thumb-stick; `?perf=1` overlay |
+| MonsterStage | `js/modules/monster-stage.js` | Animated monster layer over the painted encounter scene (all views) |
 | CemTextures / CemScenes / ProtoCem | `js/proto/cem-textures.js`, `cem-scenes.js`, `cem-main.js` | Procedural night art + Kenney kit sprite manifest (`assets/proto/iso/cemetery/`, rendered by `tools/iso/render_kit.py`), Phaser scene, and the cemetery game flow (encounters, key parts, Grim Reaper, victory) |
 
 ### Platform Abstraction Layer
@@ -112,11 +114,17 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 
 **Bosses** (`Combat.isBoss`: `boss: true` or difficulty 4): the dragon in the dungeon and the Grim Reaper in the cemetery need 3 consecutive correct answers; a wrong answer resets the streak and pushes the player back (cemetery: back to the gate)
 
-**Cemetery level** (cem-model.js): 30x26 tile grid with a 1-tile fence ring, 4 small tombs (2x2, level-3 guardians with key parts 1..4) + 1 large tomb (3x3, Grim Reaper), ~16 wandering monsters banded by lane distance from the gate, visibility radius 3 around Mr Owl plus 2.5 around each lamp post
+**Cemetery level** (cem-model.js): 60x52 tile grid with a 1-tile fence ring and 2-3 tile wide winding lanes, 4 small tombs (2x2, named guardians banshee/pumpkin_man/skeleton/ghost with key parts 1..4) + 1 large tomb (3x3, Grim Reaper), ~16 wandering monsters banded by lane distance (`WANDERER_BANDS`), sight radius 4 around Mr Owl plus 3 around each lamp post. Mr Owl moves continuously (`tickOwl`, `moveBy`, `OWL_SPEED` tiles/s, circle radius `OWL_RADIUS`) steered by the dock thumb-stick (`cem-stick.js`), drag or keys; tap-to-walk still uses A* (`pathTo` + `setPath`)
 
-**Cemetery music**: `ProtoCem` plays `assets/music/cemetery-<name>.mp3` (`?music=gothic|quirky|ominous|none`, remembered in `mrowl_cem_music`); loops are made by `tools/music/generate_loop.py`
+**Cemetery rendering** (cem-world.js): ground, prop shadows and lantern pools are baked into pooled 8x8-tile render textures; props live in depth-band Layers with cell culling; the night is a masked overlay that follows Mr Owl (`buildFog`). `?perf=1` shows frame rate, logic time, draw calls and the chunk pool
 
-**Save Format** (version 4): `{ player, dungeon, usedQuestions, mapState, usedMatchingQuestions, level: 'dungeon'|'cemetery', cemetery? }` (older versions load as dungeon saves)
+**Cemetery monsters**: rendered sprite sheets (`assets/proto/iso/monsters/<id>.png|json`, built by `tools/monsters3d/render_monster_iso.py` + `render_all.sh`) with walk/idle/attack/hit clips in two facings; `CemMonsters.clipFor` picks the clip, `pose` adds the reactions. Missing sheets fall back to the still cutout
+
+**Cemetery music**: `ProtoCem` plays `assets/music/cemetery-<name>.mp3` (`?music=gothic|quirky|ominous|carousel|shanty|lullaby|none`, remembered in `mrowl_cem_music`); loops are made by `tools/music/generate_loop.py` (ACE-Step)
+
+**Encounter card**: `MonsterStage` (js/modules/monster-stage.js) lifts the character off the painted scene onto its own layer over an inpainted backdrop (`assets/proto/monsters/<id>_bg.jpg`), plays sheet frames when they exist and reacts to answers (hit, lunge, exit styles in css/fx.css)
+
+**Save Format** (version 4): `{ player, dungeon, usedQuestions, mapState, usedMatchingQuestions, level: 'dungeon'|'cemetery', cemetery? }` (older versions load as dungeon saves; the cemetery state stores the owl's float position, saves from the first cut still load)
 
 ## Bilingual Content Pattern
 
