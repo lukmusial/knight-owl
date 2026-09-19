@@ -11,6 +11,7 @@ var CemScenes = (function() {
   // how fast a monster swings its heading around (radians per second)
   var TURN_RATE = Math.PI * 1.6;
   var FOG_DARK = 0.62;         // how dark the night is away from any light
+  var FOG_ENABLED = false;     // the moving night is off for now; the remembered-tile tint still applies
   // what the light in a tomb doorway means: waiting, taken, sealed
   var DOOR_LIGHT = { gold: 0xffd08a, blue: 0x7fd8ff, red: 0xff5a46 };
   var REDUCED_MOTION = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
@@ -615,7 +616,7 @@ var CemScenes = (function() {
      * Android WebView; plain sprites with blend modes work everywhere.
      */
     buildFog: function() {
-      this.softFog = this.textures.exists('cem_dark_ring') && this.textures.exists('cem_soft_light');
+      this.softFog = FOG_ENABLED && this.textures.exists('cem_dark_ring') && this.textures.exists('cem_soft_light');
       if (!this.softFog) return;
       this.fogRing = this.add.image(0, 0, 'cem_dark_ring').setOrigin(0.5, 0.5).setDepth(900000).setAlpha(FOG_DARK);
       this.fogGlows = [];        // additive lights over the dark: lanterns, the Reaper
@@ -661,7 +662,7 @@ var CemScenes = (function() {
       var cam = this.cameras.main;
       // no moon in the sky: it read as a stray disc behind the grounds
       // the fog sheet already frames the view, so the vignette only deepens the corners
-      this.vignette = this.add.image(0, 0, 'cem_vignette').setScrollFactor(0).setDepth(1e6).setAlpha(this.softFog ? 0.3 : 0.9);
+      this.vignette = this.add.image(0, 0, 'cem_vignette').setScrollFactor(0).setDepth(1e6).setAlpha(0.3);
       this.mist = [];
       if (!REDUCED_MOTION) {
         var b = this.level.bounds;
