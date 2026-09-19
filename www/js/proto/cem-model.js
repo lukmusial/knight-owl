@@ -35,6 +35,7 @@ var CemModel = (function() {
     OWL_RADIUS: 0.3,            // collision circle in tiles
     PROX_R: 1.2,                // a monster this close starts an encounter
     ARRIVE_EPS: 0.08,
+    REVEAL_RADIUS: 4,          // tiles from the great tomb's door at which the Reaper rises
     LOCKED_TOAST_MS: 1500,
     MATCHING_SHARE: 0.3,
     MAX_ATTEMPTS: 20,
@@ -245,7 +246,14 @@ var CemModel = (function() {
    * returns the cost of stepping onto a tile (Infinity = impassable). Returns
    * the tile list from `from` to `to` inclusive, or [] when unreachable.
    */
-  function astar(level, from, to, costFn) {
+  /**
+   * @param {Object} level
+   * @param {Object} from - {gx, gy}
+   * @param {Object} to - {gx, gy}
+   * @param {Function} costFn - (tile, level, gx, gy), Infinity to block
+   * @param {boolean} [diag] - allow diagonal steps (walking, not carving)
+   */
+  function astar(level, from, to, costFn, diag) {
     if (!inside(level, from.gx, from.gy) || !inside(level, to.gx, to.gy)) return [];
     var n = level.W * level.H;
     // one scratch buffer per level: a generation runs A* dozens of times
@@ -269,14 +277,21 @@ var CemModel = (function() {
       closed[ci] = 1;
       if (ci === goal) break;
       var cx = ci % level.W, cy = (ci - cx) / level.W;
-      for (var d = 0; d < 4; d++) {
-        var nx = cx + DIRS[d].dx, ny = cy + DIRS[d].dy;
+      var dirs = diag ? DIRS8 : DIRS;
+      for (var d = 0; d < dirs.length; d++) {
+        var nx = cx + dirs[d].dx, ny = cy + dirs[d].dy;
         if (!inside(level, nx, ny)) continue;
         var ni = ny * level.W + nx;
         if (closed[ni]) continue;
         var tile = level.tiles[ni];
         var c = costFn(tile, level, nx, ny);
         if (!(c < Infinity)) continue;
+        if (dirs[d].dx && dirs[d].dy) {
+          // no squeezing diagonally past the corner of a grave
+          if (!(costFn(level.tiles[cy * level.W + nx], level, nx, cy) < Infinity)) continue;
+          if (!(costFn(level.tiles[ny * level.W + cx], level, cx, ny) < Infinity)) continue;
+          c *= 1.4142;
+        }
         var nd = dist[ci] + c;
         if (nd < dist[ni]) {
           dist[ni] = nd;
@@ -1139,10 +1154,30 @@ var CemModel = (function() {
     return canEnter(level, gx, gy) ? 1 : Infinity;
   }
 
-  /** Route for Mr Owl over enterable tiles, [] when none */
+  /**
+   * Route for Mr Owl over enterable tiles, [] when none. Eight directions,
+   * so a tapped tile is walked to the way he would walk there himself
+   * rather than in stair steps.
+   */
+  /**
+   * The Grim Reaper comes out to meet Mr Owl: once, when he first comes
+   * within REVEAL_RADIUS tiles of the great tomb's door holding the whole
+   * key. Returns the event, or null.
+   */
+  function bossRises(level) {
+    if (level.bossRevealed || level.encounterUid || level.completed) return null;
+    var boss = level.monstersByUid.boss;
+    if (!boss || boss.defeated || !hasAllKeyParts(level)) return null;
+    var large = null;
+    for (var i = 0; i < level.tombs.length; i++) if (level.tombs[i].size === 'large') large = level.tombs[i];
+    if (!large || chebyshev(owlTile(level), large.door) > level.cfg.REVEAL_RADIUS) return null;
+    level.bossRevealed = true;
+    return { type: 'boss_rises', tomb: large.id };
+  }
+
   function pathTo(level, from, to) {
     if (!canEnter(level, to.gx, to.gy)) return [];
-    return astar(level, from, to, walkCost);
+    return astar(level, from, to, walkCost, true);
   }
 
   function inGateSafeZone(level, pos) {
@@ -1325,6 +1360,8 @@ var CemModel = (function() {
         if (lev) out.events.push(lev);
       }
       if (r.tileChanged) {
+        var rise = bossRises(level);
+        if (rise) out.events.push(rise);
         var evs = enterTile(level);
         for (var i = 0; i < evs.length; i++) out.events.push(evs[i]);
       }
@@ -1774,6 +1811,7 @@ var CemModel = (function() {
     advance: advance,
     checkProximity: checkProximity,
     startBossEncounter: startBossEncounter,
+    bossRises: bossRises,
     endEncounter: endEncounter,
     defeatMonster: defeatMonster,
     encounterMonsterFor: encounterMonsterFor,

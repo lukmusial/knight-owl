@@ -144,10 +144,19 @@ TestRunner.suite('CemModel', () => {
     TestRunner.assert(p.length > 1, 'path found');
     TestRunner.assert(p[0].gx === L.start.gx && p[0].gy === L.start.gy, 'starts at from');
     TestRunner.assert(p[p.length - 1].gx === porch.gx && p[p.length - 1].gy === porch.gy, 'ends at to');
+    var diagonals = 0;
     for (var i = 1; i < p.length; i++) {
-      TestRunner.assertEqual(manh(p[i - 1], p[i]), 1, '4-connected');
+      var step = Math.max(Math.abs(p[i].gx - p[i - 1].gx), Math.abs(p[i].gy - p[i - 1].gy));
+      TestRunner.assertEqual(step, 1, '8-connected');
+      if (manh(p[i - 1], p[i]) === 2) {
+        diagonals++;
+        // a diagonal may not cut the corner of anything he cannot walk on
+        TestRunner.assert(CemModel.canEnter(L, p[i].gx, p[i - 1].gy) &&
+          CemModel.canEnter(L, p[i - 1].gx, p[i].gy), 'diagonal keeps both corners open');
+      }
       TestRunner.assert(CemModel.isWalkable(L, p[i].gx, p[i].gy), 'walkable tile');
     }
+    TestRunner.assert(diagonals > 0, 'he cuts corners diagonally instead of walking stair steps');
     var grass = L.tiles.filter(function(t) { return t.kind === K.grass; })[0];
     TestRunner.assertEqual(CemModel.pathTo(L, L.start, grass).length, 0, 'no path onto grass');
   });
@@ -503,6 +512,33 @@ TestRunner.suite('CemModel', () => {
     var o = CemModel.owlPos(L);
     TestRunner.assert(o.y > big.door.gy + 0.5, 'clamped in front of the door');
     TestRunner.assert(CemModel.fitsCircle(L, o.x, o.y, CemModel.CONFIG.OWL_RADIUS), 'still on the lane');
+  });
+
+  TestRunner.test('the Reaper rises once, when Mr Owl nears the great tomb with the whole key', () => {
+    var L = gen(24);
+    var large = L.tombs.filter(function(t) { return t.size === 'large'; })[0];
+    L.graceMs = 0;
+    CemModel.setOwlTile(L, large.porch.gx, large.porch.gy);
+    TestRunner.assertEqual(CemModel.bossRises(L), null, 'nothing without the key');
+    ['g1', 'g2', 'g3', 'g4'].forEach(function(uid) { CemModel.defeatMonster(L, uid); });
+    CemModel.setOwlTile(L, L.start.gx, L.start.gy);
+    TestRunner.assertEqual(CemModel.bossRises(L), null, 'nothing from the gate, it is far away');
+    // walk the last few tiles of the route to the porch; the event comes with a tile change
+    var route = CemModel.pathTo(L, CemModel.owlTile(L), large.porch);
+    TestRunner.assert(route.length > 6, 'there is a route to the great tomb');
+    var far = route[route.length - 7];
+    CemModel.setOwlTile(L, far.gx, far.gy);
+    L.bossRevealed = false;                 // in case that spot was already close enough
+    CemModel.setPath(L, route.slice(route.length - 6));
+    var rose = 0;
+    for (var f = 0; f < 600 && L.owl.path.length; f++) {
+      var r = CemModel.tickOwl(L, { x: 0, y: 0 }, 16);
+      for (var i = 0; i < r.events.length; i++) if (r.events[i].type === 'boss_rises') rose++;
+      if (r.arrived) break;
+    }
+    TestRunner.assertEqual(rose, 1, 'the Reaper rose exactly once on the way in');
+    TestRunner.assert(L.bossRevealed, 'and the level remembers it');
+    TestRunner.assertEqual(CemModel.bossRises(L), null, 'he does not rise twice');
   });
 
   TestRunner.test('proximity is a circle around the owl, not a tile test', () => {
