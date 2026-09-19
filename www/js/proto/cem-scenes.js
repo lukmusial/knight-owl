@@ -22,7 +22,23 @@ var CemScenes = (function() {
   var OWL_H = 104;
   var OWL3D_H = 118;
   var MONSTER_H = 110;
-  var REAPER_H = 170;
+  var REAPER_H = OWL3D_H * 2;            // the Reaper towers over Mr Owl
+  /**
+   * How tall each monster stands next to the others. Without this every
+   * figure is normalised to the same height, which makes a spider or a rat
+   * as big as a zombie.
+   */
+  var MONSTER_SCALE = {
+    spider: 0.46, giant_rat: 0.46, bat_swarm: 0.58,
+    ghost: 0.72, lost_soul: 0.78, will_o_wisp: 0.6,
+    pumpkin_man: 0.92, banshee: 0.98, skeleton: 1, zombie: 1
+  };
+
+  function monsterHeight(id, role) {
+    if (role === 'boss') return REAPER_H;
+    var k = Object.prototype.hasOwnProperty.call(MONSTER_SCALE, id) ? MONSTER_SCALE[id] : 1;
+    return MONSTER_H * k;
+  }
   var FLOOR_BAND = -300000;
   var POOL_BAND = -200000;
   var SHADOW_BAND = -100000;
@@ -117,7 +133,7 @@ var CemScenes = (function() {
 
       var jobs = [];
       monsterIds(this).forEach(function(id) {
-        var targetH = id === CemModel.BOSS_ID ? REAPER_H : MONSTER_H;
+        var targetH = monsterHeight(id, id === CemModel.BOSS_ID ? 'boss' : 'wander');
         var img = cutout(id);
         if (img && IsoTextures.makeStanding(self, 'mon_' + id, img, targetH)) return;
         jobs.push(IsoTextures.loadImage('assets/' + id + '.png').then(function(full) {
@@ -426,33 +442,49 @@ var CemScenes = (function() {
           rec.objs.push(rec.sprite);
           this.world.addProp(rec.sprite, tomb.x0 + tomb.w - 1, tomb.y0 + tomb.h - 1);
         }
-        // The doorway belongs to the crypt's own wall, so it is hung on the
-        // door point the sprite sheet carries rather than floated over the
-        // tile in front. Three pieces: the dark opening, the light filling
-        // it, and the wedge that light throws across the ground outside.
+        // The crypt art has its own arch; the manifest's `portal` says where
+        // its sill sits and how big it is. The light is fitted into that arch
+        // and the spill on the ground starts on the sill, so both follow the
+        // sprite pixel for pixel. Only a crypt with no painted arch gets one
+        // drawn on the tile in front.
         var dp = IsoModel.gridToIso(tomb.door.gx, tomb.door.gy);
         var depth = CemModel.tombDepth(tomb, LAYERS.token) + 0.5;
-        var wall = { x: dp.x, y: dp.y - 6 };
-        var doorH = tomb.size === 'large' ? 86 : 66;
-        if (entry && entry.door && rec.sprite) {
+        var spillDepth = SHADOW_BAND + IsoModel.depthKey(tomb.door.gx, tomb.door.gy, 0) + 0.3;
+        var portal = entry && entry.portal && rec.sprite ? entry.portal : null;
+        rec.door = null;
+        if (portal) {
           var sc = rec.sprite.scaleX || 1;
-          wall.x = rec.sprite.x + (entry.door.x - entry.anchor.x) * entry.w * sc;
-          wall.y = rec.sprite.y + (entry.door.y - entry.anchor.y) * entry.h * sc;
+          var sill = {
+            x: rec.sprite.x + (portal.x - entry.anchor.x) * entry.w * sc,
+            y: rec.sprite.y + (portal.y - entry.anchor.y) * entry.h * sc
+          };
+          var aw = portal.w * entry.w, ah = portal.h * entry.h;
+          var lights = CemTextures.makeDoorLights(this, entry.name || tomb.size, aw, ah);
+          rec.glow = this.add.image(sill.x, sill.y, lights.glow.key).setOrigin(lights.glow.ox, lights.glow.oy)
+            .setScale(sc).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth + 0.05);
+          rec.spill = this.add.image(sill.x, sill.y, lights.spill.key).setOrigin(lights.spill.ox, lights.spill.oy)
+            .setScale(sc).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(spillDepth);
+          rec.arch = { x: sill.x, y: sill.y - ah * sc * 0.5 };
+        } else {
+          var wall = { x: dp.x, y: dp.y - 6 };
+          var doorH = tomb.size === 'large' ? 86 : 66;
+          var doorScale = doorH / 76;
+          rec.door = this.add.image(wall.x, wall.y, 'cem_door_dark').setOrigin(0.5, 1)
+            .setScale(doorScale).setDepth(depth);
+          var fallbackLights = CemTextures.makeDoorLights(this, 'drawn_' + tomb.size, 56 * doorScale, 76 * doorScale);
+          rec.glow = this.add.image(wall.x, wall.y, fallbackLights.glow.key).setOrigin(fallbackLights.glow.ox, fallbackLights.glow.oy)
+            .setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth + 0.05);
+          rec.spill = this.add.image(wall.x, wall.y, fallbackLights.spill.key).setOrigin(fallbackLights.spill.ox, fallbackLights.spill.oy)
+            .setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(spillDepth);
+          rec.arch = { x: wall.x, y: wall.y - doorH * 0.5 };
+          rec.lit.push(rec.door);
+          this.world.addProp(rec.door, tomb.door.gx, tomb.door.gy, { light: true });
         }
-        var doorScale = doorH / 76;
-        rec.door = this.add.image(wall.x, wall.y, 'cem_door_dark').setOrigin(0.5, 1)
-          .setScale(doorScale).setDepth(depth).setVisible(false);
-        rec.glow = this.add.image(wall.x, wall.y, 'cem_door_glow').setOrigin(0.5, 1)
-          .setScale(doorScale).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth + 0.05);
-        rec.spill = this.add.image(wall.x - 10, wall.y - 2, 'cem_door_spill').setOrigin(0.5, 0)
-          .setScale(doorScale * 0.9).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD)
-          .setDepth(SHADOW_BAND + IsoModel.depthKey(tomb.door.gx, tomb.door.gy, 0) + 0.3);
-        rec.lit.push(rec.door, rec.glow, rec.spill);
-        this.world.addProp(rec.door, tomb.door.gx, tomb.door.gy, { light: true });
+        rec.lit.push(rec.glow, rec.spill);
         this.world.addProp(rec.glow, tomb.door.gx, tomb.door.gy, { light: true });
         this.world.addProp(rec.spill, tomb.door.gx, tomb.door.gy, { light: true });
         if (tomb.size === 'large') {
-          rec.lock = this.add.image(wall.x, wall.y - doorH * 0.45, 'cem_lock').setDepth(depth + 0.1);
+          rec.lock = this.add.image(rec.arch.x, rec.arch.y, 'cem_lock').setDepth(depth + 0.1);
           rec.lit.push(rec.lock);
           this.world.addProp(rec.lock, tomb.door.gx, tomb.door.gy, { light: true });
         }
@@ -474,7 +506,7 @@ var CemScenes = (function() {
         rec.doorOpen = opened;
         // the opening is part of the wall, so it is always there; what the
         // light does tells you whether you may go in
-        rec.door.visible = rec.door.cemShown !== false;
+        if (rec.door) rec.door.visible = rec.door.cemShown !== false;
         // the doorway tells you what is left to do: a small tomb burns yellow
         // while its key part is still inside and blue once you have it; the
         // great tomb glows red until the key is whole, then yellow
@@ -838,7 +870,7 @@ var CemScenes = (function() {
       if (animated) {
         var meta = this.textures.get(key).customData.meta || {};
         var pivot = meta.pivot || { x: 0.5, y: 0.95 };
-        animScale = (m.role === 'boss' ? REAPER_H : MONSTER_H) / (meta.figureHeight || 120);
+        animScale = monsterHeight(m.id, m.role) / (meta.figureHeight || 120);
         sheetFacings = meta.facings || ['front', 'back'];
         sprite = this.add.sprite(p.x, p.y + 12, key, sheetFacings[0] + '_idle_0').setOrigin(pivot.x, pivot.y).setScale(animScale).setVisible(false);
       } else {
@@ -885,7 +917,7 @@ var CemScenes = (function() {
         if (!this.monsters.hasOwnProperty(uid)) continue;
         var st = this.monsters[uid];
         if (st.removed) continue;
-        var lit = L.vis[this.idx(st.gx, st.gy)] === 2 && !st.m.defeated;
+        var lit = (L.vis[this.idx(st.gx, st.gy)] === 2 || st.keepShown) && !st.m.defeated;
         if (st.actions.exit) lit = true;
         if (lit !== st.shown) {
           st.shown = lit;
@@ -1029,8 +1061,20 @@ var CemScenes = (function() {
      * The great tomb opens: doorway darkens, purple light spills out and the
      * reaper rises on the door tile.
      */
-    revealBoss: function(onDone) {
+    /**
+     * The Grim Reaper appears in the great tomb's doorway. With `smoke` he
+     * comes out in a burst of puffs; called again once he stands there, it
+     * only turns the camera to him.
+     */
+    revealBoss: function(onDone, smoke) {
       var L = this.level;
+      var standing = this.bossRevealed && this.monsters.boss && !this.monsters.boss.removed;
+      if (standing) {
+        var stb = this.monsters.boss;
+        this.focusOn(stb.bx, stb.by - 40, false);
+        this.time.delayedCall(REDUCED_MOTION ? 0 : 400, function() { if (onDone) onDone(); });
+        return;
+      }
       this.bossRevealed = true;
       this.refreshTombs();
       fx('creak');
@@ -1038,14 +1082,39 @@ var CemScenes = (function() {
       var st = this.monsters.boss || this.spawnMonster(boss);
       var large = null;
       for (var i = 0; i < L.tombs.length; i++) if (L.tombs[i].size === 'large') large = L.tombs[i];
-      var dp = IsoModel.gridToIso(large.door.gx, large.door.gy - 0.6);
+      // on the door tile, a little out of the doorway, so he sorts in front of the crypt
+      var dp = IsoModel.gridToIso(large.door.gx, large.door.gy + 0.35);
       st.bx = dp.x; st.by = dp.y + 12;
       st.gx = large.door.gx; st.gy = large.door.gy;
+      st.gdir = { x: 0, y: 1 }; st.gdirTo = { x: 0, y: 1 };     // facing out of the door
+      st.keepShown = true;                                       // seen from afar, dark or not
       this.setMonsterDepth(st);
+      st.sprite.setDepth(Math.max(st.sprite.depth, CemModel.tombDepth(large, LAYERS.token) + 0.8));
       st.shown = true; st.sprite.setVisible(true); st.contact.setVisible(true);
       st.actions.appear = this.time.now;
+      if (smoke && !REDUCED_MOTION) this.smokeBurst(dp.x, dp.y - 30, 11);
       this.focusOn(dp.x, dp.y - 40, false);
       this.time.delayedCall(REDUCED_MOTION ? 0 : CemMonsters.ACTIONS.appear + 200, function() { if (onDone) onDone(); });
+    },
+
+    /** A burst of smoke puffs that swell, drift up and thin out */
+    smokeBurst: function(x, y, count) {
+      var self = this;
+      for (var i = 0; i < count; i++) {
+        var a = (i / count) * Math.PI * 2 + Math.random() * 0.6;
+        var r = 8 + Math.random() * 26;
+        var puff = this.add.image(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.5 + 10, 'cem_puff')
+          .setScale(0.7 + Math.random() * 0.5).setAlpha(1).setDepth(1e5)
+          .setBlendMode(Phaser.BlendModes.ADD).setTint(0xd8ccf0);
+        this.tweens.add({
+          targets: puff,
+          scale: 2.2 + Math.random() * 1.2, alpha: 0,
+          x: puff.x + (Math.random() - 0.5) * 50, y: puff.y - 30 - Math.random() * 40,
+          duration: 900 + Math.random() * 600, delay: Math.random() * 180, ease: 'Sine.easeOut',
+          onComplete: (function(p) { return function() { p.destroy(); }; })(puff)
+        });
+      }
+      void self;
     },
 
     /**
@@ -1162,9 +1231,15 @@ var CemScenes = (function() {
           }
           st.flip = c.flip;
         }
+        // the gait is a multiplier on the figure's own size: without this the
+        // per-frame scale would throw away the size the sheet was spawned at,
+        // and a spider would stand as tall as a zombie
+        o.sx *= st.animScale || 1;
+        o.sy *= st.animScale || 1;
         if (st.lockScale) { o.sx *= st.lockScale.x; o.sy *= st.lockScale.y; }
         if (st.collapse) { o.sx *= st.collapse.sx; o.sy *= st.collapse.sy; o.dy += st.collapse.dy; o.alpha *= st.collapse.alpha; }
-        st.sprite.setPosition(st.bx + o.dx, st.by + o.dy).setScale(o.sx, o.sy).setAlpha(o.alpha).setFlipX(st.flip);
+        var base = st.animScale || 1;   // the sheet's own scale; the pose only modulates it
+        st.sprite.setPosition(st.bx + o.dx, st.by + o.dy).setScale(o.sx * base, o.sy * base).setAlpha(o.alpha).setFlipX(st.flip);
         if (!st.pulse || !st.pulse.isPlaying()) st.sprite.setRotation(o.rot);
         st.contact.setPosition(st.bx, st.by).setAlpha(0.5 * o.alpha);
         if (st.glow) st.glow.setPosition(st.bx + o.dx, st.by + o.dy - 40).setAlpha(0.6 * o.alpha);

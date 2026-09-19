@@ -205,6 +205,10 @@ def pose(motion, clip, u):
         if walking:
             rot[0] = math.radians(-4)
 
+    if clip in ('attack', 'hit'):
+        # the robe sway is a sideways bend: during a reaction it made the
+        # figure drift to one side of its frame instead of coming forward
+        ang = 0.0
     if clip == 'attack':
         # wind up, snap forward, settle; the game supplies the travel
         if u < 0.34:
