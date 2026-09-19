@@ -1,11 +1,11 @@
 """Render the rigged Mr Owl (mr_owl.blend from rig.py) as isometric sprite frames.
 
-    blender -b mr_owl.blend --python render_iso.py -- <out_dir> [size]
+    blender -b mr_owl.blend --python render_iso.py -- <out_dir> [size] [facings]
 
 Camera: orthographic, 2:1 dimetric (elevation atan(1/2)) like the isometric
-view's 128x64 tiles. Two facings are rendered and the game mirrors them:
-  front - walking toward the viewer, down-left on screen
-  back  - walking away from the viewer, up-right on screen
+view's 128x64 tiles. Five facings are rendered - down, down_right, right,
+up_right and up - and the game mirrors them for the other three, so Mr Owl
+faces whichever of the eight screen directions he is walking in.
 Clips: Walk (8 frames over one stride) and Idle (6 frames over the breath loop).
 Writes <facing>_<clip>_<n>.png plus pivot.json (feet position as a fraction of
 the frame) for pack_sprites.py.
@@ -74,7 +74,21 @@ cam.location = target + Vector((d * math.cos(elev) / math.sqrt(2), -d * math.cos
 cam.rotation_euler = (target - cam.location).to_track_quat('-Z', 'Y').to_euler()
 
 tracks = rig.animation_data.nla_tracks
-FACINGS = {'front': 0.0, 'back': math.pi}      # owl faces -Y (down-left on screen); pi turns him away
+# Mr Owl faces -Y at rotation 0, which this camera shows as down-left. Turning
+# him in 45 degree steps gives the eight screen directions; three of them are
+# the mirror image of another, so only five are rendered.
+ALL_FACINGS = {
+    'down_left': 0.0,
+    'down': math.pi * 0.25,
+    'down_right': math.pi * 0.5,
+    'right': math.pi * 0.75,
+    'up_right': math.pi,
+    'up': math.pi * 1.25,
+    'up_left': math.pi * 1.5,
+    'left': math.pi * 1.75,
+}
+want = argv[2].split(',') if len(argv) > 2 else ['down', 'down_right', 'right', 'up_right', 'up']
+FACINGS = dict((n, ALL_FACINGS[n]) for n in want)
 CLIPS = {'Walk': (20, 8), 'Idle': (48, 6)}
 
 scene.frame_set(0)
@@ -82,6 +96,7 @@ feet = world_to_camera_view(scene, cam, Vector((0.05, -0.02, -0.49)))
 pivot = {'x': round(feet.x, 4), 'y': round(1 - feet.y, 4)}
 
 for facing, rot in FACINGS.items():
+    rig.rotation_mode = 'XYZ'
     rig.rotation_euler = (0, 0, rot)
     for clip, (length, count) in CLIPS.items():
         for t in tracks: t.mute = (t.name != clip)

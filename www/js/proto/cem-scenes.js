@@ -8,6 +8,10 @@
  */
 
 var CemScenes = (function() {
+  // how fast a monster swings its heading around (radians per second)
+  var TURN_RATE = Math.PI * 1.6;
+  // what the light in a tomb doorway means: waiting, taken, sealed
+  var DOOR_LIGHT = { gold: 0xffd08a, blue: 0x7fd8ff, red: 0xff5a46 };
   var REDUCED_MOTION = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false;
@@ -124,12 +128,14 @@ var CemScenes = (function() {
       });
 
       if (this.textures.exists('owl3d')) {
-        ['front', 'back'].forEach(function(facing) {
+        var owlMeta = this.textures.get('owl3d').customData.meta || {};
+        var owlClips = owlMeta.clips || { walk: 8, idle: 6 };
+        (owlMeta.facings || ['front', 'back']).forEach(function(facing) {
           if (self.anims.exists('owl3d_walk_' + facing)) return;
           self.anims.create({ key: 'owl3d_walk_' + facing, frameRate: 12, repeat: -1,
-            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_walk_', start: 0, end: 7 }) });
+            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_walk_', start: 0, end: (owlClips.walk || 8) - 1 }) });
           self.anims.create({ key: 'owl3d_idle_' + facing, frameRate: 3, repeat: -1,
-            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_idle_', start: 0, end: 5 }) });
+            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_idle_', start: 0, end: (owlClips.idle || 6) - 1 }) });
         });
       } else {
         var owl = cutout('knight_owl');
@@ -420,16 +426,33 @@ var CemScenes = (function() {
           rec.objs.push(rec.sprite);
           this.world.addProp(rec.sprite, tomb.x0 + tomb.w - 1, tomb.y0 + tomb.h - 1);
         }
-        // door overlay on the door tile: dark opening once opened, chained lock while sealed
+        // The doorway belongs to the crypt's own wall, so it is hung on the
+        // door point the sprite sheet carries rather than floated over the
+        // tile in front. Three pieces: the dark opening, the light filling
+        // it, and the wedge that light throws across the ground outside.
         var dp = IsoModel.gridToIso(tomb.door.gx, tomb.door.gy);
         var depth = CemModel.tombDepth(tomb, LAYERS.token) + 0.5;
-        rec.door = this.add.image(dp.x, dp.y - 6, 'cem_door_dark').setOrigin(0.5, 1).setScale(0.8).setDepth(depth).setVisible(false);
-        rec.glow = this.add.image(dp.x, dp.y - 24, 'glow_gold').setScale(0.7).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth - 0.1);
-        rec.lit.push(rec.door, rec.glow);
+        var wall = { x: dp.x, y: dp.y - 6 };
+        var doorH = tomb.size === 'large' ? 86 : 66;
+        if (entry && entry.door && rec.sprite) {
+          var sc = rec.sprite.scaleX || 1;
+          wall.x = rec.sprite.x + (entry.door.x - entry.anchor.x) * entry.w * sc;
+          wall.y = rec.sprite.y + (entry.door.y - entry.anchor.y) * entry.h * sc;
+        }
+        var doorScale = doorH / 76;
+        rec.door = this.add.image(wall.x, wall.y, 'cem_door_dark').setOrigin(0.5, 1)
+          .setScale(doorScale).setDepth(depth).setVisible(false);
+        rec.glow = this.add.image(wall.x, wall.y, 'cem_door_glow').setOrigin(0.5, 1)
+          .setScale(doorScale).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth + 0.05);
+        rec.spill = this.add.image(wall.x - 10, wall.y - 2, 'cem_door_spill').setOrigin(0.5, 0)
+          .setScale(doorScale * 0.9).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD)
+          .setDepth(SHADOW_BAND + IsoModel.depthKey(tomb.door.gx, tomb.door.gy, 0) + 0.3);
+        rec.lit.push(rec.door, rec.glow, rec.spill);
         this.world.addProp(rec.door, tomb.door.gx, tomb.door.gy, { light: true });
         this.world.addProp(rec.glow, tomb.door.gx, tomb.door.gy, { light: true });
+        this.world.addProp(rec.spill, tomb.door.gx, tomb.door.gy, { light: true });
         if (tomb.size === 'large') {
-          rec.lock = this.add.image(dp.x, dp.y - 34, 'cem_lock').setDepth(depth + 0.1);
+          rec.lock = this.add.image(wall.x, wall.y - doorH * 0.45, 'cem_lock').setDepth(depth + 0.1);
           rec.lit.push(rec.lock);
           this.world.addProp(rec.lock, tomb.door.gx, tomb.door.gy, { light: true });
         }
@@ -449,28 +472,36 @@ var CemScenes = (function() {
         var beaten = !guardian || guardian.defeated;
         var opened = tomb.size === 'large' ? (L.monstersByUid.boss.defeated || this.bossRevealed || this.bossBeaten) : beaten;
         rec.doorOpen = opened;
-        rec.door.visible = opened && rec.door.cemShown !== false;
+        // the opening is part of the wall, so it is always there; what the
+        // light does tells you whether you may go in
+        rec.door.visible = rec.door.cemShown !== false;
         // the doorway tells you what is left to do: a small tomb burns yellow
         // while its key part is still inside and blue once you have it; the
         // great tomb glows red until the key is whole, then yellow
-        var key, alpha;
+        var tint, alpha;
         if (tomb.size === 'large') {
-          key = CemModel.hasAllKeyParts(L) ? 'glow_gold' : 'cem_glow_red';
-          alpha = 0.7;
+          tint = CemModel.hasAllKeyParts(L) ? DOOR_LIGHT.gold : DOOR_LIGHT.red;
+          alpha = 0.85;
         } else {
-          key = beaten ? 'glow_cyan' : 'glow_gold';
-          alpha = beaten ? 0.5 : 0.65;
+          tint = beaten ? DOOR_LIGHT.blue : DOOR_LIGHT.gold;
+          alpha = beaten ? 0.6 : 0.8;
         }
-        if (rec.glowKey !== key) {
-          rec.glow.setTexture(key);
-          rec.glowKey = key;
+        if (rec.glowTint !== tint) {
+          rec.glow.setTint(tint);
+          rec.spill.setTint(tint);
+          rec.glowTint = tint;
           if (!REDUCED_MOTION) {
+            // the light breathes, and the spill on the ground breathes with it
             if (rec.glowTween) rec.glowTween.stop();
-            rec.glow.setScale(0.7);
-            rec.glowTween = this.tweens.add({ targets: rec.glow, scale: 0.95, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+            rec.glow.setAlpha(alpha);
+            rec.glowTween = this.tweens.add({
+              targets: [rec.glow, rec.spill], alpha: { from: alpha * 0.72, to: alpha },
+              duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+            });
           }
         }
-        rec.glow.setAlpha(alpha);
+        rec.glowAlpha = alpha;
+        if (REDUCED_MOTION) { rec.glow.setAlpha(alpha); rec.spill.setAlpha(alpha * 0.8); }
         if (rec.lock) { rec.lockOn = !CemModel.hasAllKeyParts(L); rec.lock.visible = rec.lockOn && rec.lock.cemShown !== false; }
       }
     },
@@ -617,13 +648,15 @@ var CemScenes = (function() {
     createPlayer: function() {
       this.highlight = this.add.image(0, 0, 'highlight_ring').setDepth(0).setVisible(false);
       this.tapRing = this.add.image(0, 0, 'reach_ring').setDepth(0).setVisible(false);
-      this.owl3d = this.textures.exists('owl3d') && this.anims.exists('owl3d_walk_front');
-      this.owlFacing = 'front';
+      var owlSheet = this.textures.exists('owl3d') ? (this.textures.get('owl3d').customData.meta || {}) : null;
+      this.owlFacings = (owlSheet && owlSheet.facings) || ['front', 'back'];
+      this.owl3d = !!owlSheet && this.anims.exists('owl3d_walk_' + this.owlFacings[0]);
+      this.owlFacing = this.owlFacings[0];
       if (this.owl3d) {
-        var meta = this.textures.get('owl3d').customData.meta || {};
+        var meta = owlSheet;
         var pivot = meta.pivot || { x: 0.52, y: 0.91 };
         this.owlScale = OWL3D_H / (meta.figureHeight || 160);
-        this.player = this.add.sprite(0, 0, 'owl3d', 'front_idle_0').setOrigin(pivot.x, pivot.y).setScale(this.owlScale).setVisible(false);
+        this.player = this.add.sprite(0, 0, 'owl3d', this.owlFacing + '_idle_0').setOrigin(pivot.x, pivot.y).setScale(this.owlScale).setVisible(false);
         this.playerHasWalk = true;
       } else {
         var hasFrames = this.textures.exists('owl') && this.textures.get('owl').has('idle');
@@ -665,9 +698,14 @@ var CemScenes = (function() {
       if (!this.owl3d) this.player.setScale(1, 1);
     },
 
-    faceOwl: function(dx, dy) {
-      this.owlFacing = dy >= 0 ? 'front' : 'back';
-      this.player.setFlipX(this.owlFacing === 'front' ? dx > 0 : dx < 0);
+    /**
+     * Point Mr Owl along a grid direction. Eight screen directions come out
+     * of the five rendered facings, three of them mirrored.
+     */
+    faceOwl: function(gx, gy) {
+      var f = CemMonsters.facingFor(gx, gy, this.owlFacings);
+      this.owlFacing = f.facing;
+      this.player.setFlipX(f.flip);
     },
 
     updatePlayerDepth: function() {
@@ -701,8 +739,7 @@ var CemScenes = (function() {
       this.updatePlayerDepth();
       var moving = (vx * vx + vy * vy) > 0.0025;
       if (moving) {
-        var scr = IsoModel.gridToIso(vx, vy);
-        this.faceOwl(scr.x, scr.y);
+        this.faceOwl(vx, vy);
         if (this.owl3d) this.player.play('owl3d_walk_' + this.owlFacing, true);
         else if (this.playerHasWalk && !this.walking) this.player.play('owl_walk');
         if (!this.walking) { this.stopIdle(); this.walking = true; }
@@ -797,11 +834,13 @@ var CemScenes = (function() {
       var p = IsoModel.gridToIso(m.gx, m.gy);
       var sprite;
       var animScale = 1;
+      var sheetFacings = null;
       if (animated) {
         var meta = this.textures.get(key).customData.meta || {};
         var pivot = meta.pivot || { x: 0.5, y: 0.95 };
         animScale = (m.role === 'boss' ? REAPER_H : MONSTER_H) / (meta.figureHeight || 120);
-        sprite = this.add.sprite(p.x, p.y + 12, key, 'front_idle_0').setOrigin(pivot.x, pivot.y).setScale(animScale).setVisible(false);
+        sheetFacings = meta.facings || ['front', 'back'];
+        sprite = this.add.sprite(p.x, p.y + 12, key, sheetFacings[0] + '_idle_0').setOrigin(pivot.x, pivot.y).setScale(animScale).setVisible(false);
       } else {
         sprite = this.add.sprite(p.x, p.y + 12, key).setOrigin(0.5, 1).setVisible(false);
       }
@@ -816,6 +855,8 @@ var CemScenes = (function() {
         bx: p.x, by: p.y + 12, gx: m.gx, gy: m.gy,
         motion: CemMonsters.motionOf(m.id), phase: hash(m.gx, m.gy, 17) * Math.PI * 2,
         walking: false, dir: { x: 0, y: 1 }, flip: false,
+        // grid heading: where it is pointing now, and where it wants to point
+        gdir: { x: 1, y: 1 }, gdirTo: { x: 1, y: 1 }, facings: sheetFacings,
         actions: { lunge: 0, flinch: 0, appear: 0, exit: 0 }, exitStyle: CemMonsters.exitOf(m.id),
         shown: false, removed: false, tween: null,
         anim: animated, animScale: animScale, lastClip: null, lastFacing: null
@@ -855,35 +896,67 @@ var CemScenes = (function() {
       }
     },
 
-    /** Slide a monster to its new tile (model already moved it) */
-    moveMonster: function(uid, to) {
+    /**
+     * Walk a monster to its new tile (the model already moved it). The slide
+     * lasts as long as the monster's own step, so it never stands still
+     * between tiles, and the heading is a target the figure turns toward
+     * rather than a jump.
+     */
+    moveMonster: function(uid, to, stepMs) {
       var st = this.monsters[uid];
       if (!st || st.removed) return;
       var self = this;
       var q = IsoModel.gridToIso(to.gx, to.gy);
       var dx = q.x - st.bx, dy = q.y + 12 - st.by;
+      var gdx = to.gx - st.gx, gdy = to.gy - st.gy;
       st.gx = to.gx; st.gy = to.gy;
       var len = Math.sqrt(dx * dx + dy * dy) || 1;
       st.dir = { x: dx / len, y: dy / len };
+      var glen = Math.sqrt(gdx * gdx + gdy * gdy);
+      if (glen > 0) st.gdirTo = { x: gdx / glen, y: gdy / glen };
       if (!st.anim && Math.abs(dx) > 1) st.flip = CemMonsters.facing(dx);
       st.walking = true;
       if (st.tween) st.tween.stop();
       if (REDUCED_MOTION) {
         st.bx = q.x; st.by = q.y + 12; st.walking = false;
+        st.gdir = { x: st.gdirTo.x, y: st.gdirTo.y };
         this.setMonsterDepth(st);
         this.refreshMonsters();
         return;
       }
+      var cross = Math.max(CemMonsters.walkMs(st.motion), Math.min(stepMs || 0, 1600));
       st.tween = this.tweens.add({
-        targets: st, bx: q.x, by: q.y + 12, duration: CemMonsters.walkMs(st.motion), ease: 'Linear',
+        targets: st, bx: q.x, by: q.y + 12, duration: cross, ease: 'Linear',
         onUpdate: function() { self.setMonsterDepth(st); },
         onComplete: function() { st.walking = false; st.tween = null; }
       });
       this.refreshMonsters();
     },
 
+    /** Turn a monster's heading toward where it is going, a little each frame */
+    turnMonster: function(st, deltaMs) {
+      var want = st.gdirTo || st.gdir;
+      var a = Math.atan2(st.gdir.y, st.gdir.x);
+      var b = Math.atan2(want.y, want.x);
+      var diff = b - a;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      var step = TURN_RATE * (deltaMs / 1000);
+      if (Math.abs(diff) <= step) a = b;
+      else a += diff > 0 ? step : -step;
+      st.gdir = { x: Math.cos(a), y: Math.sin(a) };
+    },
+
     dirToOwl: function(st) {
       var dx = this.player.x - st.bx, dy = this.player.y - st.by;
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      return { x: dx / len, y: dy / len };
+    },
+
+    /** The same direction in grid units, for picking the facing */
+    gridDirToOwl: function(st) {
+      var o = CemModel.owlPos(this.level);
+      var dx = o.x - st.gx, dy = o.y - st.gy;
       var len = Math.sqrt(dx * dx + dy * dy) || 1;
       return { x: dx / len, y: dy / len };
     },
@@ -894,6 +967,7 @@ var CemScenes = (function() {
       if (!st || st.removed) { if (onDone) onDone(); return; }
       var self = this;
       st.dir = this.dirToOwl(st);
+      st.gdirTo = this.gridDirToOwl(st);
       if (st.dir.x < -0.1) st.flip = true; else if (st.dir.x > 0.1) st.flip = false;
       st.shown = true; st.sprite.setVisible(true); st.contact.setVisible(true); if (st.glow) st.glow.setVisible(true);
       if (REDUCED_MOTION) { if (onDone) onDone(); return; }
@@ -909,6 +983,7 @@ var CemScenes = (function() {
       if (!st || st.removed) { if (onDone) onDone(); return; }
       var self = this;
       st.dir = this.dirToOwl(st);
+      st.gdirTo = this.gridDirToOwl(st);
       if (REDUCED_MOTION) { this.removeMonster(uid); if (onDone) onDone(); return; }
       st.actions.flinch = this.time.now;
       fx('hit');
@@ -1047,8 +1122,11 @@ var CemScenes = (function() {
         for (var id in self.tombObjs) {
           if (!self.tombObjs.hasOwnProperty(id) || self.tombObjs[id].tomb.size !== 'large') continue;
           var rec = self.tombObjs[id];
-          rec.glow.setTexture('glow_gold');
-          t.add({ targets: rec.glow, alpha: 0.9, scale: 1.4, duration: 1200, ease: 'Sine.easeOut' });
+          if (rec.glowTween) { rec.glowTween.stop(); rec.glowTween = null; }
+          rec.glow.setTint(DOOR_LIGHT.gold);
+          rec.spill.setTint(DOOR_LIGHT.gold);
+          rec.glowTint = DOOR_LIGHT.gold;
+          t.add({ targets: [rec.glow, rec.spill], alpha: 0.95, duration: 1200, ease: 'Sine.easeOut' });
         }
         self.time.delayedCall(1500, function() { glow.destroy(); ring.destroy(); if (onDone) onDone(); });
       }
@@ -1070,10 +1148,13 @@ var CemScenes = (function() {
           appear: CemMonsters.progress(st.actions.appear, time, A.appear),
           exit: CemMonsters.progress(st.actions.exit, time, A.exit)
         };
+        ev.gdir = st.gdir;
         if (st.anim) ev.animated = true;
         var o = REDUCED_MOTION ? { dx: 0, dy: 0, sx: 1, sy: 1, rot: 0, alpha: 1 } : CemMonsters.pose(st.motion, t, st.phase, ev);
+        this.turnMonster(st, this.game.loop.delta || 16);
+        ev.gdir = st.gdir;
         if (st.anim && !REDUCED_MOTION) {
-          var c = CemMonsters.clipFor(ev);
+          var c = CemMonsters.clipFor(ev, st.facings);
           if (c.clip !== st.lastClip || c.facing !== st.lastFacing) {
             var key = 'anim_' + st.m.id + '_' + c.clip + '_' + c.facing;
             if (this.anims.exists(key)) st.sprite.play(key, true);

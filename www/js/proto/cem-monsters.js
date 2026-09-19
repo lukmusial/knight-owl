@@ -165,19 +165,59 @@ var CemMonsters = (function() {
    * @param {Object} ev - { walking, dir:{x,y}, lunge, flinch, exit }
    * @returns {Object} { clip, facing, flip }
    */
-  function clipFor(ev) {
+  /**
+   * The eight screen directions a figure can face, in grid-angle order:
+   * index i is the direction at i * 45 degrees from grid +x. Grid +x runs
+   * down-right on screen and grid +y down-left, so 'down' is grid (1, 1).
+   */
+  var FACING_ORDER = ['down_right', 'down', 'down_left', 'left', 'up_left', 'up', 'up_right', 'right'];
+  // three of the eight are the mirror image of another, so they are not rendered
+  var MIRRORED = { down_left: 'down_right', left: 'right', up_left: 'up_right' };
+
+  function hasFacing(list, name) {
+    return !!list && list.indexOf(name) !== -1;
+  }
+
+  /**
+   * Which rendered facing to draw for a movement direction, and whether to
+   * flip it. Takes the direction in grid units (gx to the down-right, gy to
+   * the down-left) so it matches the angles the sprites were rendered at.
+   *
+   * Sheets that only carry the old front/back pair still work: the eight
+   * directions collapse back onto those two with a horizontal flip.
+   *
+   * @param {number} vx - grid x component (any length)
+   * @param {number} vy - grid y component
+   * @param {Array} [facings] - facing names the sheet actually has
+   * @returns {Object} { facing, flip, name } - name is the true direction
+   */
+  function facingFor(vx, vy, facings) {
+    if (!vx && !vy) vy = 1;
+    var step = Math.round(Math.atan2(vy, vx) / (Math.PI / 4));
+    var name = FACING_ORDER[((step % 8) + 8) % 8];
+    if (hasFacing(facings, name)) return { facing: name, flip: false, name: name };
+    var mirror = Object.prototype.hasOwnProperty.call(MIRRORED, name) ? MIRRORED[name] : null;
+    if (mirror && hasFacing(facings, mirror)) return { facing: mirror, flip: true, name: name };
+    // old two-facing sheets (and the no-sheet case): toward the viewer or away
+    var front = name === 'down' || name === 'down_left' || name === 'down_right' || name === 'left';
+    var toRight = name.indexOf('right') !== -1 || name === 'down';
+    return { facing: front ? 'front' : 'back', flip: front ? !toRight : toRight, name: name };
+  }
+
+  /**
+   * Which clip and facing a monster should be showing.
+   * @param {Object} ev - as for pose(), plus gdir {x, y} in grid units
+   * @param {Array} [facings] - facing names the sheet has
+   */
+  function clipFor(ev, facings) {
     ev = ev || {};
-    var dir = ev.dir || { x: 0, y: 1 };
-    var facing = dir.y >= 0 ? 'front' : 'back';
+    var g = ev.gdir || { x: 1, y: 1 };
     var clip = 'idle';
     if ((ev.flinch >= 0 && ev.flinch <= 1) || (ev.exit >= 0 && ev.exit <= 1)) clip = 'hit';
     else if (ev.lunge >= 0 && ev.lunge <= 1) clip = 'attack';
     else if (ev.walking) clip = 'walk';
-    return {
-      clip: clip,
-      facing: facing,
-      flip: facing === 'front' ? dir.x < 0 : dir.x > 0
-    };
+    var f = facingFor(g.x, g.y, facings);
+    return { clip: clip, facing: f.facing, flip: f.flip, direction: f.name };
   }
 
   /** Progress of a timed action (0..1) or -1 when not running */
@@ -194,6 +234,9 @@ var CemMonsters = (function() {
     ACTIONS: ACTIONS,
     WALK_MS: WALK_MS,
     LUNGE_PX: LUNGE_PX,
+    FACING_ORDER: FACING_ORDER,
+    MIRRORED: MIRRORED,
+    facingFor: facingFor,
     motionOf: motionOf,
     exitOf: exitOf,
     walkMs: walkMs,

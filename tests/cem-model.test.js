@@ -274,7 +274,10 @@ TestRunner.suite('CemModel', () => {
     TestRunner.assertEqual(CemModel.checkProximity(L).length, 0, 'grace suppresses proximity');
     CemModel.advance(L, CemModel.CONFIG.GRACE_MS + 1);
     TestRunner.assertEqual(L.graceMs, 0, 'grace ran out');
-    // the monster wandered during those seconds; put it back within reach
+    // the monsters wandered during those seconds and one of them may have
+    // walked into Mr Owl the moment grace ran out; clear that and put the
+    // monster under test back within reach
+    L.encounterUid = null;
     w.gx = L.owl.gx; w.gy = L.owl.gy;
     TestRunner.assertEqual(CemModel.checkProximity(L).length, 1, 'fires again after grace');
     TestRunner.assertEqual(L.encounterUid, w.uid, 'with that monster');

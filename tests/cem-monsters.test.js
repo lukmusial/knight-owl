@@ -71,19 +71,43 @@ TestRunner.suite('CemMonsters', () => {
     TestRunner.assertEqual(CemMonsters.facing(-3), true, 'moving left flips');
     TestRunner.assertEqual(CemMonsters.facing(3), false, 'moving right does not flip');
   });
-  TestRunner.test('clipFor picks the reaction over the gait and mirrors by direction', () => {
-    var hit = CemMonsters.clipFor({ walking: true, lunge: 0.5, flinch: 0.5, dir: { x: 0, y: 1 } });
+  TestRunner.test('clipFor picks the reaction over the gait', () => {
+    const south = { gdir: { x: 1, y: 1 } };
+    var hit = CemMonsters.clipFor({ walking: true, lunge: 0.5, flinch: 0.5, gdir: south.gdir });
     TestRunner.assertEqual(hit.clip, 'hit', 'being hit beats everything');
-    TestRunner.assertEqual(CemMonsters.clipFor({ walking: true, lunge: 0.5, dir: { x: 0, y: 1 } }).clip, 'attack', 'attacking beats walking');
-    TestRunner.assertEqual(CemMonsters.clipFor({ walking: true, dir: { x: 0, y: 1 } }).clip, 'walk', 'walking');
-    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 0, y: 1 } }).clip, 'idle', 'idle by default');
-    TestRunner.assertEqual(CemMonsters.clipFor({ exit: 0.4, dir: { x: 0, y: 1 } }).clip, 'hit', 'leaving keeps the hurt pose');
+    TestRunner.assertEqual(CemMonsters.clipFor({ walking: true, lunge: 0.5, gdir: south.gdir }).clip, 'attack', 'attacking beats walking');
+    TestRunner.assertEqual(CemMonsters.clipFor({ walking: true, gdir: south.gdir }).clip, 'walk', 'walking');
+    TestRunner.assertEqual(CemMonsters.clipFor(south).clip, 'idle', 'idle by default');
+    TestRunner.assertEqual(CemMonsters.clipFor({ exit: 0.4, gdir: south.gdir }).clip, 'hit', 'leaving keeps the hurt pose');
+  });
 
-    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 1, y: 1 } }).facing, 'front', 'coming toward the viewer');
-    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 1, y: -1 } }).facing, 'back', 'walking away');
-    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: -1, y: 1 } }).flip, true, 'front sheet mirrors going left');
-    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 1, y: 1 } }).flip, false, 'front sheet as rendered going right');
-    TestRunner.assertEqual(CemMonsters.clipFor({ dir: { x: 1, y: -1 } }).flip, true, 'back sheet mirrors the other way');
+  TestRunner.test('facingFor covers all eight directions from five rendered ones', () => {
+    const sheet = ['down', 'down_right', 'right', 'up_right', 'up'];
+    const cases = [
+      [1, 1, 'down', false], [1, 0, 'down_right', false], [1, -1, 'right', false],
+      [0, -1, 'up_right', false], [-1, -1, 'up', false],
+      [-1, 0, 'up_right', true], [-1, 1, 'right', true], [0, 1, 'down_right', true]
+    ];
+    const seen = {};
+    cases.forEach(function(c) {
+      const f = CemMonsters.facingFor(c[0], c[1], sheet);
+      TestRunner.assertEqual(f.facing, c[2], 'grid ' + c[0] + ',' + c[1] + ' uses the ' + c[2] + ' sheet');
+      TestRunner.assertEqual(f.flip, c[3], 'grid ' + c[0] + ',' + c[1] + ' flip');
+      seen[f.name] = true;
+    });
+    TestRunner.assertEqual(Object.keys(seen).length, 8, 'eight distinct directions');
+    // near-diagonals snap to the closest of the eight
+    TestRunner.assertEqual(CemMonsters.facingFor(1, 0.2, sheet).name, 'down_right', 'a small drift keeps the facing');
+    TestRunner.assertEqual(CemMonsters.facingFor(0, 0, sheet).name, 'down_left', 'standing still faces the viewer');
+  });
+
+  TestRunner.test('facingFor falls back to an old two-facing sheet', () => {
+    const old = ['front', 'back'];
+    TestRunner.assertEqual(CemMonsters.facingFor(1, 1, old).facing, 'front', 'coming toward the viewer');
+    TestRunner.assertEqual(CemMonsters.facingFor(1, -1, old).facing, 'back', 'walking away');
+    TestRunner.assertEqual(CemMonsters.facingFor(-1, 1, old).flip, true, 'front sheet mirrors going left');
+    TestRunner.assertEqual(CemMonsters.facingFor(1, 1, old).flip, false, 'front sheet as rendered going right');
+    TestRunner.assertEqual(CemMonsters.clipFor({ gdir: { x: 1, y: -1 } }, old).facing, 'back', 'clipFor passes the sheet through');
   });
 
   TestRunner.test('a rendered walk cycle damps the procedural gait but not the reactions', () => {

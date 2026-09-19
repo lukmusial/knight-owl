@@ -208,7 +208,10 @@ var ProtoCem = (function() {
     var encounter = null;
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.type === 'moved') scene.moveMonster(e.uid, e.to);
+      if (e.type === 'moved') {
+        var mv = level.monstersByUid[e.uid];
+        scene.moveMonster(e.uid, e.to, mv ? mv.stepMs : 0);
+      }
       if (e.type === 'encounter') encounter = e;
     }
     if (events.length) scene.refreshMonsters();

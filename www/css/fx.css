@@ -309,12 +309,14 @@
   0%, 100% { transform: translateY(0) scaleY(1); }
   50% { transform: translateY(-1.5%) scaleY(1.025); }
 }
+/* the lunge comes at the player, so it grows as it arrives */
 .monster-actor.fx-lunge { animation: fx-actor-lunge 700ms ease-out; }
 @keyframes fx-actor-lunge {
-  0% { transform: translateY(0) scale(1); }
-  25% { transform: translateY(-2%) scale(0.96); }
-  50% { transform: translateY(8%) scale(1.22); }
-  100% { transform: translateY(0) scale(1); }
+  0% { transform: translateY(0) scale(1); filter: brightness(1); }
+  22% { transform: translateY(-3%) scale(0.93); filter: brightness(0.85); }
+  52% { transform: translateY(11%) scale(1.34); filter: brightness(1.25); }
+  74% { transform: translateY(5%) scale(1.12); }
+  100% { transform: translateY(0) scale(1); filter: brightness(1); }
 }
 .monster-actor.fx-hit { animation: fx-actor-hit 550ms ease-out; }
 @keyframes fx-actor-hit {
@@ -343,10 +345,11 @@
   30% { transform: translateY(-6%) scale(1.06) rotate(6deg); }
   to { transform: translateY(-12%) scale(0.02) rotate(-20deg); opacity: 0; }
 }
+/* beaten and running off into the scene, not sideways out of the frame */
 .monster-actor.fx-exit-runaway { animation: fx-actor-runaway 1100ms ease-in forwards; }
 @keyframes fx-actor-runaway {
-  30% { transform: translate(-8%, -4%) scale(0.98); }
-  to { transform: translate(140%, -6%) scale(0.85); opacity: 0; }
+  25% { transform: translate(-4%, -6%) scale(0.92); }
+  to { transform: translate(-16%, -30%) scale(0.42); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .monster-actor { animation: none !important; }

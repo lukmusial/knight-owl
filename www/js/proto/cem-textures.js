@@ -219,17 +219,105 @@ var CemTextures = (function() {
     }
   }
 
-  function drawDoorDark(ctx, w, h) {
+  /**
+   * The tomb doorway sits on the wall that faces the camera's lower left, so
+   * its jambs stay upright while the sill and the lintel run down to the
+   * right along the tile edge, one pixel down for every two across. The path
+   * is built once and reused for the opening, its light and its frame.
+   */
+  var DOOR_SLOPE = 0.5;
+
+  function doorPath(ctx, w, h, inset) {
+    var x0 = inset, x1 = w - inset;
+    var mid = (x0 + x1) / 2;
+    var r = (x1 - x0) / 2;
+    var baseY = h - inset;                       // sill at the left jamb
+    var rise = (x1 - x0) * DOOR_SLOPE;           // how far the sill drops across
+    ctx.beginPath();
+    ctx.moveTo(x0, baseY);
+    ctx.lineTo(x0, baseY - (h - inset * 2) * 0.52);
+    // the arch, sheared so it follows the wall
+    for (var a = Math.PI; a <= Math.PI * 2 + 0.001; a += Math.PI / 24) {
+      var px = mid + Math.cos(a) * r;
+      var py = baseY - (h - inset * 2) * 0.52 + Math.sin(a) * r * 0.62 + (px - x0) * DOOR_SLOPE;
+      ctx.lineTo(px, py);
+    }
+    ctx.lineTo(x1, baseY + rise);
+    ctx.closePath();
+  }
+
+  /** The dark opening itself, with a stone reveal down the inside of the jamb */
+  function drawDoorway(ctx, w, h) {
+    doorPath(ctx, w, h, 3);
     var g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, '#05040a');
-    g.addColorStop(1, '#16102a');
+    g.addColorStop(0.55, '#0b0916');
+    g.addColorStop(1, '#171029');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    // a sliver of lit stone on the left jamb reads as depth into the wall
+    var j = ctx.createLinearGradient(0, 0, w * 0.4, 0);
+    j.addColorStop(0, 'rgba(150,145,170,0.5)');
+    j.addColorStop(1, 'rgba(150,145,170,0)');
+    ctx.fillStyle = j;
+    ctx.fillRect(0, 0, w * 0.4, h);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(26,22,34,0.9)';
+    ctx.lineWidth = 3;
+    doorPath(ctx, w, h, 3);
+    ctx.stroke();
+  }
+
+  /**
+   * The light that fills the opening, painted white so the scene can tint it
+   * gold, blue or red. Brightest along the sill, fading up into the arch.
+   */
+  function drawDoorGlow(ctx, w, h) {
+    doorPath(ctx, w, h, 4);
+    ctx.save();
+    ctx.clip();
+    var g = ctx.createLinearGradient(0, h, 0, h * 0.1);
+    g.addColorStop(0, 'rgba(255,255,255,0.95)');
+    g.addColorStop(0.45, 'rgba(255,255,255,0.45)');
+    g.addColorStop(1, 'rgba(255,255,255,0.04)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+    // a soft halo around the frame, so the stone catches the light too
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 6;
+    ctx.filter = 'blur(4px)';
+    doorPath(ctx, w, h, 4);
+    ctx.stroke();
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * The wedge of light the doorway throws onto the ground in front of it,
+   * drawn flat on the floor diamond: wide at the sill, fading away down-left.
+   */
+  function drawDoorSpill(ctx, w, h) {
+    var g = ctx.createRadialGradient(w / 2, h * 0.12, w * 0.04, w / 2, h * 0.12, w * 0.5);
+    g.addColorStop(0, 'rgba(255,255,255,0.85)');
+    g.addColorStop(0.45, 'rgba(255,255,255,0.33)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.save();
+    ctx.translate(w / 2, h * 0.12);
+    ctx.scale(1, 0.5);                            // the floor is a 2:1 diamond
+    ctx.translate(-w / 2, -h * 0.12);
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(4, h); ctx.lineTo(4, w / 2); ctx.arc(w / 2, w / 2, w / 2 - 4, Math.PI, 0); ctx.lineTo(w - 4, h); ctx.closePath();
+    ctx.moveTo(w * 0.34, h * 0.06);
+    ctx.lineTo(w * 0.66, h * 0.06);
+    ctx.lineTo(w, h * 1.5);
+    ctx.lineTo(0, h * 1.5);
+    ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = 'rgba(180,120,255,0.55)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.restore();
   }
 
   function drawLock(ctx, size) {
@@ -543,7 +631,9 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_mist', 256, 96, function(ctx) { drawMist(ctx, 256, 96); });
     canvasTexture(scene, 'cem_sparkle', 32, 32, function(ctx) { drawSparkle(ctx, 32); });
     canvasTexture(scene, 'cem_puff', 64, 64, function(ctx) { drawPuff(ctx, 64); });
-    canvasTexture(scene, 'cem_door_dark', 48, 72, function(ctx) { drawDoorDark(ctx, 48, 72); });
+    canvasTexture(scene, 'cem_door_dark', 56, 76, function(ctx) { drawDoorway(ctx, 56, 76); });
+    canvasTexture(scene, 'cem_door_glow', 56, 76, function(ctx) { drawDoorGlow(ctx, 56, 76); });
+    canvasTexture(scene, 'cem_door_spill', 192, 128, function(ctx) { drawDoorSpill(ctx, 192, 128); });
     canvasTexture(scene, 'cem_lock', 40, 40, function(ctx) { drawLock(ctx, 40); });
     canvasTexture(scene, 'cem_glow_green', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(120,255,170,0.4)'); });
     canvasTexture(scene, 'cem_glow_red', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(255,70,50,0.55)'); });
