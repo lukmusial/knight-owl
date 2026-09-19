@@ -16,7 +16,8 @@
 var CemWorld = (function() {
   var TILE_W = 128, TILE_H = 64;
   var CHUNK = 8;                  // tiles per chunk side
-  var CHUNK_POOL = 18;            // render textures kept alive at once
+  var CHUNK_POOL = 18;            // render textures the pool starts with
+  var CHUNK_POOL_MAX = 48;        // and may grow to, before it starts recycling chunks still in view
   var BAND_TILES = 4;             // tiles per depth band (gx + gy)
   var CELL_COLS = 8;              // tiles per cull column (gx - gy)
   var PAD = 320;                  // world px of camera padding before culling
@@ -43,6 +44,8 @@ var CemWorld = (function() {
 
     // --- layers ------------------------------------------------------------
     var groundLayer = scene.add.layer().setDepth(GROUND_DEPTH);
+    // light on the floor: above every ground chunk (which come and go), below everything that stands
+    var floorLayer = scene.add.layer().setDepth(GROUND_DEPTH + 1);
     var bands = [];
     for (var b = 0; b <= maxBand; b++) {
       bands.push(scene.add.layer().setDepth(b));
@@ -95,11 +98,21 @@ var CemWorld = (function() {
         slot = pool.length - 1;
       }
       if (slot === -1) {
-        // recycle the chunk the camera has ignored the longest
+        // recycle the chunk the camera has ignored the longest; but never one
+        // it is looking at right now, that blanks a screenful of ground for a
+        // frame and flickers as it bakes back. Grow the pool instead.
         var oldest = 0;
         for (var j = 1; j < pool.length; j++) if (pool[j].used < pool[oldest].used) oldest = j;
-        slot = oldest;
-        delete byChunk[pool[slot].chunk];
+        if (pool[oldest].used >= frameCounter - 1 && pool.length < CHUNK_POOL_MAX) {
+          var rect1 = chunkRect[chunk];
+          var rt1 = scene.add.renderTexture(0, 0, Math.ceil(rect1.w), Math.ceil(rect1.h)).setOrigin(0, 0);
+          groundLayer.add(rt1);
+          pool.push({ rt: rt1, chunk: -1, used: 0 });
+          slot = pool.length - 1;
+        } else {
+          slot = oldest;
+          delete byChunk[pool[slot].chunk];
+        }
       }
       var s = pool[slot];
       s.chunk = chunk;
@@ -153,12 +166,12 @@ var CemWorld = (function() {
      * @param {number} gx - tile it stands on
      * @param {number} gy
      * @param {Object} opts - { light: true to put it in the lights layer,
-     *   ground: true to lay it on the ground under everything that stands }
+     *   ground: true to lay it on the floor, over the ground chunks and under everything that stands }
      */
     function addProp(obj, gx, gy, opts) {
       opts = opts || {};
       if (opts.light) lightsLayer.add(obj);
-      else if (opts.ground) groundLayer.add(obj);
+      else if (opts.ground) floorLayer.add(obj);
       else bands[Math.min(bands.length - 1, Math.max(0, bandOf(gx, gy)))].add(obj);
       var c = cellFor(gx, gy);
       c.objs.push(obj);
@@ -240,6 +253,16 @@ var CemWorld = (function() {
       obj.visible = shown && (!obj.cemCell || obj.cemCell.shown);
     }
 
+    /**
+     * Mark every live chunk for repainting. Used once the scene has settled
+     * after boot: on a slow device the first bakes can run before every
+     * texture is on the GPU and come out blank, and nothing repaints them
+     * until Mr Owl reveals new ground.
+     */
+    function rebakeAll() {
+      for (var i = 0; i < pool.length; i++) if (pool[i].chunk !== -1) dirty[pool[i].chunk] = true;
+    }
+
     function stats() {
       var live = 0;
       for (var i = 0; i < pool.length; i++) if (pool[i].chunk !== -1) live++;
@@ -249,6 +272,7 @@ var CemWorld = (function() {
     return {
       CHUNK: CHUNK,
       groundLayer: groundLayer,
+      floorLayer: floorLayer,
       lightsLayer: lightsLayer,
       bands: bands,
       bandOf: bandOf,
@@ -260,6 +284,7 @@ var CemWorld = (function() {
       removeDynamic: removeDynamic,
       setPropShown: setPropShown,
       markSeen: markSeen,
+      rebakeAll: rebakeAll,
       update: update,
       stats: stats
     };

@@ -274,6 +274,11 @@ var CemScenes = (function() {
       this.placeOwl(this.level.owl, true);
       this.refreshVisibility(true);
       this.fadeReveals = true;              // from now on, reveals fade in
+      // repaint the ground twice after boot: the first bakes on a slow
+      // device can land before its textures are uploaded and come out blank
+      var self2 = this;
+      this.time.delayedCall(500, function() { if (self2.world) { self2.world.rebakeAll(); self2.world.update(true); } });
+      this.time.delayedCall(2000, function() { if (self2.world) { self2.world.rebakeAll(); self2.world.update(true); } });
       this.perf = (typeof CemPerf !== 'undefined') ? CemPerf.attach(this) : null;
       var cb = callbacks(this);
       if (cb.onReady) cb.onReady(this);

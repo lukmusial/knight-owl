@@ -22,6 +22,19 @@ TestRunner.suite('CemMinimap', () => {
     TestRunner.assert(countOf(svg, 'cem-map-tomb') <= 5, 'tombs drawn at most once each');
   });
 
+  TestRunner.test('gridAt inverts the map projection under any fit', () => {
+    const L = CemModel.generate(24);
+    const t = CemMinimap.fit(L, 1400, 800);
+    [[0, 0], [L.W - 1, L.H - 1], [30, 12], [L.owl.gx, L.owl.gy]].forEach(function(g) {
+      const p = CemMinimap.project(g[0], g[1]);
+      const x = (p.x - t.left) * t.scale + t.ox, y = (p.y - t.top) * t.scale + t.oy;
+      const back = CemMinimap.gridAt(t, x, y);
+      TestRunner.assertEqual(back.gx, g[0], 'gx back for ' + g);
+      TestRunner.assertEqual(back.gy, g[1], 'gy back for ' + g);
+    });
+    TestRunner.assert(t.ox >= 0 && t.oy >= 0, 'the map is centred, never cut');
+  });
+
   TestRunner.test('shows everything once all tiles are seen, marks the unlocked great tomb', () => {
     var L = CemModel.generate(32);
     for (var i = 0; i < L.seen.length; i++) L.seen[i] = 1;

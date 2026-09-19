@@ -663,3 +663,28 @@ body.on-game #victory-screen {
 @media (prefers-reduced-motion: reduce) {
   .hud-minimap { transition: none; }
 }
+
+/* --- The big cemetery map --------------------------------------------------- */
+.hud-minimap .dungeon-map-container { cursor: pointer; }
+.modal.cem-map { display: flex; align-items: center; justify-content: center; }
+.cem-map-panel { width: min(96vw, 960px); max-height: 92vh; display: flex; flex-direction: column; padding: 10px 12px 12px; }
+.cem-map-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cem-map-title { font-family: var(--hud-font-title); color: var(--hud-gold); font-size: 1.15rem; }
+.cem-map-title .label-pl { display: block; font-size: 0.85rem; font-style: italic; opacity: 0.8; }
+.cem-map-tools { display: flex; gap: 6px; }
+.cem-map-tools .hud-btn { width: 40px; height: 40px; font-size: 1.2rem; }
+.cem-map-view {
+  overflow: auto; -webkit-overflow-scrolling: touch; touch-action: none;
+  height: min(60vh, 520px); min-height: 220px;
+  background: #0b0f18; border: 2px solid #4a3114; border-radius: 4px; cursor: grab;
+}
+.cem-map-view:active { cursor: grabbing; }
+.cem-map-canvas { display: block; image-rendering: auto; }
+.cem-map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 0.85rem; color: var(--hud-parchment); }
+.cem-map-legend .label-pl { display: block; font-style: italic; opacity: 0.75; }
+.cem-map-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.cem-map-dot.you { background: #00bcd4; box-shadow: 0 0 0 2px #e0f7fa; }
+.cem-map-dot.tomb { background: #7a8290; border-radius: 2px; }
+.cem-map-dot.great { background: #8a5cc7; border-radius: 2px; }
+.cem-map-dot.monster { background: #e14b4b; }
+.cem-map-hint { flex-basis: 100%; opacity: 0.85; }

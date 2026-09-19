@@ -110,18 +110,44 @@ var CemMinimap = (function() {
    * Same picture on a 2D canvas context: the HUD redraws this at most once a
    * second instead of reparsing an SVG string.
    */
-  function draw(level, ctx, opts) {
-    opts = opts || {};
+  /**
+   * The map's fit inside a canvas: map px are scaled by `scale` after
+   * subtracting `left`/`top`, and the drawing is centred.
+   */
+  function fit(level, cw, ch) {
     var W = level.W, H = level.H;
     var left = px(0, H - 1).x - S - PAD;
     var top = px(0, 0).y - S - PAD;
     var width = (px(W - 1, 0).x + S + PAD) - left;
     var height = (px(W - 1, H - 1).y + S + PAD) - top;
-    var scale = Math.min((ctx.canvas.width || width) / width, (ctx.canvas.height || height) / height);
+    var scale = Math.min((cw || width) / width, (ch || height) / height);
+    var ox = ((cw || width) - width * scale) / 2, oy = ((ch || height) - height * scale) / 2;
+    return { scale: scale, left: left, top: top, ox: ox, oy: oy, width: width, height: height };
+  }
+
+  /** Grid coordinates (rounded) under a canvas pixel, given the fit draw() returned */
+  function gridAt(t, x, y) {
+    var mx = (x - t.ox) / t.scale + t.left;
+    var my = (y - t.oy) / t.scale + t.top;
+    var a = mx / S, b = 2 * my / S;      // a = gx - gy, b = gx + gy
+    return { gx: Math.round((a + b) / 2), gy: Math.round((b - a) / 2) };
+  }
+
+  /**
+   * @param {Object} opts - { showMonsters, markerScale (1 = HUD size) }
+   * @returns {Object} the fit used, for gridAt
+   */
+  function draw(level, ctx, opts) {
+    opts = opts || {};
+    var W = level.W, H = level.H;
+    var mk = opts.markerScale || 1;
+    var t = fit(level, ctx.canvas.width, ctx.canvas.height);
+    var left = t.left, top = t.top, scale = t.scale;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#0b0f18';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.translate(t.ox, t.oy);
     ctx.scale(scale, scale);
     ctx.translate(-left, -top);
 
@@ -196,21 +222,29 @@ var CemMinimap = (function() {
         if (level.vis[mon.gy * W + mon.gx] !== 2) continue;
         var mp = px(mon.gx, mon.gy);
         ctx.beginPath();
-        ctx.arc(mp.x, mp.y, 2.6, 0, Math.PI * 2);
+        ctx.arc(mp.x, mp.y, 2.6 * mk, 0, Math.PI * 2);
         ctx.fill();
       }
     }
     var o = level.owl;
     var op = px(typeof o.x === 'number' ? o.x : o.gx, typeof o.y === 'number' ? o.y : o.gy);
     ctx.globalAlpha = 1;
+    if (mk > 1) {
+      // a halo so you find yourself at a glance on the big map
+      ctx.fillStyle = 'rgba(0,188,212,0.25)';
+      ctx.beginPath();
+      ctx.arc(op.x, op.y, 3.4 * mk * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.fillStyle = '#00bcd4';
     ctx.strokeStyle = '#e0f7fa';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1 * mk;
     ctx.beginPath();
-    ctx.arc(op.x, op.y, 3.4, 0, Math.PI * 2);
+    ctx.arc(op.x, op.y, 3.4 * mk, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
+    return t;
   }
 
   /** Cheap signature of everything the map shows, so it only redraws on change */
@@ -231,7 +265,7 @@ var CemMinimap = (function() {
     return n;
   }
 
-  return { render: render, draw: draw, stateKey: stateKey, project: px };
+  return { render: render, draw: draw, fit: fit, gridAt: gridAt, stateKey: stateKey, project: px };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
