@@ -16,6 +16,7 @@
     "ios:run": "npx cap copy ios && npx cap run ios",
     "test:cem": "node tools/smoke/cemetery.js",
     "test:cem:perf": "node tools/smoke/cem-perf.js",
+    "test:fp:perf": "node tools/smoke/fp-perf.js",
     "record:cem": "node tools/smoke/cem-record.js",
     "test:e2e": "maestro test .maestro/flows/",
     "test:e2e:android": "maestro test .maestro/flows/",

@@ -220,6 +220,60 @@ TestRunner.suite('FpLayout', () => {
     TestRunner.assert(ins > 0 && cracks > 0, 'dungeon has inscriptions (' + ins + ') and cracks (' + cracks + ')');
   });
 
+  TestRunner.test('wallFeatures: gothic dressing sits on solid walls and never on a torch wall', () => {
+    var windows = 0, arcades = 0, niches = 0, dressed = 0, plain = 0;
+    allCells(function(c) {
+      var w = FpLayout.wallFeatures(c, D);
+      var used = {};
+      var any = false;
+      w.windows.forEach(function(win) {
+        windows++; any = true;
+        TestRunner.assert(c.walls[win.dir], 'window on a solid wall');
+        TestRunner.assert(!used[win.dir], 'one piece of dressing per wall');
+        used[win.dir] = true;
+        TestRunner.assert(win.bays.length === 1 || win.bays.length === 2, 'one broad window or a pair of lancets');
+        win.bays.forEach(function(b) {
+          TestRunner.assert(b.sill > D.COVE, 'sill clears the floor cove');
+          TestRunner.assert(b.apex < D.WALL_TOP, 'the head stays below the vault (' + b.apex.toFixed(2) + ')');
+          TestRunner.assert(b.spring > b.sill && b.apex > b.spring, 'sill, springing and apex in order');
+          TestRunner.assert(Math.abs(b.s) + b.halfW + 0.3 < D.CH - D.R, 'the opening stays on the flat part of the wall');
+          // an equilateral arch: the rise is the half-width times root three
+          TestRunner.assert(Math.abs((b.apex - b.spring) - b.halfW * Math.sqrt(3)) < 1e-9, 'equilateral head');
+        });
+      });
+      if (w.arcade) {
+        arcades++; any = true;
+        TestRunner.assert(c.walls[w.arcade.dir], 'arcade on a solid wall');
+        TestRunner.assert(!used[w.arcade.dir], 'arcade has the wall to itself');
+        used[w.arcade.dir] = true;
+        TestRunner.assert(w.arcade.bays >= 4 && w.arcade.bays <= 5, 'four or five bays');
+      }
+      if (w.niche) {
+        niches++; any = true;
+        TestRunner.assert(c.walls[w.niche.dir], 'niche on a solid wall');
+        TestRunner.assert(!used[w.niche.dir], 'niche has the wall to itself');
+        TestRunner.assert(Math.abs(w.niche.s) < D.CH - D.R, 'niche on the flat part');
+      }
+      if (any) dressed++; else plain++;
+      var torches = FpLayout.torchSpots(c, D);
+      var torchDir = torches.length ? torches[0].dir : null;
+      Object.keys(used).forEach(function(dir) {
+        if (torchDir && torches[0].s === 0) TestRunner.assert(dir !== torchDir, 'nothing hidden behind a centred torch');
+      });
+      if (c.type === 'boss') TestRunner.assert(w.windows.length > 0, 'the boss hall always has its windows');
+    });
+    TestRunner.assert(windows > 0 && arcades > 0 && niches > 0,
+      'the dungeon uses all three (' + windows + ' windows, ' + arcades + ' arcades, ' + niches + ' niches)');
+    TestRunner.assert(dressed > plain, 'most chambers are dressed (' + dressed + ' of ' + (dressed + plain) + ')');
+  });
+
+  TestRunner.test('wallFeatures is deterministic for a cell', () => {
+    var c = cell(2, 3, 'monster', walls(true, true, true, true));
+    var a = JSON.stringify(FpLayout.wallFeatures(c, D));
+    var b = JSON.stringify(FpLayout.wallFeatures(c, D));
+    TestRunner.assertEqual(a, b, 'same chamber, same stonework');
+  });
+
   TestRunner.test('blobOutline wobbles within bounds', () => {
     var pts = FpLayout.blobOutline(1, 24, 0.37);
     TestRunner.assertEqual(pts.length, 24, 'segment count');

@@ -60,7 +60,14 @@ var FpRenderer = (function() {
   var lavaCells = {};
   var torchList = [];       // { cellId, x, y, z, phase }
   var flameMesh = null, flameMaterial = null;
+  var inFrame = false;
   var torchLights = [], lightSlots = [], lavaLights = [], gateLight = null, headLight = null, hemi = null;
+  var lanternFill = null, owlBeam = null, owlBeamTarget = null;
+  // Mr Owl carries this much light with him. A torch on the wall is 50, and
+  // the lantern is meant to read as one he holds, so it sits below that but
+  // well inside the same scale.
+  var LANTERN_INTENSITY = 22;
+  var BEAM_INTENSITY = 26;
   var gateBars = null, gateRune = null, gateHost = null;
   var fades = [];
   var focusId = null;
@@ -142,9 +149,21 @@ var FpRenderer = (function() {
     hemi = new THREE.HemisphereLight(0x7078a0, 0x3a2818, 0.16);
     scene.add(hemi);
 
-    // faint warm fill carried by the player so billboards and near walls never go black
-    headLight = new THREE.PointLight(0xffc890, 0.6, 8, 2);
-    headLight.position.set(0, 0.2, 0.3);
+    // Mr Owl's own lantern. It used to sit behind the camera at +z, which is
+    // why whatever he faced was lit only by whatever stood behind it; it now
+    // hangs in front of him and is strong enough to model a monster's face.
+    headLight = new THREE.PointLight(0xffd2a0, LANTERN_INTENSITY, 9, 2);
+    headLight.position.set(0.12, 0.05, -0.75);
+    // a wider, dimmer pool so the floor and near walls do not fall away
+    lanternFill = new THREE.PointLight(0xffc890, 2.2, 6, 2);
+    lanternFill.position.set(0, 0.35, 0.1);
+    // and a soft beam along his line of sight, so whatever he is looking at
+    // is modelled from the front instead of being a silhouette
+    owlBeam = new THREE.SpotLight(0xffd8ae, BEAM_INTENSITY, 13, Math.PI / 4.4, 0.7, 2);
+    owlBeam.position.set(0, 0.25, -0.2);
+    owlBeamTarget = new THREE.Object3D();
+    owlBeamTarget.position.set(0, -0.15, -6);
+    owlBeam.target = owlBeamTarget;
 
     gateLight = new THREE.PointLight(0xb14ad6, 0, CELL, 2);
     scene.add(gateLight);
@@ -193,9 +212,11 @@ var FpRenderer = (function() {
       scene.add(ll);
       lavaLights.push(ll);
     }
-    if (quality.headLight && !headLight.parent) camera.add(headLight);
-    if (!quality.headLight && headLight.parent) camera.remove(headLight);
-    hemi.intensity = quality.headLight ? 0.32 : 0.42;
+    if (!headLight.parent) camera.add(headLight);
+    if (!owlBeam.parent) { camera.add(owlBeam); camera.add(owlBeamTarget); }
+    if (quality.headLight && !lanternFill.parent) camera.add(lanternFill);
+    if (!quality.headLight && lanternFill.parent) camera.remove(lanternFill);
+    hemi.intensity = quality.headLight ? 0.26 : 0.34;
     for (i = 0; i < torchLights.length; i++) {
       scene.remove(torchLights[i]);
       if (torchLights[i].shadow && torchLights[i].shadow.map) torchLights[i].shadow.map.dispose();
@@ -542,6 +563,24 @@ var FpRenderer = (function() {
         b.glow.poly(gq, [[0, 0.5], [1, 0.5], [1, 0.5], [0, 0.5]], up);
       }
     }
+    // Heat haze: a curtain of glow standing on each bank and leaning in over
+    // the river, bright at the surface and gone by the top. The glow texture
+    // runs from hot at u=0 to clear at u=1, so u doubles as height here.
+    for (side = -1; side <= 1; side += 2) {
+      for (i = 0; i < SEG; i++) {
+        var b0 = side < 0 ? rows[i].left : rows[i].right;
+        var b1 = side < 0 ? rows[i + 1].left : rows[i + 1].right;
+        var lean = -side * 0.34;
+        var HAZE = 0.72;
+        var hq = [
+          wallPoint(c, ax, b0, Y + 0.02, rows[i].t), wallPoint(c, ax, b1, Y + 0.02, rows[i + 1].t),
+          wallPoint(c, ax, b1 + lean, Y + HAZE, rows[i + 1].t), wallPoint(c, ax, b0 + lean, Y + HAZE, rows[i].t)
+        ];
+        b.glow.poly(hq, [[0.04, 0.5], [0.04, 0.5], [0.95, 0.5], [0.95, 0.5]], up);
+        b.glow.poly([hq[3], hq[2], hq[1], hq[0]], [[0.95, 0.5], [0.95, 0.5], [0.04, 0.5], [0.04, 0.5]], up);
+      }
+    }
+
     // stone bridge slab over the river at the chamber centre
     var m = new THREE.Matrix4();
     var slab = new THREE.BoxGeometry(3.6, 0.18, 2.0);
@@ -772,6 +811,219 @@ var FpRenderer = (function() {
   var PUDDLE_Y = 0.016;
   var RUNE_COLORS = { cyan: [0.35, 0.95, 1.0], violet: [0.8, 0.45, 1.0], green: [0.45, 1.0, 0.55] };
 
+
+  // ---------------------------------------------------------------------------
+  // Gothic wall dressing
+  // ---------------------------------------------------------------------------
+  var gothicG = null;
+
+  function gothicGeo() {
+    if (gothicG) return gothicG;
+    gothicG = {
+      box: new THREE.BoxGeometry(1, 1, 1),
+      shaft: new THREE.CylinderGeometry(1, 1, 1, 8),
+      bead: new THREE.SphereGeometry(1, 8, 6),
+      urn: (function() {
+        var prof = [];
+        for (var i = 0; i <= 10; i++) {
+          var t = i / 10;
+          // a belly that tucks in at the neck
+          prof.push(new THREE.Vector2(0.12 + 0.26 * Math.sin(t * 2.6 + 0.35), t * 0.95));
+        }
+        return new THREE.LatheGeometry(prof, 12);
+      })()
+    };
+    return gothicG;
+  }
+
+  /**
+   * Outline of a two-centred (equilateral) gothic arch in wall coordinates:
+   * straight jambs up to the springing line, then two arcs of radius equal to
+   * the full width meeting at a point. Returned as [s, y] pairs running from
+   * the left of the sill, over the head, to the right of the sill.
+   *
+   * @param {Object} bay - { s, halfW, sill, spring }
+   * @param {number} grow - push the outline out by this much, for mouldings
+   * @param {number} seg - arc segments per side
+   */
+  function lancetOutline(bay, grow, seg) {
+    grow = grow || 0;
+    seg = seg || 7;
+    var hw = bay.halfW + grow;
+    var r = bay.halfW * 2 + grow;      // centres stay on the springing points
+    var pts = [[bay.s - hw, bay.sill - grow], [bay.s - hw, bay.spring]];
+    var i, th;
+    for (i = 1; i <= seg; i++) {
+      th = Math.PI - (Math.PI / 3) * (i / seg);          // 180 deg down to 120
+      pts.push([bay.s + bay.halfW + Math.cos(th) * r, bay.spring + Math.sin(th) * r]);
+    }
+    for (i = 1; i <= seg; i++) {
+      th = (Math.PI / 3) * (1 - i / seg);                // 60 deg down to 0
+      pts.push([bay.s - bay.halfW + Math.cos(th) * r, bay.spring + Math.sin(th) * r]);
+    }
+    pts.push([bay.s + hw, bay.sill - grow]);
+    return pts;
+  }
+
+  /** Wall-coordinate points to world points at a given depth */
+  function wallLoop(c, ax, pts, out) {
+    var res = [];
+    for (var i = 0; i < pts.length; i++) res.push(wallPoint(c, ax, pts[i][0], pts[i][1], out));
+    return res;
+  }
+
+  /** UVs for a wall panel, so the stone keeps its real-world scale */
+  function wallUv(pts, scale) {
+    var uv = [];
+    for (var i = 0; i < pts.length; i++) uv.push([pts[i][0] * scale, pts[i][1] * scale]);
+    return uv;
+  }
+
+  /**
+   * One opening walled in with later, smaller brick.
+   *
+   * The chamber is a single closed shell, so nothing can be cut out of it:
+   * the window is built as relief standing proud of the wall instead. The
+   * moulded surround comes furthest forward, the brick panel sits just off
+   * the wall behind it, and the sill juts out below, which reads the same
+   * way round as a real blocked opening.
+   */
+  function pushBrickedWindow(b, c, ax, bay, seed) {
+    var G = gothicGeo();
+    var face = CH - D.ROUGH - 0.01;
+    var panelZ = face - 0.035;             // the infill, barely off the wall
+    var frontZ = face - 0.17;              // the front of the surround
+    var open = lancetOutline(bay, 0, 8);
+    var hood = lancetOutline(bay, 0.17, 8);
+    var inside = wallPoint(c, ax, bay.s, bay.spring, face - 1.5);
+    var i, a, d2, h0, h1;
+
+    // the brick panel: smaller courses than the wall around it
+    b.brick.poly(wallLoop(c, ax, open, panelZ), wallUv(open, 1.5), inside);
+
+    // the surround, a flat moulded band following the opening
+    for (i = 0; i + 1 < open.length; i++) {
+      a = open[i]; d2 = open[i + 1]; h0 = hood[i]; h1 = hood[i + 1];
+      b.trim.poly([
+        wallPoint(c, ax, a[0], a[1], frontZ), wallPoint(c, ax, d2[0], d2[1], frontZ),
+        wallPoint(c, ax, h1[0], h1[1], frontZ), wallPoint(c, ax, h0[0], h0[1], frontZ)
+      ], [[0, 0], [0.35, 0], [0.35, 0.16], [0, 0.16]], inside);
+      // inner return, from the front of the surround back to the brick
+      b.trim.poly([
+        wallPoint(c, ax, a[0], a[1], panelZ), wallPoint(c, ax, d2[0], d2[1], panelZ),
+        wallPoint(c, ax, d2[0], d2[1], frontZ), wallPoint(c, ax, a[0], a[1], frontZ)
+      ], [[0, 0], [0.35, 0], [0.35, 0.14], [0, 0.14]], inside);
+      // outer return, back to the wall face
+      b.trim.poly([
+        wallPoint(c, ax, h0[0], h0[1], frontZ), wallPoint(c, ax, h1[0], h1[1], frontZ),
+        wallPoint(c, ax, h1[0], h1[1], face), wallPoint(c, ax, h0[0], h0[1], face)
+      ], [[0, 0], [0.35, 0], [0.35, 0.14], [0, 0.14]], inside);
+    }
+
+    var m = new THREE.Matrix4();
+    var yaw = new THREE.Matrix4().makeRotationY(Math.atan2(ax.dx, ax.dz));
+
+    // sill: a weathered slab the width of the surround, jutting out below
+    var sillW = (bay.halfW + 0.3) * 2;
+    var sp = wallPoint(c, ax, bay.s, bay.sill - 0.1, face - 0.13);
+    m.makeTranslation(sp[0], sp[1], sp[2]);
+    m.multiply(yaw);
+    m.multiply(new THREE.Matrix4().makeScale(sillW, 0.17, 0.3));
+    b.trim.geometry(G.box, m, 0.5);
+
+    // a colonnette on each jamb, capped with a bead
+    for (var k = -1; k <= 1; k += 2) {
+      var cs = bay.s + k * (bay.halfW + 0.13);
+      var hgt = bay.spring - bay.sill + 0.1;
+      m.makeTranslation.apply(m, wallPoint(c, ax, cs, bay.sill + hgt / 2, frontZ - 0.03));
+      m.multiply(new THREE.Matrix4().makeScale(0.06, hgt, 0.06));
+      b.trim.geometry(G.shaft, m, 0.5);
+      m.makeTranslation.apply(m, wallPoint(c, ax, cs, bay.sill + hgt + 0.03, frontZ - 0.03));
+      m.multiply(new THREE.Matrix4().makeScale(0.095, 0.07, 0.095));
+      b.trim.geometry(G.bead, m, 0.5);
+    }
+    void seed;
+  }
+
+  /** A row of small blind arches, the cheap way a mason dresses a long wall */
+  function pushArcade(b, c, ax, arc) {
+    var G = gothicGeo();
+    var face = CH - D.ROUGH - 0.01;
+    var panelZ = face - 0.03;
+    var frontZ = face - 0.17;
+    var span = 2 * (CH - D.R) - 0.3;
+    var w = span / arc.bays;
+    var y0 = 0.95;
+    var yaw = new THREE.Matrix4().makeRotationY(Math.atan2(ax.dx, ax.dz));
+    var m = new THREE.Matrix4();
+    for (var i = 0; i < arc.bays; i++) {
+      var s = -span / 2 + w * (i + 0.5);
+      var bay = { s: s, halfW: w * 0.32, sill: y0, spring: y0 + 0.6 };
+      var open = lancetOutline(bay, 0, 6);
+      var ring = lancetOutline(bay, 0.15, 6);
+      var inside = wallPoint(c, ax, s, bay.spring, face - 1.5);
+      b.brick.poly(wallLoop(c, ax, open, panelZ), wallUv(open, 1.3), inside);
+      for (var k = 0; k + 1 < open.length; k++) {
+        var a = open[k], d2 = open[k + 1], r0 = ring[k], r1 = ring[k + 1];
+        b.trim.poly([
+          wallPoint(c, ax, a[0], a[1], frontZ), wallPoint(c, ax, d2[0], d2[1], frontZ),
+          wallPoint(c, ax, r1[0], r1[1], frontZ), wallPoint(c, ax, r0[0], r0[1], frontZ)
+        ], [[0, 0], [0.3, 0], [0.3, 0.12], [0, 0.12]], inside);
+        b.trim.poly([
+          wallPoint(c, ax, a[0], a[1], panelZ), wallPoint(c, ax, d2[0], d2[1], panelZ),
+          wallPoint(c, ax, d2[0], d2[1], frontZ), wallPoint(c, ax, a[0], a[1], frontZ)
+        ], [[0, 0], [0.3, 0], [0.3, 0.1], [0, 0.1]], inside);
+      }
+    }
+    // string course: a moulded band running over the whole arcade
+    var top = y0 + 0.6 + w * 0.32 * Math.sqrt(3) + 0.2;
+    var sp = wallPoint(c, ax, 0, top, face - 0.08);
+    m.makeTranslation(sp[0], sp[1], sp[2]);
+    m.multiply(yaw);
+    m.multiply(new THREE.Matrix4().makeScale(span + 0.5, 0.14, 0.18));
+    b.trim.geometry(G.box, m, 0.5);
+  }
+
+  /** A shallow niche with a shelf and an urn left standing on it */
+  function pushNiche(b, c, ax, ni) {
+    var G = gothicGeo();
+    var face = CH - D.ROUGH - 0.01;
+    var backZ = face - 0.02;
+    var frontZ = face - 0.26;
+    var bay = { s: ni.s, halfW: 0.31, sill: 1.18, spring: 1.7 };
+    var open = lancetOutline(bay, 0, 7);
+    var ring = lancetOutline(bay, 0.14, 7);
+    var inside = wallPoint(c, ax, ni.s, bay.spring, face - 1.5);
+    // the back of the niche stays in shadow, so it reads as a hole
+    b.dark.poly(wallLoop(c, ax, open, backZ), wallUv(open, 0.9), inside);
+    for (var i = 0; i + 1 < open.length; i++) {
+      var a = open[i], d2 = open[i + 1], r0 = ring[i], r1 = ring[i + 1];
+      b.stone.poly([
+        wallPoint(c, ax, a[0], a[1], backZ), wallPoint(c, ax, d2[0], d2[1], backZ),
+        wallPoint(c, ax, d2[0], d2[1], frontZ), wallPoint(c, ax, a[0], a[1], frontZ)
+      ], [[0, 0], [0.3, 0], [0.3, 0.3], [0, 0.3]], inside);
+      b.trim.poly([
+        wallPoint(c, ax, a[0], a[1], frontZ), wallPoint(c, ax, d2[0], d2[1], frontZ),
+        wallPoint(c, ax, r1[0], r1[1], frontZ), wallPoint(c, ax, r0[0], r0[1], frontZ)
+      ], [[0, 0], [0.3, 0], [0.3, 0.14], [0, 0.14]], inside);
+      b.trim.poly([
+        wallPoint(c, ax, r0[0], r0[1], frontZ), wallPoint(c, ax, r1[0], r1[1], frontZ),
+        wallPoint(c, ax, r1[0], r1[1], face), wallPoint(c, ax, r0[0], r0[1], face)
+      ], [[0, 0], [0.3, 0], [0.3, 0.12], [0, 0.12]], inside);
+    }
+    var m = new THREE.Matrix4();
+    var yaw = new THREE.Matrix4().makeRotationY(Math.atan2(ax.dx, ax.dz));
+    var sp = wallPoint(c, ax, ni.s, bay.sill + 0.02, face - 0.14);
+    m.makeTranslation(sp[0], sp[1], sp[2]);
+    m.multiply(yaw);
+    m.multiply(new THREE.Matrix4().makeScale(bay.halfW * 2 + 0.3, 0.09, 0.3));
+    b.trim.geometry(G.box, m, 0.5);
+    var up = wallPoint(c, ax, ni.s + (ni.seed - 0.5) * 0.1, bay.sill + 0.07, face - 0.15);
+    m.makeTranslation(up[0], up[1], up[2]);
+    m.multiply(new THREE.Matrix4().makeScale(0.4, 0.4, 0.4));
+    b.stone.geometry(G.urn, m, 0.6);
+  }
+
   function pushWallFeatures(b, cell, c, feats) {
     var i;
     for (i = 0; i < feats.inscriptions.length; i++) {
@@ -811,6 +1063,15 @@ var FpRenderer = (function() {
       pts.push(wallPoint(c, cax, cs, 0.014, CH - D.COVE - 0.35));
       waterList.push({ cellId: cell.id, pts: pts, right: [cax.rx, cax.rz], w0: 0.07, w1: 0.3, phase: rnd() });
     }
+    // the gothic stonework: bricked-up windows, a blind arcade, a niche
+    for (i = 0; feats.windows && i < feats.windows.length; i++) {
+      var win = feats.windows[i];
+      var wax = axes(win.dir);
+      for (var wb = 0; wb < win.bays.length; wb++) pushBrickedWindow(b, c, wax, win.bays[wb], win.seed);
+    }
+    if (feats.arcade) pushArcade(b, c, axes(feats.arcade.dir), feats.arcade);
+    if (feats.niche) pushNiche(b, c, axes(feats.niche.dir), feats.niche);
+
     for (i = 0; i < feats.puddles.length; i++) {
       var pd = feats.puddles[i];
       var drip = null;
@@ -1421,7 +1682,13 @@ var FpRenderer = (function() {
     materials.lava = new THREE.MeshBasicMaterial({ map: tex.lava, vertexColors: true, fog: true });
     materials.vine = new THREE.MeshStandardMaterial({ map: tex.vine, vertexColors: true, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 1 });
     materials.stone = std(tex.wall, { roughness: 0.88, normal: 0.6, color: 0xd6cec4 });
+    // the later brick that blocked the windows up: warmer and rougher than
+    // the chamber stone, and mapped smaller so the courses read as brick
+    materials.brick = std(tex.wall, { roughness: 1, normal: 0.9, color: 0x8a6046 });
     materials.crust = std(tex.wall, { roughness: 1, normal: 0.8, color: 0x3a2a24 });
+    // rock at the water's edge of a lava river never fully cools
+    materials.crust.emissive = new THREE.Color(0x501203);
+    materials.crust.emissiveIntensity = 0.55;
     materials.bone = new THREE.MeshStandardMaterial({ color: 0xe6dcc2, roughness: 0.65, vertexColors: true });
     var dec = tex.decals || {};
     materials.glow = new THREE.MeshBasicMaterial({ map: dec.glow || null, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: true });
@@ -1434,7 +1701,7 @@ var FpRenderer = (function() {
   }
 
   // torch parts do not cast: the light sits right in front of them
-  var CAST = { wall: true, moss: true, floor: true, ceiling: true, wood: true, iron: true, stone: true, rubble: true, bone: true, armour: true, crust: true };
+  var CAST = { wall: true, moss: true, floor: true, ceiling: true, wood: true, iron: true, stone: true, brick: true, rubble: true, bone: true, armour: true, crust: true };
   var RECEIVE = { lava: false, glow: false, soot: false, decal: false, dark: false };
 
   // ---------------------------------------------------------------------------
@@ -1481,7 +1748,7 @@ var FpRenderer = (function() {
     var ids = Object.keys(w.cells);
     var bossHost = null;
     var keys = ['wall', 'moss', 'floor', 'ceiling', 'lava', 'crust', 'glow', 'iron', 'wood', 'torchIron', 'torchWood', 'pitch', 'vine',
-      'stone', 'bone', 'soot', 'decal'];
+      'stone', 'brick', 'bone', 'soot', 'decal'];
     var MAT = { torchIron: 'iron', torchWood: 'wood' };
 
     for (var n = 0; n < ids.length; n++) {
@@ -1841,6 +2108,10 @@ var FpRenderer = (function() {
       L.intensity = TORCH_INTENSITY * torch.glow * sl.fade * FpLayout.flicker(t, torch.phase);
     }
     lightsFading = fading;
+    // the lantern breathes, so the monster in front of Mr Owl is never lit flat
+    var lantern = 0.93 + 0.07 * Math.sin(t * 5.3) + 0.04 * Math.sin(t * 11.7);
+    headLight.intensity = LANTERN_INTENSITY * lantern;
+    if (owlBeam) owlBeam.intensity = BEAM_INTENSITY * lantern;
     if (puddleMaterial) {
       var ft = [];
       for (i = 0; i < torchList.length && ft.length < 2; i++) if (torchList[i].cellId === focusId) ft.push(torchList[i]);
@@ -1865,8 +2136,10 @@ var FpRenderer = (function() {
     for (i = 0; i < lavaLights.length; i++) {
       var LL = lavaLights[i], le = lava[i];
       if (!le) { LL.intensity = 0; continue; }
-      LL.position.set(le.x, 0.7, le.z);
-      LL.intensity = 16 * le.b * (0.85 + 0.15 * Math.sin(t * 3 + i));
+      LL.position.set(le.x, 0.85, le.z);
+      // two beats at different speeds read as molten rock turning over
+      var churn = 0.78 + 0.16 * Math.sin(t * 2.7 + i) + 0.10 * Math.sin(t * 6.1 + i * 2.3);
+      LL.intensity = 24 * le.b * churn;
     }
     if (gateHost) gateLight.intensity = gateLight.visible ? 14 * cellBrightness(gateHost.cell.id) * (0.85 + 0.15 * Math.sin(t * 2.3)) : 0;
   }
@@ -2081,6 +2354,17 @@ var FpRenderer = (function() {
    * (the direction the player is facing when entering); fades in over `fadeMs`.
    * An invisible cutout plane facing the player casts the torch shadow.
    */
+  /**
+   * Where an entity's objects belong. Everything else in a chamber hangs off
+   * cells[id].group, which refreshGroups hides once the chamber is dark or
+   * far away; entities used to hang off the scene root instead, so a monster
+   * left behind in a room you walked away from kept being drawn and kept
+   * casting into every shadow map for the rest of the run.
+   */
+  function entityHost(roomId) {
+    return (cells[roomId] && cells[roomId].group) || scene;
+  }
+
   function setEntity(roomId, info) {
     if (!world || !world.cells[roomId] || !renderer) return;
     removeEntity(roomId);
@@ -2094,8 +2378,8 @@ var FpRenderer = (function() {
     sprite.visible = false;
     var px = c.x + ax.dx * dist, pz = c.z + ax.dz * dist;
     sprite.position.set(px, h / 2 + 0.02, pz);
-    scene.add(sprite);
-    var entry = { sprite: sprite, imageId: info.imageId, ready: false, extras: [], model: null };
+    entityHost(roomId).add(sprite);
+    var entry = { sprite: sprite, imageId: info.imageId, ready: false, extras: [], model: null, roomId: roomId };
     entities[roomId] = entry;
     if (kind === 'monster' && typeof FpMonsters !== 'undefined' && FpMonsters.has(info.imageId)) {
       FpMonsters.load(info.imageId).then(function(gltf) {
@@ -2117,7 +2401,7 @@ var FpRenderer = (function() {
     inst.root.position.x = px;
     inst.root.position.z = pz;
     inst.root.rotation.y = Math.atan2(-ax.dx, -ax.dz);   // model front (+z) toward the player
-    scene.add(inst.root);
+    entityHost(entry.roomId).add(inst.root);
     entry.model = inst;
     entry.motion = FpMonsters.config(info.imageId).motion;
     entry.phase = (px * 7.3 + pz * 3.1) % 6.28;
@@ -2129,7 +2413,7 @@ var FpRenderer = (function() {
     blob.rotation.x = -Math.PI / 2;
     blob.rotation.z = inst.root.rotation.y;
     blob.position.set(px, 0.03, pz);
-    scene.add(blob);
+    entityHost(entry.roomId).add(blob);
     entry.extras.push(blob);
     entry.blob = blob;
 
@@ -2163,7 +2447,7 @@ var FpRenderer = (function() {
       var blob = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.8, Math.min(2.4, w * 0.5)), blobMat);
       blob.rotation.x = -Math.PI / 2;
       blob.position.set(px, 0.03, pz);
-      scene.add(blob);
+      entityHost(roomId).add(blob);
       entry.extras.push(blob);
 
       // shadow caster: cutout plane facing back toward the entrance
@@ -2174,7 +2458,7 @@ var FpRenderer = (function() {
         caster.castShadow = true;
         caster.position.set(px, h / 2 + 0.02, pz);
         caster.rotation.y = Math.atan2(-ax.dx, -ax.dz);
-        scene.add(caster);
+        entityHost(roomId).add(caster);
         entry.extras.push(caster);
         shadowDirty = true;
       }
@@ -2264,22 +2548,30 @@ var FpRenderer = (function() {
   function removeEntity(roomId) {
     var e = entities[roomId];
     if (!e) return;
+    function detach(o) { if (o && o.parent) o.parent.remove(o); }
     if (e.model) {
       // geometry and textures are shared with the cached model; only the cloned materials are ours
-      scene.remove(e.model.root);
+      detach(e.model.root);
       e.model.materials.forEach(function(m) { m.dispose(); });
       shadowDirty = true;
     }
-    scene.remove(e.sprite);
+    detach(e.sprite);
+    dropFades(e.sprite.material);
     e.sprite.material.dispose();
     for (var i = 0; i < e.extras.length; i++) {
-      scene.remove(e.extras[i]);
+      detach(e.extras[i]);
       e.extras[i].geometry.dispose();
+      dropFades(e.extras[i].material);
       e.extras[i].material.dispose();
       if (e.extras[i].castShadow) shadowDirty = true;
     }
     delete entities[roomId];
     dirty = true;
+  }
+
+  /** Forget any pending fade of a material that is about to be disposed */
+  function dropFades(mat) {
+    for (var i = fades.length - 1; i >= 0; i--) if (fades[i].mat === mat) fades.splice(i, 1);
   }
 
   function hideEntity(roomId, hidden) {
@@ -2363,8 +2655,13 @@ var FpRenderer = (function() {
   }
 
   function frame(now) {
-    rafId = null;
-    if (!running) return;
+    // While the frame runs, rafId stays set: anything the frame calls that
+    // wants the loop running (assignLights, setVisibility, a nested tween)
+    // would otherwise pass startLoop's guard and fork a second, permanent
+    // animation-frame chain. One extra chain per walked step is what made
+    // the view grind to a halt after exploring for a while.
+    inFrame = true;
+    if (!running) { inFrame = false; rafId = null; return; }
     var dtMs = lastNow ? now - lastNow : 16;
     var dt = Math.min(0.5, dtMs / 1000);
     lastNow = now;
@@ -2405,11 +2702,16 @@ var FpRenderer = (function() {
         rebuild();
       }
     }
-    if (running && (animated || tween || fades.length || brightening || doorsMoving || torchesChanging || lightsFading || reacting)) rafId = requestAnimationFrame(frame);
+    inFrame = false;
+    if (running && (animated || tween || fades.length || brightening || doorsMoving || torchesChanging || lightsFading || reacting)) {
+      rafId = requestAnimationFrame(frame);
+    } else {
+      rafId = null;
+    }
   }
 
   function startLoop() {
-    if (rafId !== null || !running) return;
+    if (rafId !== null || inFrame || !running) return;
     lastNow = 0;
     rafId = requestAnimationFrame(frame);
   }
@@ -2501,7 +2803,9 @@ var FpRenderer = (function() {
     if (!renderer || !o) return;
     if (typeof o.exposure === 'number') renderer.toneMappingExposure = o.exposure;
     if (typeof o.hemi === 'number') hemi.intensity = o.hemi;
-    if (typeof o.head === 'number') headLight.intensity = o.head;
+    if (typeof o.head === 'number') { LANTERN_INTENSITY = o.head; headLight.intensity = o.head; }
+    if (typeof o.beam === 'number') { BEAM_INTENSITY = o.beam; if (owlBeam) owlBeam.intensity = o.beam; }
+    if (typeof o.lanternFill === 'number' && lanternFill) lanternFill.intensity = o.lanternFill;
     if (typeof o.torch === 'number') TORCH_INTENSITY = o.torch;
     if (typeof o.puddleEnv === 'number' && puddleMaterial) puddleMaterial.uniforms.hasEnv.value = o.puddleEnv;
     if (typeof o.puddleDebug === 'number' && puddleMaterial) puddleMaterial.uniforms.debugMode.value = o.puddleDebug;

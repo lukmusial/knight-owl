@@ -451,9 +451,42 @@ var FpLayout = (function() {
   }
 
   /**
-   * Wall decorations: glowing rune inscriptions and water trickling from a
-   * crack into a puddle, plus stray puddles. Chambers with lava stay dry.
-   * @returns {Object} { inscriptions: [{ dir, s, y, w, seed, hue }], crack: { dir, s } | null, puddles: [{ x, z, r, seed }] }
+   * Gothic dressing for one wall of a chamber. A bricked-up lancet window is
+   * the centrepiece: the opening was walled in long ago, so the tracery and
+   * the sill survive around a panel of smaller, newer brick.
+   *
+   * @param {Object} cell
+   * @param {string} dir - which wall
+   * @param {number} salt - so two walls of one chamber differ
+   * @param {Object} d - dimensions
+   * @returns {Object} { dir, bays: [{ s, halfW, sill, spring, apex, seed }], sill, seed }
+   */
+  function windowWall(cell, dir, salt, d) {
+    var h = hashCell(cell.x, cell.y, salt);
+    var wide = hashCell(cell.x, cell.y, salt + 1) < 0.45;
+    var sill = 1.15 + h * 0.25;
+    var bays = [];
+    // a pair of narrow lancets, or one broad window in the middle
+    var offsets = wide ? [0] : [-1.02, 1.02];
+    var halfW = wide ? 0.62 : 0.34;
+    var spring = sill + (wide ? 1.15 : 1.0);
+    for (var i = 0; i < offsets.length; i++) {
+      // an equilateral arch: centres on the springing line, one width apart
+      var apex = spring + halfW * Math.sqrt(3);
+      bays.push({
+        s: offsets[i], halfW: halfW, sill: sill, spring: spring, apex: apex,
+        seed: hashCell(cell.x, cell.y, salt + 2 + i)
+      });
+    }
+    return { dir: dir, bays: bays, seed: h };
+  }
+
+  /**
+   * Wall decorations: glowing rune inscriptions, water trickling from a crack
+   * into a puddle, stray puddles, and the gothic stonework - bricked-up
+   * windows, a blind arcade of small arches, and a niche with an urn.
+   * Chambers with lava stay dry.
+   * @returns {Object} { inscriptions, crack, puddles, windows, arcade, niche }
    */
   function wallFeatures(cell, d) {
     d = d || DIMS;
@@ -482,6 +515,33 @@ var FpLayout = (function() {
     if (!lava && cell.type !== 'boss' && hashCell(cell.x, cell.y, 14) < 0.3) {
       var ang = hashCell(cell.x, cell.y, 15) * Math.PI * 2;
       res.puddles.push({ x: Math.cos(ang) * 1.3, z: Math.sin(ang) * 1.3, r: 0.55 + hashCell(cell.x, cell.y, 16) * 0.4, seed: hashCell(cell.x, cell.y, 17) });
+    }
+
+    // --- the gothic stonework ------------------------------------------------
+    // The boss hall always has its windows; elsewhere most chambers get one
+    // piece of dressing, so a wall is rarely just bare blocks.
+    res.windows = [];
+    res.arcade = null;
+    res.niche = null;
+    var wantWindow = cell.type === 'boss' || hashCell(cell.x, cell.y, 20) < 0.62;
+    if (wantWindow && free.length) {
+      res.windows.push(windowWall(cell, free.shift(), 21, d));
+      // a grand hall gets a second window wall facing the first
+      if (cell.type === 'boss' && free.length) res.windows.push(windowWall(cell, free.shift(), 26, d));
+    }
+    if (free.length && hashCell(cell.x, cell.y, 30) < 0.5) {
+      res.arcade = {
+        dir: free.shift(),
+        bays: 4 + (Math.floor(hashCell(cell.x, cell.y, 31) * 3) % 2),
+        seed: hashCell(cell.x, cell.y, 32)
+      };
+    }
+    if (free.length && hashCell(cell.x, cell.y, 33) < 0.45) {
+      res.niche = {
+        dir: free.shift(),
+        s: (hashCell(cell.x, cell.y, 34) - 0.5) * 1.6,
+        seed: hashCell(cell.x, cell.y, 35)
+      };
     }
     return res;
   }
@@ -679,6 +739,7 @@ var FpLayout = (function() {
     doorwayStyle: doorwayStyle,
     hasDoor: hasDoor,
     wallFeatures: wallFeatures,
+    windowWall: windowWall,
     blobOutline: blobOutline,
     riverBanks: riverBanks,
     stableSlots: stableSlots,
