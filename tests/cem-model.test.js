@@ -114,7 +114,7 @@ TestRunner.suite('CemModel', () => {
       var smalls = smallTombs(L);
       for (var a = 0; a < smalls.length; a++) {
         for (var b = a + 1; b < smalls.length; b++) {
-          TestRunner.assert(cheb(smalls[a].porch, smalls[b].porch) >= 6, 'small tombs apart');
+          TestRunner.assert(cheb(smalls[a].porch, smalls[b].porch) >= 10, 'small tombs apart');
         }
       }
     });
@@ -123,18 +123,18 @@ TestRunner.suite('CemModel', () => {
   TestRunner.test('decor counts are sensible and never sit on walkable tiles', () => {
     var L = gen(13);
     var graves = count(L, K.grave), trees = count(L, K.tree), lanterns = count(L, K.lantern);
-    TestRunner.assert(graves >= 30 && graves <= 90, 'graves ' + graves);
-    TestRunner.assert(trees >= 15, 'trees ' + trees);
-    TestRunner.assert(lanterns >= 8 && lanterns <= CemModel.CONFIG.MAX_LANTERNS, 'lanterns ' + lanterns);
+    TestRunner.assert(graves >= 80 && graves <= CemModel.CONFIG.MAX_GRAVES, 'graves ' + graves);
+    TestRunner.assert(trees >= 45, 'trees ' + trees);
+    TestRunner.assert(lanterns >= 20 && lanterns <= CemModel.CONFIG.MAX_LANTERNS, 'lanterns ' + lanterns);
     TestRunner.assertEqual(L.lights.length, lanterns, 'one light per lantern');
-    TestRunner.assert(count(L, K.pumpkin) >= 4, 'pumpkins');
-    TestRunner.assert(count(L, K.web) >= 3, 'webs');
-    TestRunner.assert(count(L, K.statue) >= 2, 'statues');
-    TestRunner.assert(count(L, K.bench) >= 2, 'benches');
+    TestRunner.assert(count(L, K.pumpkin) >= 8, 'pumpkins');
+    TestRunner.assert(count(L, K.web) >= 6, 'webs');
+    TestRunner.assert(count(L, K.statue) >= 4, 'statues');
+    TestRunner.assert(count(L, K.bench) >= 5, 'benches');
     L.tiles.forEach(function(t) {
       if (t.kind !== K.path && t.kind !== K.gate && t.kind !== K.tomb_door) TestRunner.assert(!t.walk, 'decor is not walkable');
     });
-    TestRunner.assert(count(L, K.path) > 80, 'enough path');
+    TestRunner.assert(count(L, K.path) > 500, 'enough path');
   });
 
   TestRunner.test('pathTo walks over enterable tiles only', () => {
@@ -157,7 +157,7 @@ TestRunner.suite('CemModel', () => {
     var big = largeTomb(L);
     TestRunner.assert(!CemModel.canEnter(L, big.door.gx, big.door.gy), 'locked at start');
     TestRunner.assertEqual(CemModel.pathTo(L, L.start, big.door).length, 0, 'no path through the locked door');
-    L.owl = { gx: big.porch.gx, gy: big.porch.gy };
+    CemModel.setOwlTile(L, big.porch.gx, big.porch.gy);
     var locked = CemModel.moveOwl(L, big.door.gx, big.door.gy);
     TestRunner.assert(!locked.ok && locked.reason === 'locked', 'move refused');
     TestRunner.assertEqual(locked.events[0].type, 'tomb_locked', 'locked event');
@@ -204,7 +204,7 @@ TestRunner.suite('CemModel', () => {
           TestRunner.assertEqual(t.kind, K.path, 'wanderer on a path');
           TestRunner.assert(manh(m, L.start) > CemModel.CONFIG.GATE_SAFE_RADIUS, 'outside the safe zone');
           TestRunner.assertEqual(m.difficulty, CemModel.difficultyAt(L, m.gx, m.gy), 'band matches distance');
-          TestRunner.assert(CemModel.THEME_MONSTERS[m.difficulty].indexOf(m.id) !== -1, 'themed id ' + m.id);
+          TestRunner.assert(CemModel.WANDERER_BANDS[m.difficulty].indexOf(m.id) !== -1, 'roaming id ' + m.id);
           total++;
           if (m.encounterType === 'matching') matching++;
         } else if (m.role === 'guard') {
@@ -216,8 +216,10 @@ TestRunner.suite('CemModel', () => {
         }
       });
       TestRunner.assertEqual(L.monsters.filter(function(m) { return m.role === 'guard'; }).length, 4, 'four guardians');
-      var parts = L.monsters.filter(function(m) { return m.role === 'guard'; }).map(function(m) { return m.keyPart; }).sort().join('');
+      var guards = L.monsters.filter(function(m) { return m.role === 'guard'; });
+      var parts = guards.map(function(m) { return m.keyPart; }).sort().join('');
       TestRunner.assertEqual(parts, '1234', 'key parts 1..4');
+      TestRunner.assertEqual(guards.map(function(m) { return m.id; }).join(','), CemModel.GUARDIANS.join(','), 'one named guardian per tomb');
     });
     var share = matching / total;
     TestRunner.assert(share >= 0.1 && share <= 0.5, 'matching share ' + share.toFixed(2));
@@ -256,8 +258,8 @@ TestRunner.suite('CemModel', () => {
   TestRunner.test('proximity starts an encounter, grace and the safe zone suppress it', () => {
     var L = gen(24);
     var w = L.monsters.filter(function(m) { return m.role === 'wander'; })[0];
-    L.owl = { gx: w.gx, gy: w.gy - 1 };
-    if (!CemModel.tileAt(L, L.owl.gx, L.owl.gy).walk) L.owl = { gx: w.gx + 1, gy: w.gy };
+    CemModel.setOwlTile(L, w.gx, w.gy - 1);
+    if (!CemModel.tileAt(L, L.owl.gx, L.owl.gy).walk) CemModel.setOwlTile(L, w.gx + 1, w.gy);
     L.graceMs = 0;
     var ev = CemModel.checkProximity(L);
     TestRunner.assertEqual(ev.length, 1, 'encounter fires');
@@ -268,12 +270,16 @@ TestRunner.suite('CemModel', () => {
     TestRunner.assert(L.owl.gx === L.start.gx && L.owl.gy === L.start.gy, 'back at the gate');
     TestRunner.assertEqual(L.encounterUid, null, 'encounter cleared');
     TestRunner.assert(L.graceMs > 0, 'grace running');
-    L.owl = { gx: w.gx, gy: w.gy };
+    CemModel.setOwlTile(L, w.gx, w.gy);
     TestRunner.assertEqual(CemModel.checkProximity(L).length, 0, 'grace suppresses proximity');
     CemModel.advance(L, CemModel.CONFIG.GRACE_MS + 1);
-    TestRunner.assertEqual(L.encounterUid, w.uid, 'fires again after grace');
+    TestRunner.assertEqual(L.graceMs, 0, 'grace ran out');
+    // the monster wandered during those seconds; put it back within reach
+    w.gx = L.owl.gx; w.gy = L.owl.gy;
+    TestRunner.assertEqual(CemModel.checkProximity(L).length, 1, 'fires again after grace');
+    TestRunner.assertEqual(L.encounterUid, w.uid, 'with that monster');
     L.encounterUid = null;
-    L.owl = { gx: L.start.gx, gy: L.start.gy };
+    CemModel.setOwlTile(L, L.start.gx, L.start.gy);
     var sneaky = L.monsters.filter(function(m) { return m.role === 'wander'; })[1];
     sneaky.gx = L.start.gx; sneaky.gy = L.start.gy - 1;
     TestRunner.assertEqual(CemModel.checkProximity(L).length, 0, 'safe zone suppresses proximity');
@@ -309,6 +315,7 @@ TestRunner.suite('CemModel', () => {
     var R = CemModel.CONFIG.VIS_OWL;
     for (var dy = -R; dy <= R; dy++) {
       for (var dx = -R; dx <= R; dx++) {
+        if (dx * dx + dy * dy > R * R) continue;
         var gx = L.owl.gx + dx, gy = L.owl.gy + dy;
         if (CemModel.tileAt(L, gx, gy)) TestRunner.assertEqual(CemModel.visibilityAt(L, gx, gy), 2, 'lit around the owl');
       }
@@ -318,15 +325,14 @@ TestRunner.suite('CemModel', () => {
     TestRunner.assertTruthy(farLight, 'a far lantern');
     TestRunner.assertEqual(CemModel.visibilityAt(L, farLight.gx, farLight.gy), 2, 'lantern lights its tile');
     var dark = L.tiles.filter(function(t) {
-      if (t.kind !== K.grass || cheb(t, L.owl) <= R) return false;
+      if (t.kind !== K.grass || cheb(t, L.owl) <= R + 1) return false;
       return L.lights.every(function(l) { return Math.sqrt((l.gx - t.gx) * (l.gx - t.gx) + (l.gy - t.gy) * (l.gy - t.gy)) > CemModel.CONFIG.VIS_LANTERN + 0.01; });
     })[0];
     TestRunner.assertEqual(CemModel.visibilityAt(L, dark.gx, dark.gy), 0, 'far grass hidden');
     TestRunner.assert(CemModel.visibilityAt(L, 0, 0) >= 1, 'fence ring pre-seen');
     var oldOwl = { gx: L.owl.gx, gy: L.owl.gy };
     var porch = largeTomb(L).porch;
-    L.owl = { gx: porch.gx, gy: porch.gy };
-    CemModel.updateVisibility(L);
+    CemModel.setOwlTile(L, porch.gx, porch.gy);
     var wasLit = CemModel.tileAt(L, oldOwl.gx, oldOwl.gy - R);
     if (wasLit && cheb(wasLit, L.owl) > R) {
       var v = CemModel.visibilityAt(L, wasLit.gx, wasLit.gy);
@@ -343,8 +349,7 @@ TestRunner.suite('CemModel', () => {
     CemModel.defeatMonster(L, 'g1');
     CemModel.defeatMonster(L, 'w2');
     var porch = smallTombs(L)[1].porch;
-    L.owl = { gx: porch.gx, gy: porch.gy };
-    CemModel.updateVisibility(L);
+    CemModel.setOwlTile(L, porch.gx, porch.gy);
     L.encounterUid = null;
     var state = CemModel.exportState(L);
     state.monsters.push({ uid: 'ghost_of_old_version', gx: 1, gy: 1 });
@@ -352,7 +357,8 @@ TestRunner.suite('CemModel', () => {
     var M = CemModel.loadState(JSON.parse(JSON.stringify(state)));
     TestRunner.assertTruthy(M, 'restored');
     TestRunner.assertEqual(kinds(M), kinds(L), 'same tiles');
-    TestRunner.assertEqual(JSON.stringify(M.owl), JSON.stringify(L.owl), 'owl position');
+    TestRunner.assertEqual(M.owl.gx + ',' + M.owl.gy, L.owl.gx + ',' + L.owl.gy, 'owl tile');
+    TestRunner.assertEqual(M.owl.x + ',' + M.owl.y, L.owl.x + ',' + L.owl.y, 'owl position');
     TestRunner.assertEqual(JSON.stringify(M.keyParts), JSON.stringify(L.keyParts), 'key parts');
     TestRunner.assert(M.monstersByUid.g1.defeated && M.monstersByUid.w2.defeated, 'defeated restored');
     TestRunner.assertEqual(M.seen.join(''), L.seen.join(''), 'seen tiles');
@@ -366,8 +372,7 @@ TestRunner.suite('CemModel', () => {
   TestRunner.test('drawOrder is depth sorted, lists tombs once and hides unseen tiles', () => {
     var L = gen(28);
     var big = largeTomb(L);
-    L.owl = { gx: big.porch.gx, gy: big.porch.gy };
-    CemModel.updateVisibility(L);
+    CemModel.setOwlTile(L, big.porch.gx, big.porch.gy);
     var order = CemModel.drawOrder(L);
     var tombs = 0, owlDepth = null, bigDepth = null;
     for (var i = 1; i < order.length; i++) TestRunner.assert(order[i].depth >= order[i - 1].depth, 'sorted');
@@ -399,5 +404,143 @@ TestRunner.suite('CemModel', () => {
     });
     var g = CemModel.encounterMonsterFor(L, 'g1', { monsters: roster });
     TestRunner.assertEqual(g.id, 'c', 'guardian from the injected roster');
+  });
+  TestRunner.test('lanes are wide and wind through the grounds', () => {
+    [41, 42, 43].forEach(function(seed) {
+      var L = gen(seed);
+      var path = 0, wide = 0;
+      L.tiles.forEach(function(t) {
+        if (t.kind !== K.path) return;
+        path++;
+        for (var dx = -1; dx <= 0 && true; dx++) {
+          for (var dy = -1; dy <= 0; dy++) {
+            var ok = true;
+            for (var a = 0; a < 2; a++) {
+              for (var b = 0; b < 2; b++) {
+                var q = CemModel.tileAt(L, t.gx + dx + a, t.gy + dy + b);
+                if (!q || q.kind !== K.path) ok = false;
+              }
+            }
+            if (ok) { wide++; return; }
+          }
+        }
+      });
+      TestRunner.assert(wide / path >= 0.85, 'seed ' + seed + ': ' + Math.round(100 * wide / path) + '% of lanes are at least two wide');
+      var turns = 0, steps = 0;
+      L.routes.forEach(function(r) {
+        for (var i = 2; i < r.length; i++) {
+          var d1 = (r[i - 1].gx - r[i - 2].gx) + ',' + (r[i - 1].gy - r[i - 2].gy);
+          var d2 = (r[i].gx - r[i - 1].gx) + ',' + (r[i].gy - r[i - 1].gy);
+          if (d1 !== d2) turns++;
+          steps++;
+        }
+      });
+      TestRunner.assert(turns / L.routes.length >= 2, 'lanes bend (' + (turns / L.routes.length).toFixed(1) + ' turns per lane)');
+    });
+  });
+
+  TestRunner.test('generation stays fast and rarely retries', () => {
+    var t0 = Date.now(), attempts = 0;
+    for (var s = 60; s < 80; s++) {
+      var L = gen(s);
+      attempts += L.attempt;
+      TestRunner.assert(L.attempt <= 6, 'seed ' + s + ' attempts ' + L.attempt);
+      TestRunner.assert(!L.degraded, 'seed ' + s + ' not degraded');
+    }
+    var per = (Date.now() - t0) / 20;
+    TestRunner.assert(per < 500, 'generation ' + per.toFixed(0) + ' ms per level');
+    TestRunner.assert(attempts / 20 <= 2, 'mean attempts ' + (attempts / 20).toFixed(2));
+  });
+
+  TestRunner.test('steering slides along the lanes and never leaves them', () => {
+    var L = gen(44);
+    var rng = CemModel.makeRng(5);
+    var r = CemModel.CONFIG.OWL_RADIUS;
+    for (var i = 0; i < 3000; i++) {
+      if (i % 40 === 0) var steer = { x: rng() * 2 - 1, y: rng() * 2 - 1 };
+      CemModel.tickOwl(L, steer, 16);
+      if (L.encounterUid) { L.encounterUid = null; L.graceMs = 4000; }
+      var o = CemModel.owlPos(L);
+      TestRunner.assert(CemModel.fitsCircle(L, o.x, o.y, r), 'frame ' + i + ': owl at ' + o.x.toFixed(2) + ',' + o.y.toFixed(2) + ' is off the lane');
+      TestRunner.assert(o.gx === Math.round(o.x) && o.gy === Math.round(o.y), 'tile follows the position');
+    }
+  });
+
+  TestRunner.test('tickOwl walks a path to a tomb porch and reports arrival', () => {
+    var L = gen(45);
+    var porch = smallTombs(L)[0].porch;
+    var path = CemModel.pathTo(L, CemModel.owlTile(L), porch);
+    TestRunner.assert(path.length > 5, 'a path exists');
+    CemModel.setPath(L, path);
+    var ticks = 0, arrived = false;
+    while (ticks < 4000 && !arrived) {
+      var r = CemModel.tickOwl(L, { x: 0, y: 0 }, 16.7);
+      ticks++;
+      if (r.arrived) arrived = true;
+      if (L.encounterUid) { L.encounterUid = null; L.graceMs = 4000; }
+    }
+    TestRunner.assert(arrived, 'arrived at the porch');
+    TestRunner.assertEqual(L.owl.gx + ',' + L.owl.gy, porch.gx + ',' + porch.gy, 'standing on the porch');
+    var ideal = path.length / CemModel.CONFIG.OWL_SPEED * 60;
+    TestRunner.assert(ticks <= ideal * 1.3, 'took ' + ticks + ' frames, ideal ' + Math.round(ideal));
+  });
+
+  TestRunner.test('the sealed great tomb stops the walk and reports itself once', () => {
+    var L = gen(46);
+    var big = largeTomb(L);
+    CemModel.setOwlTile(L, big.porch.gx, big.porch.gy);
+    L.graceMs = 0;
+    L.clockMs = 99999;
+    var locked = 0;
+    for (var i = 0; i < 60; i++) {
+      var r = CemModel.tickOwl(L, { x: 0, y: -1 }, 16.7);
+      r.events.forEach(function(e) { if (e.type === 'tomb_locked') locked++; });
+    }
+    TestRunner.assertEqual(locked, 1, 'one toast per second, not one per frame');
+    var o = CemModel.owlPos(L);
+    TestRunner.assert(o.y > big.door.gy + 0.5, 'clamped in front of the door');
+    TestRunner.assert(CemModel.fitsCircle(L, o.x, o.y, CemModel.CONFIG.OWL_RADIUS), 'still on the lane');
+  });
+
+  TestRunner.test('proximity is a circle around the owl, not a tile test', () => {
+    var L = gen(47);
+    L.monsters.forEach(function(m) { if (m.role === 'wander') { m.gx = 1; m.gy = 1; } });
+    var w = L.monsters.filter(function(m) { return m.role === 'wander'; })[0];
+    var o = CemModel.owlPos(L);
+    var lane = L.tiles.filter(function(t) { return t.kind === K.path && t.dist > 8; })[0];
+    CemModel.setOwlTile(L, lane.gx, lane.gy);
+    L.graceMs = 0;
+    w.gx = lane.gx + 2; w.gy = lane.gy;
+    TestRunner.assertEqual(CemModel.checkProximity(L).length, 0, 'two tiles away is out of reach');
+    w.gx = lane.gx + 1;
+    TestRunner.assertEqual(CemModel.checkProximity(L).length, 1, 'one tile away triggers');
+  });
+
+  TestRunner.test('light map matches IsoModel and reveals are logged', () => {
+    var L = gen(48);
+    TestRunner.assertEqual(L.lightMap.length, L.W * L.H, 'one entry per tile');
+    for (var i = 0; i < 50; i++) {
+      var t = L.tiles[(i * 61) % L.tiles.length];
+      var expected = IsoModel.lightLevel(t.gx, t.gy, L.lights);
+      TestRunner.assert(Math.abs(L.lightMap[CemModel.index(L, t.gx, t.gy)] - expected) < 1e-6, 'light at ' + t.gx + ',' + t.gy);
+      TestRunner.assert(L.nearLights[CemModel.index(L, t.gx, t.gy)].length <= 2, 'at most two near lanterns');
+    }
+    var before = L.seenVersion;
+    L.newlySeen.length = 0;
+    var far = L.tiles.filter(function(t) { return t.kind === K.path && !L.seen[CemModel.index(L, t.gx, t.gy)]; })[0];
+    CemModel.setOwlTile(L, far.gx, far.gy);
+    TestRunner.assert(L.seenVersion > before, 'seenVersion advanced');
+    TestRunner.assert(L.newlySeen.length > 0, 'newly seen tiles are logged for the renderer');
+  });
+
+  TestRunner.test('a save from the first cut (tile only) still loads', () => {
+    var L = gen(49);
+    var state = CemModel.exportState(L);
+    delete state.owl.x;
+    delete state.owl.y;
+    var M = CemModel.loadState(state);
+    TestRunner.assertTruthy(M, 'restored');
+    TestRunner.assertEqual(M.owl.x, M.owl.gx, 'position falls back to the tile centre');
+    TestRunner.assertEqual(M.owl.y, M.owl.gy, 'position falls back to the tile centre');
   });
 });
