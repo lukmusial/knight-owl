@@ -143,6 +143,13 @@ var FX = (function() {
     ]);
   }
 
+  /** A defeated monster leaves the card in its own style */
+  function monsterExit(el, style) {
+    if (!el) return skip();
+    burst(el.parentNode || el, 12, 'fx-particle');
+    return animate(el, 'fx-exit-' + (style || 'runaway'), 1200, true);
+  }
+
   function monsterDefeat(img) {
     if (!hasDom || !img || reducedMotion()) return skip();
     burst(img.parentNode, 12, 'fx-particle');
@@ -257,6 +264,8 @@ var FX = (function() {
     monsterHit: monsterHit,
     monsterAttack: monsterAttack,
     monsterDefeat: monsterDefeat,
+    monsterExit: monsterExit,
+    animateClass: animate,
     streakPulse: streakPulse,
     lootReveal: lootReveal,
     victoryCelebration: victoryCelebration,
