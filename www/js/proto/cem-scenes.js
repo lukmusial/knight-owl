@@ -19,7 +19,6 @@ var CemScenes = (function() {
   var OWL3D_H = 118;
   var MONSTER_H = 110;
   var REAPER_H = 170;
-  var WALK_SPEED = 0.26;       // px per ms
   var FLOOR_BAND = -300000;
   var POOL_BAND = -200000;
   var SHADOW_BAND = -100000;
@@ -177,8 +176,6 @@ var CemScenes = (function() {
       this.tombObjs = {};       // tomb id -> { sprite, door, lock, glow, objs: [] }
       this.lastVis = [];
       this.monsters = {};       // uid -> state
-      this.moving = false;
-      this.cancelRequested = false;
       this.inputEnabled = true;
       this.bossRevealed = false;
       this.cullAt = 0;
@@ -196,6 +193,15 @@ var CemScenes = (function() {
       this.spawnMonsters();
       this.setupCamera();
       this.setupInput();
+      this.followOffset = this.hudOffset();
+      this.walking = false;
+      if (this.input.keyboard) {
+        var kb = this.input.keyboard;
+        this.keys = {
+          up: kb.addKey('UP'), down: kb.addKey('DOWN'), left: kb.addKey('LEFT'), right: kb.addKey('RIGHT'),
+          w: kb.addKey('W'), a: kb.addKey('A'), s: kb.addKey('S'), d: kb.addKey('D')
+        };
+      }
       this.placeOwl(this.level.owl, true);
       this.refreshVisibility(true);
       var cb = callbacks(this);
@@ -504,13 +510,38 @@ var CemScenes = (function() {
       this.player.setDepth((feetY / (TILE_H / 2)) * 4 + LAYERS.token + 1);
     },
 
-    /** Snap the owl sprite onto a tile */
+    /** Snap the owl sprite onto a tile (respawn, teleport, boot) */
     placeOwl: function(g, instant) {
       var p = IsoModel.gridToIso(g.gx, g.gy);
       this.player.setPosition(p.x, p.y + 12).setVisible(true);
       this.updatePlayerDepth();
-      this.highlight.setPosition(p.x, p.y).setDepth(SHADOW_BAND + IsoModel.depthKey(g.gx, g.gy, LAYERS.floor) + 0.6).setVisible(true);
+      this.highlight.setVisible(false);
       this.focusOn(p.x, p.y, instant);
+    },
+
+    /**
+     * Put the sprite where the model says Mr Owl is, every frame. Walking
+     * animation and facing come from his velocity.
+     */
+    syncOwl: function(vx, vy) {
+      var o = CemModel.owlPos(this.level);
+      var p = IsoModel.gridToIso(o.x, o.y);
+      this.player.setPosition(p.x, p.y + 12);
+      this.updatePlayerDepth();
+      var moving = (vx * vx + vy * vy) > 0.0025;
+      if (moving) {
+        var scr = IsoModel.gridToIso(vx, vy);
+        this.faceOwl(scr.x, scr.y);
+        if (this.owl3d) this.player.play('owl3d_walk_' + this.owlFacing, true);
+        else if (this.playerHasWalk && !this.walking) this.player.play('owl_walk');
+        if (!this.walking) { this.stopIdle(); this.walking = true; }
+        this.stepAt = this.stepAt || 0;
+        if (this.time.now > this.stepAt) { fx('step', { volume: 0.5 }); this.stepAt = this.time.now + 330; }
+      } else if (this.walking) {
+        this.walking = false;
+        if (!this.owl3d && this.playerHasWalk) { this.player.stop(); this.player.setFrame('idle'); }
+        this.startIdle();
+      }
     },
 
     /**
@@ -525,11 +556,13 @@ var CemScenes = (function() {
         return;
       }
       var feet = IsoModel.isoToGridExact(this.player.x, this.player.y - 12);
-      var lights = this.level.lights;
-      var near = lights.map(function(t) {
-        var dx = feet.gx - t.gx, dy = feet.gy - t.gy;
-        return { t: t, d: dx * dx + dy * dy };
-      }).sort(function(a, b) { return a.d - b.d; }).slice(0, shadows.length);
+      var L = this.level;
+      var lights = L.lights;
+      // the two nearest lanterns come from the cached map, no per-frame scan
+      var tileIdx = CemModel.index(L, Math.max(0, Math.min(L.W - 1, Math.round(feet.gx))), Math.max(0, Math.min(L.H - 1, Math.round(feet.gy))));
+      var nearIdx = (L.nearLights && L.nearLights[tileIdx]) || [];
+      var near = [];
+      for (var ni = 0; ni < nearIdx.length && ni < shadows.length; ni++) near.push({ t: lights[nearIdx[ni]] });
       for (var i = 0; i < shadows.length; i++) {
         var sh = near[i] ? IsoModel.castShadow({ gx: feet.gx, gy: feet.gy, height: CASTERS.owl.h, radius: CASTERS.owl.r }, near[i].t) : null;
         if (!sh) { shadows[i].setVisible(false); continue; }
@@ -537,79 +570,10 @@ var CemScenes = (function() {
       }
       var fp = IsoModel.gridToIso(feet.gx, feet.gy);
       this.owlContact.setPosition(fp.x, fp.y + 12).setDepth(SHADOW_BAND + (feet.gx + feet.gy) * 4 + 0.2).setVisible(true);
-      var lvl = IsoModel.lightLevel(feet.gx, feet.gy, lights);
+      var lvl = (L.lightMap && L.lightMap[tileIdx] !== undefined) ? L.lightMap[tileIdx] : IsoModel.lightLevel(feet.gx, feet.gy, lights);
       var k = 0.55 + 0.45 * lvl;
       var tint = (Math.round(255 * k) << 16) | (Math.round(240 * k) << 8) | Math.round(230 * k);
       if (tint !== this.owlTint) { this.player.setTint(tint); this.owlTint = tint; }
-    },
-
-    /**
-     * Walk the owl along a tile path. onStep(tile) runs when each tile is
-     * reached and may return false to stop; onArrive runs at the end.
-     */
-    walkTo: function(path, onStep, onArrive) {
-      var self = this;
-      if (!path || path.length < 2) { if (onArrive) onArrive(); return; }
-      var segments = path.slice(1).map(function(g) { var q = IsoModel.gridToIso(g.gx, g.gy); return { x: q.x, y: q.y + 12, g: g }; });
-      var idx = 0;
-      this.moving = true;
-      this.cancelRequested = false;
-      this.followOffset = this.hudOffset();
-      this.cameras.main.panEffect.reset();
-      this.stopIdle();
-      if (this.playerHasWalk && !this.owl3d) this.player.play('owl_walk');
-      this.tapRing.setVisible(false);
-
-      function finish() {
-        self.moving = false;
-        if (self.playerHasWalk && !self.owl3d) { self.player.stop(); self.player.setFrame('idle'); }
-        self.startIdle();
-        var g = IsoModel.isoToGrid(self.player.x, self.player.y - 12);
-        var hp = IsoModel.gridToIso(g.gx, g.gy);
-        self.highlight.setPosition(hp.x, hp.y).setDepth(SHADOW_BAND + IsoModel.depthKey(g.gx, g.gy, LAYERS.floor) + 0.6);
-        if (onArrive) onArrive();
-      }
-
-      function segment() {
-        if (idx >= segments.length || self.cancelRequested) { finish(); return; }
-        var from = { x: self.player.x, y: self.player.y };
-        var to = segments[idx++];
-        if (self.owl3d) {
-          self.faceOwl(to.x - from.x, to.y - from.y);
-          self.player.play('owl3d_walk_' + self.owlFacing, true);
-        } else if (Math.abs(to.x - from.x) > 2) {
-          self.player.setFlipX(to.x < from.x);
-        }
-        if (REDUCED_MOTION) {
-          self.player.setPosition(to.x, to.y);
-          self.updatePlayerDepth();
-          var goOn = onStep ? onStep(to.g) : true;
-          if (goOn === false) { finish(); return; }
-          self.time.delayedCall(60, segment);
-          return;
-        }
-        var dist = Phaser.Math.Distance.Between(from.x, from.y, to.x, to.y);
-        var dur = Math.max(160, dist / self.walkSpeed());
-        fx('step', { volume: 0.6 });
-        self.tweens.add({
-          targets: self.player, x: to.x, y: to.y, duration: dur, ease: 'Linear',
-          onUpdate: function() { self.updatePlayerDepth(); },
-          onComplete: function() {
-            var goOn = onStep ? onStep(to.g) : true;
-            if (goOn === false) { finish(); return; }
-            segment();
-          }
-        });
-      }
-      segment();
-    },
-
-    walkSpeed: function() {
-      return WALK_SPEED * (this.speedBoost || 1);
-    },
-
-    cancelWalk: function() {
-      this.cancelRequested = true;
     },
 
     /** Knock-back flash when Mr Owl loses a fight */
@@ -631,17 +595,10 @@ var CemScenes = (function() {
     retreatToGate: function(onDone) {
       var self = this;
       var L = this.level;
-      var here = IsoModel.isoToGrid(this.player.x, this.player.y - 12);
-      var path = CemModel.astar(L, here, L.start, function(tile) { return tile.walk ? 1 : Infinity; });
-      if (path.length > 1 && path.length <= 8 && !REDUCED_MOTION) {
-        this.speedBoost = 2;
-        this.walkTo(path, null, function() { self.speedBoost = 1; self.placeOwl(L.start, false); if (onDone) onDone(); });
-        return;
-      }
       var cam = this.cameras.main;
       cam.fadeOut(REDUCED_MOTION ? 0 : 260, 5, 6, 10);
       cam.once('camerafadeoutcomplete', function() {
-        self.placeOwl(L.start, true);
+        self.placeOwl(CemModel.owlTile(L), true);
         cam.fadeIn(REDUCED_MOTION ? 0 : 320, 5, 6, 10);
         if (onDone) onDone();
       });
@@ -1034,6 +991,11 @@ var CemScenes = (function() {
       this.inputEnabled = !!enabled;
     },
 
+    /** Newly revealed tiles: show their ground and props */
+    onTilesRevealed: function() {
+      this.refreshVisibility();
+    },
+
     /** Brief ring on a tapped tile */
     showTap: function(gx, gy) {
       var p = IsoModel.gridToIso(gx, gy);
@@ -1049,30 +1011,36 @@ var CemScenes = (function() {
       var drag = null;
       var pinch = null;
 
+      // One finger on the map steers Mr Owl (drag away from where you pressed);
+      // a tap without dragging walks him there. The camera always follows him.
+      var STEER_MAX = 70;
       this.input.on('pointerdown', function(pointer) {
         if (!self.inputEnabled) return;
-        drag = { x: pointer.x, y: pointer.y, lastX: pointer.x, lastY: pointer.y, moved: 0 };
+        drag = { x: pointer.x, y: pointer.y, moved: 0, steering: false };
       });
       this.input.on('pointermove', function(pointer) {
         if (!drag || !pointer.isDown || pinch) return;
-        var dx = pointer.x - drag.lastX, dy = pointer.y - drag.lastY;
-        drag.lastX = pointer.x; drag.lastY = pointer.y;
-        drag.moved += Math.abs(dx) + Math.abs(dy);
-        cam.scrollX -= dx / cam.zoom;
-        cam.scrollY -= dy / cam.zoom;
-        self.cull(false);
+        var dx = pointer.x - drag.x, dy = pointer.y - drag.y;
+        drag.moved = Math.sqrt(dx * dx + dy * dy);
+        if (drag.moved < 12) return;
+        drag.steering = true;
+        var d = Math.min(STEER_MAX, drag.moved);
+        var cb = callbacks(self);
+        if (cb.onSteer) cb.onSteer(dx / drag.moved * d / STEER_MAX, dy / drag.moved * d / STEER_MAX);
       });
       this.input.on('pointerup', function(pointer) {
         if (!drag) return;
         var wasPinch = !!pinch;
+        var steering = drag.steering;
         var moved = drag.moved;
         drag = null;
+        var cb = callbacks(self);
+        if (steering && cb.onSteer) cb.onSteer(0, 0);
         if (self.input.pointer1.isDown || self.input.pointer2.isDown) return;
         pinch = null;
-        if (wasPinch || moved > 8 || !self.inputEnabled) return;
+        if (wasPinch || steering || moved > 8 || !self.inputEnabled) return;
         var world = cam.getWorldPoint(pointer.x, pointer.y);
         var g = IsoModel.isoToGrid(world.x, world.y);
-        var cb = callbacks(self);
         if (cb.onTileTap) cb.onTileTap(g.gx, g.gy);
       });
       this.input.on('wheel', function(pointer, objects, dx, dy) {
@@ -1083,17 +1051,34 @@ var CemScenes = (function() {
       this.setPinch = function(v) { pinch = v; };
     },
 
+    /** Arrow keys and WASD steer like the stick */
+    readKeys: function() {
+      if (!this.keys) return null;
+      var k = this.keys;
+      var x = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);
+      var y = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0);
+      if (!x && !y) return this.keyVec ? (this.keyVec = null, { x: 0, y: 0 }) : null;
+      var len = Math.sqrt(x * x + y * y);
+      this.keyVec = { x: x / len, y: y / len };
+      return this.keyVec;
+    },
+
     update: function(time, delta) {
       var p1 = this.input.pointer1, p2 = this.input.pointer2;
       var cam = this.cameras.main;
+      var cb = callbacks(this);
+      var keys = this.readKeys();
+      if (keys && cb.onSteer) cb.onSteer(keys.x, keys.y);
+      var step = cb.onFrame ? cb.onFrame(Math.min(delta || 16, 50)) : null;
+      this.syncOwl(step ? step.vx : 0, step ? step.vy : 0);
       this.updateOwlLighting();
       this.updateMonsters(time);
-      if (this.moving && this.player) {
+      if (this.player && this.player.visible) {
         var tx = this.player.x + this.followOffset.x / cam.zoom;
         var ty = this.player.y + this.followOffset.y / cam.zoom;
-        var k = 1 - Math.pow(0.002, Math.min(delta || 16, 100) / 1000);
+        var k2 = 1 - Math.pow(0.002, Math.min(delta || 16, 100) / 1000);
         var mx = cam.midPoint.x, my = cam.midPoint.y;
-        cam.centerOn(mx + (tx - mx) * k, my + (ty - my) * k);
+        cam.centerOn(mx + (tx - mx) * k2, my + (ty - my) * k2);
       }
       if (p1 && p2 && p1.isDown && p2.isDown) {
         var d = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);

@@ -106,6 +106,41 @@ async function main() {
     check(/Cemetery Gate/.test(boot.title), 'ribbon shows the gate');
     await shot(page, '01-gate');
 
+    console.log('steering');
+    const steered = await page.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const L = ProtoCem.getLevel();
+      // stand on a wide lane far from monsters, then push the stick
+      window.__saved = L.monsters.map(m => ({ uid: m.uid, gx: m.gx, gy: m.gy, home: m.home, stepMs: m.stepMs }));
+      L.monsters.forEach(m => { if (m.role === 'wander') { m.gx = 1; m.gy = 1; m.home = { gx: 1, gy: 1 }; m.stepMs = 1e9; } });
+      const lane = L.tiles.find(t => t.kind === 'path' && t.dist > 10 && CemModel.tileAt(L, t.gx, t.gy - 1).kind === 'path' && CemModel.tileAt(L, t.gx, t.gy - 2).kind === 'path');
+      ProtoCem.teleport(lane.gx, lane.gy);
+      L.graceMs = 0;
+      const before = { x: L.owl.x, y: L.owl.y };
+      // headless throttles the render loop, so measure against the frame time
+      // the model actually received rather than against the wall clock
+      let frameMs = 0;
+      const tick = CemModel.tickOwl;
+      CemModel.tickOwl = function(lv, st, dt) { frameMs += dt; return tick(lv, st, dt); };
+      ProtoCem.setSteer(0, -1);
+      await wait(700);
+      ProtoCem.setSteer(0, 0);
+      CemModel.tickOwl = tick;
+      const after = { x: L.owl.x, y: L.owl.y };
+      await wait(150);
+      const stopped = Math.abs(L.owl.y - after.y) < 0.05;
+      const fps = ProtoCem.getScene().sys.game.loop.actualFps;
+      window.__saved.forEach(sv => { const m = L.monstersByUid[sv.uid]; m.gx = sv.gx; m.gy = sv.gy; m.home = sv.home; m.stepMs = sv.stepMs; });
+      return { moved: before.y - after.y, drift: Math.abs(after.x - before.x), stopped, fps, frameMs,
+        expected: CemModel.CONFIG.OWL_SPEED * frameMs / 1000,
+        onLane: CemModel.fitsCircle(L, L.owl.x, L.owl.y, CemModel.CONFIG.OWL_RADIUS) };
+    });
+    check(steered.moved > 0.3 && Math.abs(steered.moved - steered.expected) < 0.15,
+      'steering walks Mr Owl north at full speed (' + steered.moved.toFixed(2) + ' of ' + steered.expected.toFixed(2) + ' tiles over ' + Math.round(steered.frameMs) + ' ms of frames, ' + Math.round(steered.fps) + ' fps)');
+    check(steered.drift < 0.3, 'he keeps his line (' + steered.drift.toFixed(2) + ' tiles sideways)');
+    check(steered.stopped, 'he stops when the stick is released');
+    check(steered.onLane, 'he stays on the lane');
+
     console.log('lose a fight');
     await page.evaluate(() => {
       const L = ProtoCem.getLevel(), S = ProtoCem.getScene();
@@ -123,8 +158,7 @@ async function main() {
       const { w, t, near } = pick;
       L.monsters.forEach(m => { if (m.role === 'wander' && m !== w) { m.home = { gx: 1, gy: 1 }; m.gx = 1; m.gy = 1; m.stepMs = 1e9; } });
       w.stepMs = 1e9; w.home = { gx: w.gx, gy: w.gy };
-      L.owl = { gx: near.gx, gy: near.gy }; L.graceMs = 0;
-      CemModel.updateVisibility(L); S.placeOwl(L.owl, true); S.refreshVisibility();
+      ProtoCem.teleport(near.gx, near.gy); L.graceMs = 0;
       window.__target = w.uid;
       ProtoCem.onTileTap(t.gx, t.gy);
     });
@@ -156,8 +190,7 @@ async function main() {
       const L = ProtoCem.getLevel(), S = ProtoCem.getScene();
       const t1 = L.tombs.find(t => t.id === 't1');
       const near = L.tiles.find(t => t.walk && t.kind === 'path' && Math.abs(t.gx - t1.porch.gx) + Math.abs(t.gy - t1.porch.gy) === 1 && !(t.gx === t1.door.gx && t.gy === t1.door.gy));
-      L.owl = { gx: near.gx, gy: near.gy }; L.graceMs = 0;
-      CemModel.updateVisibility(L); S.placeOwl(L.owl, true); S.refreshVisibility();
+      ProtoCem.teleport(near.gx, near.gy); L.graceMs = 0;
       ProtoCem.onTileTap(t1.porch.gx, t1.porch.gy);
     });
     await waitFor(page, () => !document.getElementById('quiz-modal').classList.contains('hidden'), 'the guardian quiz');
@@ -197,9 +230,8 @@ async function main() {
       S.refreshTombs();
       ProtoHud.setKeyParts(CemModel.keyPartCount(L), 4);
       const big = L.tombs.find(t => t.size === 'large');
-      L.owl = { gx: big.porch.gx, gy: big.porch.gy }; L.graceMs = 0;
-      L.monsters.forEach(m => { if (m.role === 'wander') { m.home = { gx: 0, gy: 0 }; m.stepMs = 1e9; if (Math.abs(m.gx - big.porch.gx) + Math.abs(m.gy - big.porch.gy) < 3) { m.gx = 1; m.gy = 1; } } });
-      CemModel.updateVisibility(L); S.placeOwl(L.owl, true); S.refreshVisibility();
+      L.monsters.forEach(m => { if (m.role === 'wander') { m.home = { gx: 0, gy: 0 }; m.stepMs = 1e9; if (Math.abs(m.gx - big.porch.gx) + Math.abs(m.gy - big.porch.gy) < 4) { m.gx = 1; m.gy = 1; } } });
+      ProtoCem.teleport(big.porch.gx, big.porch.gy); L.graceMs = 0;
       window.__unlocked = CemModel.canEnter(L, big.door.gx, big.door.gy);
       ProtoCem.onTileTap(big.door.gx, big.door.gy);
     });
