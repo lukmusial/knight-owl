@@ -104,7 +104,7 @@ Isometric view:
   <img src="docs/screenshots/iso-04-wrong.png" alt="Isometric: wrong answer, Mr Owl steps back" width="200">
 </p>
 
-45-second play recordings with sound: [3D view](docs/videos/3d-play.mp4) and [isometric view](docs/videos/iso-play.mp4).
+45-second play recordings with sound: [3D view](docs/videos/3d-play.mp4) and [isometric view](docs/videos/iso-play.mp4). A full cemetery playthrough, gate to Grim Reaper, is in [docs/videos/cemetery-playthrough.mp4](docs/videos/cemetery-playthrough.mp4) (5 minutes, no sound); `npm run record:cem` plays and records it again in headless Chrome.
 
 ### Halloween Cemetery (isometric view)
 
