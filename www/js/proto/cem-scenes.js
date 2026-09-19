@@ -29,9 +29,9 @@ var CemScenes = (function() {
    * as big as a zombie.
    */
   var MONSTER_SCALE = {
-    spider: 0.46, giant_rat: 0.46, bat_swarm: 0.58,
-    ghost: 0.72, lost_soul: 0.78, will_o_wisp: 0.6,
-    pumpkin_man: 0.92, banshee: 0.98, skeleton: 1, zombie: 1
+    spider: 0.3, giant_rat: 0.34, bat_swarm: 0.42,
+    ghost: 0.5, lost_soul: 0.52, will_o_wisp: 0.45,
+    pumpkin_man: 0.85, banshee: 0.9, skeleton: 0.95, zombie: 0.95
   };
 
   function monsterHeight(id, role) {
@@ -518,6 +518,7 @@ var CemScenes = (function() {
           tint = beaten ? DOOR_LIGHT.blue : DOOR_LIGHT.gold;
           alpha = beaten ? 0.45 : 0.6;
         }
+        if (tomb.size === 'large' && this.bossRevealed && !this.bossBeaten) alpha *= 0.4;   // he must read against it
         if (rec.glowTint !== tint) {
           rec.glow.setTint(tint);
           rec.spill.setTint(tint);
@@ -638,6 +639,11 @@ var CemScenes = (function() {
       // a bright core around Mr Owl with a soft skirt, so the reveal travels with him
       blob(op.x, op.y, L.cfg.VIS_OWL + 1.5, 0.75);
       blob(op.x, op.y, L.cfg.VIS_OWL * 0.6, 1);
+      var bossSt = this.monsters.boss;
+      if (bossSt && bossSt.shown && !bossSt.removed) {
+        // the Reaper carries his own gloom-light: the night opens around him
+        blob(bossSt.bx, bossSt.by - 30, 2.6, 0.9);
+      }
       for (var i = 0; i < L.lights.length; i++) {
         var li = L.lights[i];
         if (!L.seen[CemModel.index(L, li.gx, li.gy)]) continue;
