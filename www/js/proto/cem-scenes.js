@@ -34,6 +34,13 @@ var CemScenes = (function() {
     pumpkin_man: 0.85, banshee: 0.9, skeleton: 0.95, zombie: 0.95
   };
 
+  // how far above the ground a flier hangs, in px: the shadow stays on the floor
+  var HOVER_PX = { bat_swarm: 44, will_o_wisp: 30, ghost: 10, lost_soul: 12, banshee: 6 };
+
+  function hoverOf(id) {
+    return Object.prototype.hasOwnProperty.call(HOVER_PX, id) ? HOVER_PX[id] : 0;
+  }
+
   function monsterHeight(id, role) {
     if (role === 'boss') return REAPER_H;
     var k = Object.prototype.hasOwnProperty.call(MONSTER_SCALE, id) ? MONSTER_SCALE[id] : 1;
@@ -264,6 +271,7 @@ var CemScenes = (function() {
       }
       this.placeOwl(this.level.owl, true);
       this.refreshVisibility(true);
+      this.fadeReveals = true;              // from now on, reveals fade in
       this.perf = (typeof CemPerf !== 'undefined') ? CemPerf.attach(this) : null;
       var cb = callbacks(this);
       if (cb.onReady) cb.onReady(this);
@@ -482,7 +490,7 @@ var CemScenes = (function() {
         }
         rec.lit.push(rec.glow, rec.spill);
         this.world.addProp(rec.glow, tomb.door.gx, tomb.door.gy, { light: true });
-        this.world.addProp(rec.spill, tomb.door.gx, tomb.door.gy, { light: true });
+        this.world.addProp(rec.spill, tomb.door.gx, tomb.door.gy, { ground: true });   // on the floor, under whoever stands in it
         if (tomb.size === 'large') {
           rec.lock = this.add.image(rec.arch.x, rec.arch.y, 'cem_lock').setDepth(depth + 0.1);
           rec.lit.push(rec.lock);
@@ -607,7 +615,7 @@ var CemScenes = (function() {
         Math.max(2, Math.ceil(cam.width * this.fogRes)), Math.max(2, Math.ceil(cam.height * this.fogRes)));
       this.fogStamp = this.make.image({ key: 'cem_soft_light', add: false }).setOrigin(0.5, 0.5);
       this.fogMaskImg = this.make.image({ key: this.fogTex.key, add: false }).setOrigin(0.5, 0.5);
-      this.fogOverlay = this.add.rectangle(0, 0, cam.width, cam.height, 0x090c1a, 0.62).setDepth(900000);
+      this.fogOverlay = this.add.rectangle(0, 0, cam.width, cam.height, 0x090c1a, 0.8).setDepth(900000);
       this.fogOverlay.setMask(new Phaser.Display.Masks.BitmapMask(this, this.fogMaskImg));
       this.fogOverlay.mask.invertAlpha = true;
     },
@@ -637,7 +645,7 @@ var CemScenes = (function() {
       var o = CemModel.owlPos(L);
       var op = IsoModel.gridToIso(o.x, o.y);
       // a bright core around Mr Owl with a soft skirt, so the reveal travels with him
-      blob(op.x, op.y, L.cfg.VIS_OWL + 1.5, 0.75);
+      blob(op.x, op.y, L.cfg.VIS_OWL + 2.5, 0.7);      // reaches into the remembered band, so ground brightens as he nears
       blob(op.x, op.y, L.cfg.VIS_OWL * 0.6, 1);
       var bossSt = this.monsters.boss;
       if (bossSt && bossSt.shown && !bossSt.removed) {
@@ -1245,10 +1253,10 @@ var CemScenes = (function() {
         o.sy *= st.animScale || 1;
         if (st.lockScale) { o.sx *= st.lockScale.x; o.sy *= st.lockScale.y; }
         if (st.collapse) { o.sx *= st.collapse.sx; o.sy *= st.collapse.sy; o.dy += st.collapse.dy; o.alpha *= st.collapse.alpha; }
-        st.sprite.setPosition(st.bx + o.dx, st.by + o.dy).setScale(o.sx, o.sy).setAlpha(o.alpha).setFlipX(st.flip);
+        st.sprite.setPosition(st.bx + o.dx, st.by + o.dy - hoverOf(st.m.id)).setScale(o.sx, o.sy).setAlpha(o.alpha).setFlipX(st.flip);
         if (!st.pulse || !st.pulse.isPlaying()) st.sprite.setRotation(o.rot);
         st.contact.setPosition(st.bx, st.by).setAlpha(0.5 * o.alpha);
-        if (st.glow) st.glow.setPosition(st.bx + o.dx, st.by + o.dy - 40).setAlpha(0.6 * o.alpha);
+        if (st.glow) st.glow.setPosition(st.bx + o.dx, st.by + o.dy - 40 - hoverOf(st.m.id)).setAlpha(0.6 * o.alpha);
       }
     },
 
@@ -1258,6 +1266,16 @@ var CemScenes = (function() {
      * Apply the model's visibility to the sprites: hidden tiles draw nothing,
      * remembered tiles are dim and blue, lit tiles take the lantern light.
      */
+    /** A prop just revealed rises out of the dark instead of popping in */
+    fadeIn: function(obj) {
+      if (obj.cemFading) return;
+      var a = obj.alpha;
+      obj.cemFading = true;
+      obj.setAlpha(0);
+      this.tweens.add({ targets: obj, alpha: a, duration: 900, ease: 'Sine.easeOut',
+        onComplete: function() { obj.cemFading = false; } });
+    },
+
     refreshVisibility: function() {
       var L = this.level;
       for (var i = 0; i < L.tiles.length; i++) {
@@ -1265,7 +1283,11 @@ var CemScenes = (function() {
         if (v === this.lastVis[i]) continue;
         var objs = this.tileObjs[i], lights = this.tileLights[i], props = this.tileProps[i];
         var shown = v > 0;
-        for (var o = 0; o < objs.length; o++) this.world.setPropShown(objs[o], shown);
+        var fresh = shown && this.lastVis[i] === 0 && !REDUCED_MOTION && this.fadeReveals;
+        for (var o = 0; o < objs.length; o++) {
+          this.world.setPropShown(objs[o], shown);
+          if (fresh) this.fadeIn(objs[o]);
+        }
         if (shown) {
           for (var l = 0; l < lights.length; l++) this.world.setPropShown(lights[l], v === 2);
           var tint = v === 2 ? lerpTint(L.lightMap[i]) : SEEN_TINT;
