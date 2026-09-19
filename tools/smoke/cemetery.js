@@ -148,6 +148,41 @@ let errorSink = null;
     check(steered.stopped, 'he stops when the stick is released');
     check(steered.onLane, 'he stays on the lane');
 
+    console.log('facing and the tomb doorway');
+    const look = await page.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const L = ProtoCem.getLevel(), S = ProtoCem.getScene();
+      const grace = L.graceMs;
+      L.graceMs = 1e9;
+      const seen = [];
+      const dirs = [[1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]];
+      for (const d of dirs) {
+        S.faceOwl(d[0], d[1]);
+        seen.push(S.owlFacing + (S.player.flipX ? ':flip' : ''));
+      }
+      L.graceMs = grace;
+      const tomb = L.tombs.find(t => t.size !== 'large');
+      const rec = S.tombObjs[tomb.id];
+      let animated = null;
+      for (const uid in S.monsters) {
+        const st = S.monsters[uid];
+        if (st.anim) { animated = { facings: st.facings, gdir: st.gdir }; break; }
+      }
+      return {
+        owlFacings: S.owlFacings,
+        distinct: seen.filter((v, i) => seen.indexOf(v) === i).length,
+        door: !!rec.door, glow: !!rec.glow, spill: !!rec.spill, tint: rec.glowTint,
+        animated: animated
+      };
+    });
+    check(look.owlFacings.length === 5 && look.owlFacings.indexOf('down_right') !== -1,
+      'Mr Owl has five rendered facings (' + look.owlFacings.join(', ') + ')');
+    check(look.distinct === 8, 'he faces eight different ways as he walks (' + look.distinct + ')');
+    check(look.door && look.glow && look.spill, 'the tomb doorway has an opening, its light and a spill on the ground');
+    check(look.tint === 0xffd08a, 'a tomb still holding its key part burns gold');
+    check(!!look.animated && look.animated.facings.length === 5,
+      'monsters carry the same five facings' + (look.animated ? ' (' + look.animated.facings.join(', ') + ')' : ''));
+
     console.log('lose a fight');
     await page.evaluate(() => {
       const L = ProtoCem.getLevel(), S = ProtoCem.getScene();

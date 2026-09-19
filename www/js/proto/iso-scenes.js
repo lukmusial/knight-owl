@@ -148,11 +148,14 @@ var IsoScenes = (function() {
       // Owl: 3D renders (walk/idle, toward and away from the viewer); the
       // cutout walk cycle stays as the fallback when the atlas is missing
       if (this.textures.exists('owl3d')) {
-        ['front', 'back'].forEach(function(facing) {
+        var owlMeta = this.textures.get('owl3d').customData.meta || {};
+        var owlClips = owlMeta.clips || { walk: 8, idle: 6 };
+        (owlMeta.facings || ['front', 'back']).forEach(function(facing) {
+          if (self.anims.exists('owl3d_walk_' + facing)) return;
           self.anims.create({ key: 'owl3d_walk_' + facing, frameRate: 12, repeat: -1,
-            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_walk_', start: 0, end: 7 }) });
+            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_walk_', start: 0, end: (owlClips.walk || 8) - 1 }) });
           self.anims.create({ key: 'owl3d_idle_' + facing, frameRate: 3, repeat: -1,
-            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_idle_', start: 0, end: 5 }) });
+            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_idle_', start: 0, end: (owlClips.idle || 6) - 1 }) });
         });
       }
       var owl = cutout('knight_owl');
@@ -755,13 +758,15 @@ var IsoScenes = (function() {
 
     createPlayer: function() {
       this.highlight = this.add.image(0, 0, 'highlight_ring').setDepth(0).setVisible(false);
-      this.owl3d = this.textures.exists('owl3d') && this.anims.exists('owl3d_walk_front');
-      this.owlFacing = 'front';
+      var owlSheet = this.textures.exists('owl3d') ? (this.textures.get('owl3d').customData.meta || {}) : null;
+      this.owlFacings = (owlSheet && owlSheet.facings) || ['front', 'back'];
+      this.owl3d = !!owlSheet && this.anims.exists('owl3d_walk_' + this.owlFacings[0]);
+      this.owlFacing = this.owlFacings[0];
       if (this.owl3d) {
-        var meta = this.textures.get('owl3d').customData.meta || {};
+        var meta = owlSheet;
         var pivot = meta.pivot || { x: 0.52, y: 0.91 };
         this.owlScale = OWL3D_H / (meta.figureHeight || 160);
-        this.player = this.add.sprite(0, 0, 'owl3d', 'front_idle_0').setOrigin(pivot.x, pivot.y)
+        this.player = this.add.sprite(0, 0, 'owl3d', this.owlFacing + '_idle_0').setOrigin(pivot.x, pivot.y)
           .setScale(this.owlScale).setVisible(false);
         this.playerHasWalk = true;
       } else {
@@ -800,9 +805,12 @@ var IsoScenes = (function() {
      * 3D owl facing for a screen-space move: the renders face down-left
      * ('front') and up-right ('back'); the other two directions are mirrored
      */
+    /** Point Mr Owl along a screen direction, one of eight */
     faceOwl: function(dx, dy) {
-      this.owlFacing = dy >= 0 ? 'front' : 'back';
-      this.player.setFlipX(this.owlFacing === 'front' ? dx > 0 : dx < 0);
+      var g = IsoModel.isoToGridExact ? IsoModel.isoToGridExact(dx, dy) : { gx: dx, gy: dy };
+      var f = CemMonsters.facingFor(g.gx, g.gy, this.owlFacings);
+      this.owlFacing = f.facing;
+      this.player.setFlipX(f.flip);
     },
 
     // --- Fog / tokens ------------------------------------------------------------

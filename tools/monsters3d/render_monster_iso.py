@@ -3,6 +3,7 @@
     blender -b --python render_monster_iso.py -- <id.glb> <out_dir>
         [--size 192] [--motion shamble] [--yaw 0] [--engine cycles|eevee]
         [--samples 32] [--clips idle,walk,attack,hit]
+        [--facings down,down_right,right,up_right,up]
 
 Same camera as tools/owl3d/render_iso.py (orthographic, 2:1 dimetric) so the
 frames sit in the isometric view next to Mr Owl. The models have no rig, so
@@ -12,6 +13,8 @@ its robe. Attack leans and stretches without travelling (the game moves the
 sprite toward Mr Owl itself); hit recoils and ends on the idle pose.
 
 Writes <facing>_<clip>_<n>.png plus pivot.json for tools/owl3d/pack_sprites.py.
+Eight screen directions are covered by five rendered facings: down, down_right,
+right, up_right and up. The other three are those mirrored at runtime.
 """
 import bpy, sys, os, json, math
 from mathutils import Vector
@@ -52,6 +55,9 @@ for o in meshes:
     o.select_set(True)
 bpy.ops.object.join()
 body = bpy.context.view_layer.objects.active
+# The glTF importer leaves objects in quaternion rotation mode, where writing
+# rotation_euler is silently ignored: every turn and lean below depends on this.
+body.rotation_mode = 'XYZ'
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
 lo = Vector((1e9, 1e9, 1e9))
@@ -227,7 +233,24 @@ def pose(motion, clip, u):
     return loc, rot, scl, ang
 
 
-FACINGS = {'front': 0.0, 'back': math.pi}
+# Screen-facing table. The model faces -Y at yaw 0, which the isometric camera
+# shows as down-left, so every screen direction is that plus a turn. Only the
+# five that cannot be mirrored are rendered; the game flips them horizontally
+# for down_left, left and up_left.
+ALL_FACINGS = {
+    'down_left': 0.0,
+    'down': math.pi * 0.25,
+    'down_right': math.pi * 0.5,
+    'right': math.pi * 0.75,
+    'up_right': math.pi,
+    'up': math.pi * 1.25,
+    'up_left': math.pi * 1.5,
+    'left': math.pi * 1.75,
+}
+DEFAULT_FACINGS = ['down', 'down_right', 'right', 'up_right', 'up']
+want = opt('--facings')
+names = want.split(',') if want else DEFAULT_FACINGS
+FACINGS = dict((n, ALL_FACINGS[n]) for n in names)
 pivot_world = Vector((0, 0, 0))
 pivot = None
 

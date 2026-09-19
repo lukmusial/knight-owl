@@ -116,7 +116,21 @@ var MonsterStage = (function() {
     var st = stageFor(img);
     if (!st) return;
     if (st.raf) { cancelAnimationFrame(st.raf); st.raf = 0; }
+    if (st.turnTimer) { clearTimeout(st.turnTimer); st.turnTimer = 0; }
     stages.splice(stages.indexOf(st), 1);
+  }
+
+  function facingList(st) {
+    return (st.atlas && st.atlas.meta && st.atlas.meta.facings) || ['front'];
+  }
+
+  /** The nearest facing this sheet actually has */
+  function pickFacing(st, want) {
+    var list = facingList(st);
+    if (list.indexOf(want) !== -1) return want;
+    if (list.indexOf('down') !== -1) return 'down';
+    if (list.indexOf('front') !== -1) return 'front';
+    return list[0];
   }
 
   function frames(atlas, clip, facing) {
@@ -140,7 +154,7 @@ var MonsterStage = (function() {
 
   function run(st, clip, ms, then) {
     if (!st.atlas) { if (then) then(); return; }
-    var list = frames(st.atlas, clip, 'front');
+    var list = frames(st.atlas, clip, st.facing || pickFacing(st, 'down'));
     if (!list.length) { if (then) then(); return; }
     if (st.raf) cancelAnimationFrame(st.raf);
     if (reduced()) { showFrame(st, list[0]); if (then) then(); return; }
@@ -158,6 +172,42 @@ var MonsterStage = (function() {
     st.raf = requestAnimationFrame(step);
   }
 
+  // the five facings are rendered a quarter turn apart, so stepping along
+  // this list spins the figure on the spot
+  var TURN = ['down', 'down_right', 'right', 'up_right', 'up'];
+
+  function turnIndex(st) {
+    var i = TURN.indexOf(st.facing);
+    return i === -1 ? 0 : i;
+  }
+
+  /**
+   * Turn the figure to a facing, one rendered step at a time, playing the
+   * idle frames as it goes. This is what makes the card feel like a model
+   * standing in the scene rather than a picture of one.
+   */
+  function turn(st, want, msPerStep, then) {
+    var list = facingList(st);
+    if (!st.atlas || list.indexOf(want) === -1 || reduced()) {
+      if (list.indexOf(want) !== -1) { st.facing = want; run(st, 'idle'); }
+      if (then) then();
+      return;
+    }
+    var from = turnIndex(st), to = TURN.indexOf(want);
+    var dir = to > from ? 1 : -1;
+    var at = from;
+    function step() {
+      if (at === to) { run(st, 'idle'); if (then) then(); return; }
+      at += dir;
+      st.facing = TURN[at];
+      var f = frames(st.atlas, 'idle', st.facing);
+      if (f.length) showFrame(st, f[0]);
+      st.turnTimer = setTimeout(step, msPerStep);
+    }
+    if (st.turnTimer) clearTimeout(st.turnTimer);
+    step();
+  }
+
   /**
    * Put a monster on the card: painted plate behind, character on top.
    * @param {HTMLImageElement} img - the modal's monster image
@@ -169,7 +219,7 @@ var MonsterStage = (function() {
     var stage = ensure(img);
     if (!stage) return;
     var actor = actorFor(img);
-    var st = { img: img, actor: actor, id: id, atlas: null, raf: 0, sheetW: 0, sheetH: 0 };
+    var st = { img: img, actor: actor, id: id, atlas: null, raf: 0, sheetW: 0, sheetH: 0, facing: null, turnTimer: 0 };
     stages.push(st);
     actor.className = 'monster-actor';
     actor.style.cssText = '';
@@ -209,7 +259,17 @@ var MonsterStage = (function() {
           actor.style.display = '';
           if (st.atlas) {
             actor.style.backgroundImage = 'url(' + ANIM_DIR + id + '.png)';
-            run(st, 'idle');
+            // it has its back to you and turns round as the card opens
+            var facings = facingList(st);
+            if (!reduced() && facings.indexOf('up') !== -1 && facings.indexOf('down') !== -1) {
+              st.facing = 'up';
+              var f0 = frames(st.atlas, 'idle', 'up');
+              if (f0.length) showFrame(st, f0[0]);
+              st.turnTimer = setTimeout(function() { turn(st, 'down', 110); }, 260);
+            } else {
+              st.facing = pickFacing(st, 'down');
+              run(st, 'idle');
+            }
           } else {
             actor.style.backgroundImage = 'url(' + SPRITE_DIR + id + '.png)';
             actor.style.backgroundSize = 'contain';
@@ -234,8 +294,24 @@ var MonsterStage = (function() {
     if (!st || !st.actor) return Promise.resolve();
     opts = opts || {};
     return new Promise(function(resolve) {
-      if (st.atlas && (clip === 'attack' || clip === 'hit')) {
+      if (!st.atlas) { resolve(); return; }
+      if (clip === 'attack' || clip === 'hit') {
+        // square up to the player first, then play the reaction
+        if (st.turnTimer) { clearTimeout(st.turnTimer); st.turnTimer = 0; }
+        st.facing = pickFacing(st, 'down');
         run(st, clip, CLIP_MS[clip], function() { run(st, 'idle'); resolve(); });
+        return;
+      }
+      if (clip === 'leave') {
+        // beaten: it turns its back on you and walks off into the scene
+        turn(st, 'up', 90, function() {
+          run(st, 'walk', 900);
+          resolve();
+        });
+        return;
+      }
+      if (clip === 'turn') {
+        turn(st, opts.facing || 'down', opts.step || 110, function() { resolve(); });
         return;
       }
       resolve();
@@ -256,6 +332,9 @@ var MonsterStage = (function() {
     actorFor: actorFor,
     show: show,
     play: play,
+    turnList: TURN,
+    /** Which way the figure is facing right now (null when there is no sheet) */
+    facingOf: function(img) { var st = stageFor(img); return st ? st.facing : null; },
     stop: stop,
     exitStyleFor: exitStyleFor
   };

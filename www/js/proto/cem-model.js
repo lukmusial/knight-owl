@@ -62,6 +62,21 @@ var CemModel = (function() {
     { id: 'w', dx: -1, dy: 0 }
   ];
 
+  /**
+   * The eight a roaming monster may take. The first four are DIRS, so a
+   * saved direction index from the four-way days still means the same
+   * thing; the diagonals follow, and each needs both of its neighbouring
+   * straight steps to be clear so nothing cuts a corner through a grave.
+   */
+  var DIRS8 = DIRS.concat([
+    { id: 'ne', dx: 1, dy: -1 },
+    { id: 'se', dx: 1, dy: 1 },
+    { id: 'sw', dx: -1, dy: 1 },
+    { id: 'nw', dx: -1, dy: -1 }
+  ]);
+  // opposite index, for the "do not turn straight back" weighting
+  var OPPOSITE8 = [2, 3, 0, 1, 6, 7, 4, 5];
+
   // Who roams the grounds, by distance band from the gate
   var WANDERER_BANDS = {
     1: ['giant_rat', 'bat_swarm', 'zombie'],
@@ -916,7 +931,7 @@ var CemModel = (function() {
         uid: 'w' + (mi + 1), id: mid, difficulty: band, role: 'wander',
         encounterType: et.encounterType, matchingCategory: et.matchingCategory,
         home: { gx: home.gx, gy: home.gy }, gx: home.gx, gy: home.gy,
-        dir: rng.int(4), stepMs: Math.round(cfg.STEP_MS * (0.8 + 0.4 * rng())), acc: 0,
+        dir: rng.int(8), stepMs: Math.round(cfg.STEP_MS * (0.8 + 0.4 * rng())), acc: 0,
         keyPart: null, defeated: false
       };
       m.acc = rng.int(m.stepMs);
@@ -1366,23 +1381,31 @@ var CemModel = (function() {
     return occ;
   }
 
+  /** A diagonal step is only allowed when both straight neighbours are open */
+  function openCorner(level, gx, gy, dir) {
+    var a = tileAt(level, gx + dir.dx, gy);
+    var b = tileAt(level, gx, gy + dir.dy);
+    return !!a && !!b && a.walk && b.walk;
+  }
+
   function stepWanderer(level, m, occ) {
     var cfg = level.cfg;
     var cands = [];
     var weights = [];
     var stretched = chebyshev(m, m.home) >= cfg.LEASH - 1;
-    for (var d = 0; d < 4; d++) {
-      var nx = m.gx + DIRS[d].dx, ny = m.gy + DIRS[d].dy;
+    for (var d = 0; d < DIRS8.length; d++) {
+      var nx = m.gx + DIRS8[d].dx, ny = m.gy + DIRS8[d].dy;
       var t = tileAt(level, nx, ny);
       if (!t || !t.walk || t.kind === KIND.tomb_door || t.kind === KIND.gate) continue;
+      if (DIRS8[d].dx && DIRS8[d].dy && !openCorner(level, m.gx, m.gy, DIRS8[d])) continue;
       var pos = { gx: nx, gy: ny };
       if (inGateSafeZone(level, pos)) continue;
       if (chebyshev(pos, m.home) > cfg.LEASH) continue;
       if (occ[nx + ',' + ny]) continue;
       if (samePos(pos, level.owl)) continue;
-      var w = 1;
-      if (d === m.dir) w = 3;
-      else if ((d + 2) % 4 === m.dir) w = 0.25;
+      var w = DIRS8[d].dx && DIRS8[d].dy ? 0.9 : 1;
+      if (d === m.dir) w *= 3;
+      else if (OPPOSITE8[d] === m.dir) w *= 0.25;
       if (stretched && chebyshev(pos, m.home) < chebyshev(m, m.home)) w *= 2;
       cands.push(d);
       weights.push(w);
@@ -1398,8 +1421,8 @@ var CemModel = (function() {
     }
     var from = { gx: m.gx, gy: m.gy };
     delete occ[m.gx + ',' + m.gy];
-    m.gx += DIRS[pick].dx;
-    m.gy += DIRS[pick].dy;
+    m.gx += DIRS8[pick].dx;
+    m.gy += DIRS8[pick].dy;
     m.dir = pick;
     occ[m.gx + ',' + m.gy] = m.uid;
     return { type: 'moved', uid: m.uid, from: from, to: { gx: m.gx, gy: m.gy } };
@@ -1722,6 +1745,7 @@ var CemModel = (function() {
     CONFIG: CONFIG,
     KIND: KIND,
     DIRS: DIRS,
+    DIRS8: DIRS8,
     THEME_MONSTERS: THEME_MONSTERS,
     WANDERER_BANDS: WANDERER_BANDS,
     GUARDIANS: GUARDIANS,

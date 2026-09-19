@@ -16,9 +16,12 @@ do
   glb="$ROOT/www/assets/proto/fp/monsters/$id.glb"
   [ -f "$glb" ] || { echo "skip $id (no model)"; continue; }
   echo "== $id ($motion)"
+  # start from an empty directory: frames of facings we no longer render
+  # would otherwise be packed into the sheet as well
+  rm -rf "/tmp/frames/$id"
   blender -b --python "$ROOT/tools/monsters3d/render_monster_iso.py" -- \
     "$glb" "/tmp/frames/$id" --motion "$motion" --yaw "$yaw" --engine "$ENGINE" --size 160 >/dev/null
-  "$PY" "$ROOT/tools/owl3d/pack_sprites.py" "/tmp/frames/$id" "$OUT/$id" 8 --quant
+  "$PY" "$ROOT/tools/owl3d/pack_sprites.py" "/tmp/frames/$id" "$OUT/$id" 8 --quant 128
 done
 "$PY" - <<'PYEOF'
 import json, os

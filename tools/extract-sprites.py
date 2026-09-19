@@ -104,27 +104,95 @@ def hue_purple_cutout(img):
 
 def paint_out(img, cut):
     """The illustration with the character painted out, so an animated sprite
-    can move across the scene without its twin showing underneath."""
+    can move across the scene without its twin showing underneath.
+
+    The hole is filled by inpainting, then blended back with a distance
+    feather: full replacement where the character stood, fading to the
+    untouched painting over a band outside it. Nothing is darkened and no
+    edge is composited hard, which is what used to leave the character's
+    silhouette visible as a discoloured patch."""
     import numpy as np
     try:
         import cv2
     except ImportError:
         return None
+    FEATHER = 26                      # px the fill fades out over
     rgb = np.asarray(img.convert('RGB'))[:, :, ::-1].copy()
     alpha = np.asarray(cut.convert('RGBA'))[:, :, 3]
-    mask = (alpha > 30).astype(np.uint8) * 255
+    mask = (alpha > 20).astype(np.uint8) * 255
+    # cover the character and the dark outline the illustration draws round it
     k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-    mask = cv2.dilate(mask, k, iterations=2)
-    # inpaint at half size (cheap, and the smear reads as depth of field), then
-    # blur and darken inside the hole so it sits back behind the character
+    core = cv2.dilate(mask, k, iterations=3)
+
+    # inpaint at half size: cheap, and the smear reads as depth of field
     small = cv2.resize(rgb, (rgb.shape[1] // 2, rgb.shape[0] // 2), interpolation=cv2.INTER_AREA)
-    small_mask = cv2.resize(mask, (small.shape[1], small.shape[0]), interpolation=cv2.INTER_NEAREST)
-    filled = cv2.inpaint(small, small_mask, 7, cv2.INPAINT_TELEA)
+    small_mask = cv2.resize(core, (small.shape[1], small.shape[0]), interpolation=cv2.INTER_NEAREST)
+    filled = cv2.inpaint(small, small_mask, 9, cv2.INPAINT_TELEA)
     filled = cv2.resize(filled, (rgb.shape[1], rgb.shape[0]), interpolation=cv2.INTER_LINEAR)
-    blurred = cv2.GaussianBlur(filled, (9, 9), 0)
-    m3 = (mask > 0)[:, :, None]
-    out = np.where(m3, (blurred * 0.88).astype(np.uint8), rgb)
-    return Image.fromarray(out[:, :, ::-1])
+    # Blur by the size of the hole. Inpainting a character-sized area only
+    # smears the edge colours inward, which keeps his silhouette; washing it
+    # out at this scale turns the patch into out-of-focus background instead.
+    area = float((core > 0).sum())
+    wash = float(np.clip((area ** 0.5) / 5.0, 6.0, 70.0))
+    filled = cv2.GaussianBlur(filled, (0, 0), wash).astype(np.float32)
+
+    # Give the fill some grain so it does not read as plastic. It has to be
+    # synthetic: the painting's own high frequencies carry the character's
+    # edges, and adding those back would draw his outline again.
+    outside = core == 0
+    detail = rgb.astype(np.float32) - cv2.GaussianBlur(rgb, (0, 0), 5).astype(np.float32)
+    sigma = float(detail[outside].std()) if outside.any() else 2.0
+    rs = np.random.RandomState(7)
+    noise = rs.normal(0.0, min(sigma, 6.0), rgb.shape[:2]).astype(np.float32)
+    noise = cv2.GaussianBlur(noise, (0, 0), 0.8)
+    filled += noise[:, :, None]
+
+    # 1 inside the hole, fading to 0 over FEATHER px outside it
+    dist = cv2.distanceTransform((core == 0).astype(np.uint8), cv2.DIST_L2, 3)
+    a = np.clip(1.0 - dist / float(FEATHER), 0.0, 1.0)
+    a = np.where(core > 0, 1.0, a).astype(np.float32)[:, :, None]
+
+    out = rgb.astype(np.float32) * (1.0 - a) + filled * a
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8)[:, :, ::-1])
+
+
+def rebuild_plates(args):
+    """Repaint <id>_bg.jpg from the cutouts already in the sprite folder.
+    Much faster than a full run, and the cutouts stay exactly as they are."""
+    only = set(filter(None, args.only.split(',')))
+    index_path = DST / 'index.json'
+    index = json.load(open(index_path)) if index_path.exists() else {}
+    done = 0
+    for path in sorted(SRC.glob('*.png')):
+        if path.stem in SKIP:
+            continue
+        if only and path.stem not in only:
+            continue
+        entry = index.get(path.stem)
+        cut_path = DST / path.name
+        if not entry or not entry.get('bbox') or not cut_path.exists():
+            continue
+        full = Image.open(path).convert('RGBA')
+        # put the cropped cutout back where it came from, so the mask lines up
+        stamp = Image.new('RGBA', full.size, (0, 0, 0, 0))
+        cut = Image.open(cut_path).convert('RGBA')
+        b = entry['bbox']
+        box_w, box_h = b[2] - b[0], b[3] - b[1]
+        if cut.size != (box_w, box_h):
+            cut = cut.resize((box_w, box_h), Image.LANCZOS)
+        stamp.paste(cut, (b[0], b[1]))
+        plate = paint_out(full, stamp)
+        if plate is None:
+            print('opencv missing; cannot paint plates', file=sys.stderr)
+            return
+        plate.convert('RGB').save(DST / (path.stem + '_bg.jpg'), quality=85, optimize=True)
+        entry['bg'] = True
+        index[path.stem] = entry
+        done += 1
+        print(f'{path.stem}: plate repainted')
+    with open(index_path, 'w') as f:
+        json.dump(index, f, indent=1, sort_keys=True)
+    print('repainted', done, 'plates')
 
 
 def main():
@@ -133,7 +201,13 @@ def main():
     ap.add_argument('--max', type=int, default=512)
     ap.add_argument('--model', default='isnet-general-use')
     ap.add_argument('--no-bg', action='store_true', help='skip the inpainted background plates')
+    ap.add_argument('--bg-only', action='store_true',
+                    help='rebuild only the background plates, reusing the cutouts already extracted')
     args = ap.parse_args()
+
+    if args.bg_only:
+        rebuild_plates(args)
+        return
 
     from rembg import remove, new_session
     sessions = {}

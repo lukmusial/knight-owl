@@ -416,7 +416,14 @@ const UI = (function() {
   /** The monster leaves the card in its own way (fades, sinks, vanishes, runs) */
   function monsterLeaves(img, actor, id) {
     if (actor !== img && typeof MonsterStage !== 'undefined') {
-      return FX.monsterExit(actor, MonsterStage.exitStyleFor(id));
+      var style = MonsterStage.exitStyleFor(id);
+      if (style === 'runaway') {
+        // turn its back on the player and break into a walk before it goes
+        return MonsterStage.play(img, 'leave').then(function() {
+          return FX.monsterExit(actor, style);
+        });
+      }
+      return FX.monsterExit(actor, style);
     }
     return FX.monsterDefeat(img);
   }
