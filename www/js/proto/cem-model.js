@@ -14,25 +14,35 @@
 
 var CemModel = (function() {
   var CONFIG = {
-    W: 30,
-    H: 26,
-    MARGIN: 3,
-    WAYPOINT_MIN_DIST: 5,
-    MAX_WAYPOINTS: 18,
-    EXTRA_LOOPS: 4,
+    W: 60,
+    H: 52,
+    MARGIN: 4,
+    WAYPOINT_MIN_DIST: 7,
+    MAX_WAYPOINTS: 40,
+    EXTRA_LOOPS: 8,
+    LOOP_MAX_DIST: 14,
+    LANE_WIDE_SHARE: 0.25,      // share of lanes carved three tiles wide
     SMALL_TOMBS: 4,
     WANDERERS: 16,
-    LEASH: 6,
+    LEASH: 9,
+    HOME_SPACING: 5,
     STEP_MS: 900,
-    GATE_SAFE_RADIUS: 2,
+    GATE_SAFE_RADIUS: 3,
     GRACE_MS: 1500,
-    VIS_OWL: 3,
-    VIS_LANTERN: 2.5,
+    VIS_OWL: 4,                 // Euclidean tile radius revealed around Mr Owl
+    VIS_LANTERN: 3,
+    OWL_SPEED: 3.2,             // tiles per second
+    OWL_RADIUS: 0.3,            // collision circle in tiles
+    PROX_R: 1.2,                // a monster this close starts an encounter
+    ARRIVE_EPS: 0.08,
+    LOCKED_TOAST_MS: 1500,
     MATCHING_SHARE: 0.3,
     MAX_ATTEMPTS: 20,
-    MAX_GRAVES: 90,
-    TREES: 30,
-    MAX_LANTERNS: 24,
+    MAX_GRAVES: 220,
+    TREES: 90,
+    ROCKS: 16,
+    MAX_LANTERNS: 56,
+    LANTERN_EVERY: 8,
     LANTERN_HEIGHT: 1.1
   };
 
@@ -52,11 +62,15 @@ var CemModel = (function() {
     { id: 'w', dx: -1, dy: 0 }
   ];
 
-  var THEME_MONSTERS = {
-    1: ['zombie', 'bat_swarm', 'vampire_bunny'],
-    2: ['skeleton', 'skeleton_king', 'skeleton_queen', 'ghost', 'lost_soul', 'spider', 'demilich', 'pumpkin_man', 'will_o_wisp'],
-    3: ['witch', 'lich', 'vampire_lord', 'frankenstein', 'spirit_of_the_mine', 'banshee', 'clown']
+  // Who roams the grounds, by distance band from the gate
+  var WANDERER_BANDS = {
+    1: ['giant_rat', 'bat_swarm', 'zombie'],
+    2: ['skeleton', 'ghost', 'spider', 'lost_soul', 'pumpkin_man'],
+    3: ['banshee']
   };
+  var THEME_MONSTERS = WANDERER_BANDS;   // older name, same table
+  // One guardian per small tomb, in tomb order (always asked hard questions)
+  var GUARDIANS = ['banshee', 'pumpkin_man', 'skeleton', 'ghost'];
   var BOSS_ID = 'grim_reaper';
   var KEY_PART_ITEM = { id: 'skeleton_key_part', name: 'Skeleton Key Part', namePL: 'Część Szkieletowego Klucza', value: 25 };
 
@@ -158,6 +172,21 @@ var CemModel = (function() {
     return ((h ^ (h >>> 16)) >>> 0) % 10000 / 10000;
   }
 
+  /**
+   * Smooth value noise on a lattice of `cell` tiles: low frequency, so a path
+   * following cheap ground curves in long arcs instead of zig-zagging.
+   */
+  function valueNoise(gx, gy, cell, salt) {
+    var fx = gx / cell, fy = gy / cell;
+    var ix = Math.floor(fx), iy = Math.floor(fy);
+    var tx = fx - ix, ty = fy - iy;
+    tx = tx * tx * (3 - 2 * tx);
+    ty = ty * ty * (3 - 2 * ty);
+    var a = positionNoise(ix, iy, salt), b = positionNoise(ix + 1, iy, salt);
+    var c = positionNoise(ix, iy + 1, salt), d = positionNoise(ix + 1, iy + 1, salt);
+    return (a + (b - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
+  }
+
   // ---------------------------------------------------------------------------
   // Binary heap for the path searches
   // ---------------------------------------------------------------------------
@@ -204,8 +233,13 @@ var CemModel = (function() {
   function astar(level, from, to, costFn) {
     if (!inside(level, from.gx, from.gy) || !inside(level, to.gx, to.gy)) return [];
     var n = level.W * level.H;
-    var dist = new Array(n), prev = new Array(n), closed = new Array(n);
-    for (var i = 0; i < n; i++) { dist[i] = Infinity; prev[i] = -1; closed[i] = false; }
+    // one scratch buffer per level: a generation runs A* dozens of times
+    var sc = level._scratch;
+    if (!sc || sc.dist.length !== n) {
+      sc = level._scratch = { dist: new Float64Array(n), prev: new Int32Array(n), closed: new Uint8Array(n) };
+    }
+    var dist = sc.dist, prev = sc.prev, closed = sc.closed;
+    dist.fill(Infinity); prev.fill(-1); closed.fill(0);
     var start = index(level, from.gx, from.gy), goal = index(level, to.gx, to.gy);
     dist[start] = 0;
     var heap = new Heap();
@@ -217,7 +251,7 @@ var CemModel = (function() {
       var cur = heap.pop();
       var ci = cur.i;
       if (closed[ci]) continue;
-      closed[ci] = true;
+      closed[ci] = 1;
       if (ci === goal) break;
       var cx = ci % level.W, cy = (ci - cx) / level.W;
       for (var d = 0; d < 4; d++) {
@@ -324,6 +358,12 @@ var CemModel = (function() {
       defeated: {},
       seen: [],
       vis: [],
+      seenVersion: 0,
+      newlySeen: [],
+      clockMs: 0,
+      lockedToastAt: 0,
+      lightMap: null,
+      nearLights: null,
       paused: false,
       encounterUid: null,
       graceMs: 0,
@@ -360,7 +400,7 @@ var CemModel = (function() {
    * any roster monster of that difficulty, then to anything non-boss.
    */
   function poolFor(roster, difficulty) {
-    var ids = THEME_MONSTERS[difficulty] || [];
+    var ids = WANDERER_BANDS[difficulty] || [];
     var out = [];
     for (var i = 0; i < ids.length; i++) if (findInRoster(roster, ids[i])) out.push(ids[i]);
     if (!out.length) {
@@ -440,12 +480,12 @@ var CemModel = (function() {
       return false;
     }
     function inGateZone(gx, gy) {
-      return gy >= H - 6 && Math.abs(gx - gateX) <= 5;
+      return gy >= H - 8 && Math.abs(gx - gateX) <= 7;
     }
 
     // 2. tombs: the large one far from the gate, four small ones per quadrant
-    var lx0 = Math.floor(W / 2) - 6 + rng.int(10);
-    var ly0 = cfg.MARGIN + rng.int(3);
+    var lx0 = Math.floor(W / 2) - 10 + rng.int(20);
+    var ly0 = cfg.MARGIN + rng.int(4);
     var large = { id: 'large', size: 'large', x0: lx0, y0: ly0, w: 3, h: 3, side: 's',
       door: { gx: lx0 + 1, gy: ly0 + 3 }, porch: { gx: lx0 + 1, gy: ly0 + 4 }, guardianUid: 'boss', keyPart: null };
     reserveRect(lx0, ly0, 3, 3, 'large');
@@ -457,8 +497,8 @@ var CemModel = (function() {
     var quads = [
       { x0: cfg.MARGIN, x1: midX - 3, y0: cfg.MARGIN, y1: midY - 3 },
       { x0: midX + 1, x1: W - 1 - cfg.MARGIN - 1, y0: cfg.MARGIN, y1: midY - 3 },
-      { x0: cfg.MARGIN, x1: midX - 3, y0: midY, y1: H - 8 },
-      { x0: midX + 1, x1: W - 1 - cfg.MARGIN - 1, y0: midY, y1: H - 8 }
+      { x0: cfg.MARGIN, x1: midX - 3, y0: midY, y1: H - 10 },
+      { x0: midX + 1, x1: W - 1 - cfg.MARGIN - 1, y0: midY, y1: H - 10 }
     ];
     for (var q = 0; q < cfg.SMALL_TOMBS; q++) {
       var quad = quads[q % quads.length];
@@ -535,7 +575,7 @@ var CemModel = (function() {
         // porches keep a single approach so tomb steps stay quiet
         if (wps[u2].kind === 'porch' || wps[v2].kind === 'porch') continue;
         var ld = euclid(wps[u2], wps[v2]);
-        if (ld < 10) loopCands.push({ u: u2, v: v2, d: ld });
+        if (ld < cfg.LOOP_MAX_DIST) loopCands.push({ u: u2, v: v2, d: ld });
       }
     }
     loopCands.sort(function(p, q2) { return p.d - q2.d; });
@@ -551,18 +591,64 @@ var CemModel = (function() {
       if (tile.kind === KIND.fence || tile.kind === KIND.gate) return Infinity;
       if (reserved[idx] || reservedDoor[idx]) return Infinity;
       if (tile.kind === KIND.path) return 0.25;
-      var c = 1 + positionNoise(gx2, gy2, noiseSalt) * 2;
-      if (gx2 === 1 || gy2 === 1 || gx2 === W - 2 || gy2 === H - 2) c += 1.5;
+      // low-frequency valleys make a route curve in long arcs; the fine grain
+      // keeps neighbouring routes from sharing exactly the same line
+      var c = 1 + 2.5 * (0.35 * positionNoise(gx2, gy2, noiseSalt) + 0.65 * valueNoise(gx2, gy2, 4, noiseSalt + 31));
+      if (gx2 <= 2 || gy2 <= 2 || gx2 >= W - 3 || gy2 >= H - 3) c += 1.5;
       return c;
+    }
+    /** May this tile become part of a lane? (tombs, doors and the fence stay clear) */
+    function carvable(gx2, gy2) {
+      if (!inside(level, gx2, gy2) || isBorder(level, gx2, gy2)) return false;
+      var idx = index(level, gx2, gy2);
+      if (reserved[idx] || reservedDoor[idx]) return false;
+      var t2 = level.tiles[idx];
+      return t2.kind === KIND.grass || t2.kind === KIND.path;
+    }
+    function layPath(gx2, gy2) {
+      if (!carvable(gx2, gy2)) return;
+      level.tiles[index(level, gx2, gy2)].kind = KIND.path;
     }
     for (var ei = 0; ei < edges.length; ei++) {
       var route = astar(level, wps[edges[ei][0]], wps[edges[ei][1]], carveCost);
       if (!route.length) return null;
+      // a lane is a ribbon: the carved line plus one or two tiles to the side,
+      // so Mr Owl can walk past a monster instead of bumping into it
+      var fromGate = edges[ei][0] === 0 || edges[ei][1] === 0;
+      var both = fromGate || rng() < cfg.LANE_WIDE_SHARE;
+      var side = both ? 0 : (rng() < 0.5 ? 1 : -1);
       for (var ri2 = 0; ri2 < route.length; ri2++) {
-        var rt = tileAt(level, route[ri2].gx, route[ri2].gy);
-        rt.kind = KIND.path;
+        var step = route[ri2];
+        layPath(step.gx, step.gy);
+        var prev = route[ri2 > 0 ? ri2 - 1 : 0], next = route[ri2 < route.length - 1 ? ri2 + 1 : ri2];
+        var dx = next.gx - prev.gx, dy = next.gy - prev.gy;
+        var px = -dy, py = dx;                     // perpendicular to the lane
+        if (px === 0 && py === 0) { px = 1; py = 0; }
+        px = px > 0 ? 1 : (px < 0 ? -1 : 0);
+        py = py > 0 ? 1 : (py < 0 ? -1 : 0);
+        if (both) {
+          layPath(step.gx + px, step.gy + py);
+          layPath(step.gx - px, step.gy - py);
+        } else {
+          layPath(step.gx + side * px, step.gy + side * py);
+        }
       }
       level.routes.push(route);
+    }
+    // smooth the bends: grass hemmed in by lanes becomes lane too
+    for (var pass = 0; pass < 2; pass++) {
+      var fill = [];
+      for (var fi = 0; fi < n; fi++) {
+        var ft = level.tiles[fi];
+        if (ft.kind !== KIND.grass || !carvable(ft.gx, ft.gy)) continue;
+        var around = 0;
+        for (var fd = 0; fd < 4; fd++) {
+          var fn = tileAt(level, ft.gx + DIRS[fd].dx, ft.gy + DIRS[fd].dy);
+          if (fn && fn.kind === KIND.path) around++;
+        }
+        if (around >= 3) fill.push(fi);
+      }
+      for (var fj = 0; fj < fill.length; fj++) level.tiles[fill[fj]].kind = KIND.path;
     }
     for (var tj = 0; tj < level.tombs.length; tj++) {
       var tb = level.tombs[tj];
@@ -588,9 +674,10 @@ var CemModel = (function() {
       }
     }
     for (var pi = 1; pi < wps.length; pi++) {
-      if (degree[pi] >= 3 && wps[pi].kind === 'node') stampPlaza(wps[pi].gx, wps[pi].gy, 2, 2);
+      if (wps[pi].kind !== 'node') continue;
+      if (degree[pi] >= 3 || rng() < 0.25) stampPlaza(wps[pi].gx - 1, wps[pi].gy - 1, 3, 3);
     }
-    stampPlaza(gateX - 1, H - 3, 3, 2);
+    stampPlaza(gateX - 2, H - 4, 5, 3);
 
     // path variants
     for (var vi = 0; vi < n; vi++) {
@@ -665,7 +752,7 @@ var CemModel = (function() {
       treeCands.push(tt);
     }
     var trees = [];
-    for (var tt2 = 0; tt2 < 300 && trees.length < cfg.TREES && treeCands.length; tt2++) {
+    for (var tt2 = 0; tt2 < 900 && trees.length < cfg.TREES && treeCands.length; tt2++) {
       var pickT = rng.pick(treeCands);
       if (pickT.kind !== KIND.grass) continue;
       var okT = true;
@@ -677,7 +764,7 @@ var CemModel = (function() {
     }
     // a few rocks in the remaining open grass
     var rocks = 0;
-    for (var rk = 0; rk < 60 && rocks < 6 && treeCands.length; rk++) {
+    for (var rk = 0; rk < 200 && rocks < cfg.ROCKS && treeCands.length; rk++) {
       var pickR = rng.pick(treeCands);
       if (pickR.kind !== KIND.grass || nearKind(pickR.gx, pickR.gy, KIND.tree, 1)) continue;
       pickR.kind = KIND.rock;
@@ -686,19 +773,23 @@ var CemModel = (function() {
     }
 
     // 9. lanterns along the lanes, at the gate and by every tomb porch
-    var lanternOrder = [3, 0, 1, 2]; // prefer w, then n, e, s neighbours (poles stay off the lane in iso)
+    var lanternOrder = [3, 0, 1, 2]; // prefer w, then n, e, s (poles stay off the lane in iso)
     function placeLanternNear(gx2, gy2) {
       if (level.lights.length >= cfg.MAX_LANTERNS) return false;
-      for (var o = 0; o < lanternOrder.length; o++) {
-        var d = DIRS[lanternOrder[o]];
-        var lx = gx2 + d.dx, ly = gy2 + d.dy;
-        if (!freeGrass(lx, ly)) continue;
-        if (nearKind(lx, ly, KIND.lantern, 2)) continue;
-        var lt = tileAt(level, lx, ly);
-        lt.kind = KIND.lantern;
-        lt.variant = 0;
-        level.lights.push({ gx: lx, gy: ly, height: cfg.LANTERN_HEIGHT });
-        return true;
+      // lanes are two or three tiles wide, so step outward until the verge is reached
+      for (var reach = 1; reach <= 3; reach++) {
+        for (var o = 0; o < lanternOrder.length; o++) {
+          var d = DIRS[lanternOrder[o]];
+          var lx = gx2 + d.dx * reach, ly = gy2 + d.dy * reach;
+          if (!freeGrass(lx, ly)) continue;
+          if (nearKind(lx, ly, KIND.lantern, 3)) continue;
+          if (nearTomb(lx, ly, 1)) continue;
+          var lt = tileAt(level, lx, ly);
+          lt.kind = KIND.lantern;
+          lt.variant = 0;
+          level.lights.push({ gx: lx, gy: ly, height: cfg.LANTERN_HEIGHT });
+          return true;
+        }
       }
       return false;
     }
@@ -715,7 +806,7 @@ var CemModel = (function() {
     for (var tl = 0; tl < level.tombs.length; tl++) placeLanternNear(level.tombs[tl].porch.gx, level.tombs[tl].porch.gy);
     for (var rr = 0; rr < level.routes.length; rr++) {
       var rte = level.routes[rr];
-      for (var rs = 3; rs < rte.length; rs += 6) placeLanternNear(rte[rs].gx, rte[rs].gy);
+      for (var rs = 3; rs < rte.length; rs += cfg.LANTERN_EVERY) placeLanternNear(rte[rs].gx, rte[rs].gy);
     }
 
     // 10. statues by plazas, benches facing lanes, pumpkins, spider webs
@@ -749,12 +840,12 @@ var CemModel = (function() {
       var corner = (ct.gx === 1 || ct.gx === W - 2) && (ct.gy === 1 || ct.gy === H - 2);
       if (corner || nearKind(ct.gx, ct.gy, KIND.tree, 1)) webCands.push(ct);
     }
-    var statues = 2 + rng.int(3);
+    var statues = 5 + rng.int(4);
     for (var si = 0; si < statues; si++) {
       var st = pickFrom(statueCands, function(c) { return !nearKind(c.gx, c.gy, KIND.statue, 2); });
       if (st) { st.kind = KIND.statue; st.variant = rng.int(3); }
     }
-    var benches = 3 + rng.int(3);
+    var benches = 8 + rng.int(4);
     for (var bi = 0; bi < benches && benchCands.length; bi++) {
       var bc = null;
       for (var battempt = 0; battempt < 40 && !bc; battempt++) {
@@ -763,12 +854,12 @@ var CemModel = (function() {
       }
       if (bc) { bc.tile.kind = KIND.bench; bc.tile.variant = bc.facing; }
     }
-    var pumpkins = 6 + rng.int(5);
+    var pumpkins = 14 + rng.int(8);
     for (var pk = 0; pk < pumpkins; pk++) {
       var pt3 = pickFrom(pumpkinCands, function(c) { return !nearKind(c.gx, c.gy, KIND.pumpkin, 1); });
       if (pt3) { pt3.kind = KIND.pumpkin; pt3.variant = rng.int(3); }
     }
-    var webs = 5 + rng.int(4);
+    var webs = 10 + rng.int(6);
     for (var wb = 0; wb < webs; wb++) {
       var wt = pickFrom(webCands, function(c) { return !nearKind(c.gx, c.gy, KIND.web, 2); });
       if (wt) { wt.kind = KIND.web; wt.variant = rng.int(2); }
@@ -803,16 +894,16 @@ var CemModel = (function() {
     var homeCands = [];
     for (var hc = 0; hc < n; hc++) {
       var ht = level.tiles[hc];
-      if (ht.kind !== KIND.path || ht.dist < 4) continue;
+      if (ht.kind !== KIND.path || ht.dist < 6) continue;
       if (manhattan(ht, level.gate) <= cfg.GATE_SAFE_RADIUS + 2) continue;
       if (nearDoorOrPorch(ht.gx, ht.gy, 1)) continue;
       homeCands.push(ht);
     }
     var homes = [];
-    for (var hd = 0; hd < 300 && homes.length < cfg.WANDERERS && homeCands.length; hd++) {
+    for (var hd = 0; hd < 900 && homes.length < cfg.WANDERERS && homeCands.length; hd++) {
       var hpick = rng.pick(homeCands);
       var okH = true;
-      for (var hh = 0; hh < homes.length; hh++) if (chebyshev(homes[hh], hpick) < 3) { okH = false; break; }
+      for (var hh = 0; hh < homes.length; hh++) if (chebyshev(homes[hh], hpick) < cfg.HOME_SPACING) { okH = false; break; }
       if (okH) homes.push(hpick);
     }
     for (var mi = 0; mi < homes.length; mi++) {
@@ -833,10 +924,13 @@ var CemModel = (function() {
     }
     var guardPool = poolFor(roster, 3);
     var guardCycler = makeCycler(rng, guardPool);
+    var guardIndex = 0;
     for (var gq = 0; gq < level.tombs.length; gq++) {
       var tomb = level.tombs[gq];
       if (tomb.size !== 'small') continue;
-      var gid = guardCycler();
+      // a named guardian per tomb; fall back to the pool for a tiny roster
+      var wanted = GUARDIANS[guardIndex++];
+      var gid = findInRoster(roster, wanted) ? wanted : guardCycler();
       var get = encounterTypeFor();
       level.monsters.push({
         uid: tomb.guardianUid, id: gid, difficulty: 3, role: 'guard',
@@ -853,9 +947,10 @@ var CemModel = (function() {
     });
     for (var mb = 0; mb < level.monsters.length; mb++) level.monstersByUid[level.monsters[mb].uid] = level.monsters[mb];
 
-    // 13. bounds, owl, visibility
+    // 13. bounds, light map, owl, visibility
     level.bounds = computeBounds(level);
-    level.owl = { gx: level.start.gx, gy: level.start.gy };
+    computeLightMap(level);
+    level.owl = { gx: level.start.gx, gy: level.start.gy, x: level.start.gx, y: level.start.gy, path: [] };
     for (var fs = 0; fs < n; fs++) {
       if (level.tiles[fs].kind === KIND.fence || level.tiles[fs].kind === KIND.gate) level.seen[fs] = 1;
     }
@@ -934,7 +1029,7 @@ var CemModel = (function() {
     }
     for (var a = 0; a < smalls.length; a++) {
       for (var b = a + 1; b < smalls.length; b++) {
-        if (chebyshev(smalls[a].porch, smalls[b].porch) < 6) return { ok: false, reason: 'small tombs too close' };
+        if (chebyshev(smalls[a].porch, smalls[b].porch) < 10) return { ok: false, reason: 'small tombs too close' };
       }
     }
     for (var i = 0; i < level.tiles.length; i++) {
@@ -1036,15 +1131,199 @@ var CemModel = (function() {
   }
 
   function inGateSafeZone(level, pos) {
-    return manhattan(pos, level.start) <= level.cfg.GATE_SAFE_RADIUS;
+    var px = typeof pos.x === 'number' ? pos.x : pos.gx;
+    var py = typeof pos.y === 'number' ? pos.y : pos.gy;
+    return Math.abs(px - level.start.gx) + Math.abs(py - level.start.gy) <= level.cfg.GATE_SAFE_RADIUS;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Continuous movement
+  //
+  // Mr Owl has a float position `{x, y}` in tile units and walks freely along
+  // the lanes; `{gx, gy}` is the tile he stands on (rounded) and is what every
+  // other part of the game reads. A tile is the square centred on its integer
+  // coordinates, so tile (3,4) spans x in [2.5, 3.5).
+  // ---------------------------------------------------------------------------
+
+  /** Float position, filled in from the tile when a caller only set gx/gy */
+  function owlPos(level) {
+    var o = level.owl;
+    if (typeof o.x !== 'number' || typeof o.y !== 'number') { o.x = o.gx; o.y = o.gy; }
+    return o;
+  }
+
+  function owlTile(level) {
+    var o = owlPos(level);
+    return { gx: o.gx, gy: o.gy };
+  }
+
+  /** Put Mr Owl on a tile centre (respawn, teleport, restored save) */
+  function setOwlTile(level, gx, gy) {
+    level.owl = { gx: gx, gy: gy, x: gx, y: gy, path: [] };
+    updateVisibility(level);
+    return level.owl;
+  }
+
+  /** Would a circle of radius r centred on (x, y) stay on enterable ground? */
+  function fitsCircle(level, x, y, r) {
+    var x0 = Math.round(x - r), x1 = Math.round(x + r);
+    var y0 = Math.round(y - r), y1 = Math.round(y + r);
+    for (var gy = y0; gy <= y1; gy++) {
+      for (var gx = x0; gx <= x1; gx++) {
+        if (!canEnter(level, gx, gy)) return false;
+      }
+    }
+    return true;
   }
 
   /**
-   * Step Mr Owl onto an adjacent tile. Returns { ok, reason?, events }.
+   * Slide Mr Owl by a velocity for dtMs, one axis at a time so he grazes
+   * along a wall instead of sticking to it.
+   * @returns {Object} { moved, tileChanged, blockedBy (tile or null) }
+   */
+  function moveBy(level, vx, vy, dtMs) {
+    var o = owlPos(level);
+    var r = level.cfg.OWL_RADIUS;
+    var dt = dtMs / 1000;
+    var blockedBy = null;
+    var startGx = o.gx, startGy = o.gy;
+
+    var nx = o.x + vx * dt;
+    if (vx !== 0) {
+      if (fitsCircle(level, nx, o.y, r)) {
+        o.x = nx;
+      } else {
+        var wallX = Math.round(nx + (vx > 0 ? r : -r));
+        blockedBy = tileAt(level, wallX, Math.round(o.y));
+        o.x = wallX + (vx > 0 ? -0.5 : 0.5) + (vx > 0 ? -1 : 1) * (r + 1e-3);
+        if (!fitsCircle(level, o.x, o.y, r)) o.x = startGx;
+      }
+    }
+    var ny = o.y + vy * dt;
+    if (vy !== 0) {
+      if (fitsCircle(level, o.x, ny, r)) {
+        o.y = ny;
+      } else {
+        var wallY = Math.round(ny + (vy > 0 ? r : -r));
+        if (!blockedBy) blockedBy = tileAt(level, Math.round(o.x), wallY);
+        o.y = wallY + (vy > 0 ? -0.5 : 0.5) + (vy > 0 ? -1 : 1) * (r + 1e-3);
+        if (!fitsCircle(level, o.x, o.y, r)) o.y = startGy;
+      }
+    }
+    o.gx = Math.round(o.x);
+    o.gy = Math.round(o.y);
+    return {
+      moved: o.gx !== startGx || o.gy !== startGy || Math.abs(o.x - startGx) > 1e-6 || Math.abs(o.y - startGy) > 1e-6,
+      tileChanged: o.gx !== startGx || o.gy !== startGy,
+      blockedBy: blockedBy
+    };
+  }
+
+  /** Events raised by standing on a tile: the gate, the great tomb, a monster */
+  function enterTile(level) {
+    var events = [];
+    var tile = tileAt(level, level.owl.gx, level.owl.gy);
+    updateVisibility(level);
+    if (tile && tile.kind === KIND.tomb_door) {
+      var t2 = tombOfDoor(level, tile);
+      if (t2 && t2.size === 'large' && !level.monstersByUid.boss.defeated) events.push({ type: 'enter_large_tomb' });
+    }
+    if (tile && tile.kind === KIND.gate) events.push({ type: 'gate' });
+    var prox = checkProximity(level);
+    for (var i = 0; i < prox.length; i++) events.push(prox[i]);
+    return events;
+  }
+
+  /** A locked door reports itself at most once every LOCKED_TOAST_MS */
+  function lockedEvent(level, tile) {
+    if (!tile || tile.kind !== KIND.tomb_door) return null;
+    var tomb = tombOfDoor(level, tile);
+    if (!tomb || tomb.size !== 'large' || hasAllKeyParts(level)) return null;
+    var now = level.clockMs || 0;
+    if (level.lockedToastAt && now - level.lockedToastAt < level.cfg.LOCKED_TOAST_MS) return null;
+    level.lockedToastAt = now;
+    return { type: 'tomb_locked', tombId: 'large', missing: 4 - keyPartCount(level) };
+  }
+
+  /** Give Mr Owl a route to follow (from pathTo); steering cancels it */
+  function setPath(level, path) {
+    var o = owlPos(level);
+    o.path = [];
+    if (!path || !path.length) return o.path;
+    for (var i = 0; i < path.length; i++) {
+      if (i === 0 && path[i].gx === o.gx && path[i].gy === o.gy) continue;
+      o.path.push({ gx: path[i].gx, gy: path[i].gy });
+    }
+    return o.path;
+  }
+
+  /**
+   * Advance Mr Owl for one frame. `steer` is a grid-space direction from the
+   * thumb-stick, drag or keys (magnitude 0..1); when it is zero he follows the
+   * route set by setPath.
+   * @returns {Object} { moved, tileChanged, arrived, vx, vy, events }
+   */
+  function tickOwl(level, steer, dtMs) {
+    var out = { moved: false, tileChanged: false, arrived: false, vx: 0, vy: 0, events: [] };
+    if (level.paused || level.encounterUid || level.completed) return out;
+    level.clockMs = (level.clockMs || 0) + dtMs;
+    var o = owlPos(level);
+    var cfg = level.cfg;
+    var sx = steer ? steer.x || 0 : 0, sy = steer ? steer.y || 0 : 0;
+    var mag = Math.sqrt(sx * sx + sy * sy);
+    var vx = 0, vy = 0;
+
+    if (mag > 0.01) {
+      o.path = [];
+      var speed = cfg.OWL_SPEED * Math.min(1, mag);
+      vx = sx / mag * speed;
+      vy = sy / mag * speed;
+    } else if (o.path && o.path.length) {
+      var step = o.path[0];
+      if (!canEnter(level, step.gx, step.gy)) {
+        var ev = lockedEvent(level, tileAt(level, step.gx, step.gy));
+        if (ev) out.events.push(ev);
+        o.path = [];
+        return out;
+      }
+      var dx = step.gx - o.x, dy = step.gy - o.y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d <= cfg.ARRIVE_EPS) {
+        o.x = step.gx; o.y = step.gy; o.gx = step.gx; o.gy = step.gy;
+        o.path.shift();
+        if (!o.path.length) out.arrived = true;
+      } else {
+        // full speed toward the next tile, slowing on the last step so he lands on it
+        var speedTo = Math.min(cfg.OWL_SPEED, d / (dtMs / 1000));
+        vx = dx / d * speedTo;
+        vy = dy / d * speedTo;
+      }
+    }
+
+    if (vx !== 0 || vy !== 0) {
+      var r = moveBy(level, vx, vy, dtMs);
+      out.moved = r.moved;
+      out.tileChanged = r.tileChanged;
+      out.vx = vx; out.vy = vy;
+      if (r.blockedBy) {
+        var lev = lockedEvent(level, r.blockedBy);
+        if (lev) out.events.push(lev);
+      }
+      if (r.tileChanged) {
+        var evs = enterTile(level);
+        for (var i = 0; i < evs.length; i++) out.events.push(evs[i]);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Step Mr Owl onto an adjacent tile (keyboard nudge, tests).
+   * Returns { ok, reason?, events }.
    */
   function moveOwl(level, gx, gy) {
     var target = { gx: gx, gy: gy };
-    if (manhattan(level.owl, target) !== 1) return { ok: false, reason: 'far', events: [] };
+    if (manhattan(owlTile(level), target) !== 1) return { ok: false, reason: 'far', events: [] };
     var tile = tileAt(level, gx, gy);
     if (!tile || !tile.walk) return { ok: false, reason: 'blocked', events: [] };
     if (!canEnter(level, gx, gy)) {
@@ -1054,31 +1333,23 @@ var CemModel = (function() {
       }
       return { ok: false, reason: 'blocked', events: [] };
     }
-    level.owl = target;
-    updateVisibility(level);
-    var events = [];
-    if (tile.kind === KIND.tomb_door) {
-      var t2 = tombOfDoor(level, tile);
-      if (t2 && t2.size === 'large' && !level.monstersByUid.boss.defeated) events.push({ type: 'enter_large_tomb' });
-    }
-    if (tile.kind === KIND.gate) events.push({ type: 'gate' });
-    var prox = checkProximity(level);
-    for (var i = 0; i < prox.length; i++) events.push(prox[i]);
-    return { ok: true, events: events };
+    var o = owlPos(level);
+    o.gx = gx; o.gy = gy; o.x = gx; o.y = gy;
+    return { ok: true, events: enterTile(level) };
   }
 
   function stepDir(level, dirId) {
+    var t = owlTile(level);
     for (var i = 0; i < DIRS.length; i++) {
-      if (DIRS[i].id === dirId) return moveOwl(level, level.owl.gx + DIRS[i].dx, level.owl.gy + DIRS[i].dy);
+      if (DIRS[i].id === dirId) return moveOwl(level, t.gx + DIRS[i].dx, t.gy + DIRS[i].dy);
     }
     return { ok: false, reason: 'blocked', events: [] };
   }
 
   function respawnAtGate(level) {
-    level.owl = { gx: level.start.gx, gy: level.start.gy };
+    setOwlTile(level, level.start.gx, level.start.gy);
     level.encounterUid = null;
     level.graceMs = level.cfg.GRACE_MS;
-    updateVisibility(level);
     return level.owl;
   }
 
@@ -1167,13 +1438,16 @@ var CemModel = (function() {
    */
   function checkProximity(level) {
     if (level.encounterUid || level.graceMs > 0 || level.completed) return [];
-    if (inGateSafeZone(level, level.owl)) return [];
+    if (inGateSafeZone(level, owlPos(level))) return [];
     var best = null, bestD = Infinity;
+    var o = owlPos(level);
+    var R = level.cfg.PROX_R;
     for (var i = 0; i < level.monsters.length; i++) {
       var m = level.monsters[i];
       if (m.defeated || m.role === 'boss') continue;
-      var d = manhattan(m, level.owl);
-      if (d <= 1 && d < bestD) { bestD = d; best = m; }
+      var mdx = m.gx - o.x, mdy = m.gy - o.y;
+      var d = Math.sqrt(mdx * mdx + mdy * mdy);
+      if (d <= R && d < bestD) { bestD = d; best = m; }
     }
     if (!best) return [];
     level.encounterUid = best.uid;
@@ -1259,13 +1533,21 @@ var CemModel = (function() {
     function light(gx, gy) {
       var idx = index(level, gx, gy);
       level.vis[idx] = 2;
-      level.seen[idx] = 1;
+      if (!level.seen[idx]) {
+        level.seen[idx] = 1;
+        level.seenVersion++;
+        level.newlySeen.push(idx);   // the renderer drains this to reveal ground and props
+      }
     }
+    var o = owlPos(level);
     var r = cfg.VIS_OWL;
-    for (var dy = -r; dy <= r; dy++) {
-      for (var dx = -r; dx <= r; dx++) {
-        var gx = level.owl.gx + dx, gy = level.owl.gy + dy;
-        if (inside(level, gx, gy)) light(gx, gy);
+    var cr = Math.ceil(r);
+    for (var dy = -cr; dy <= cr; dy++) {
+      for (var dx = -cr; dx <= cr; dx++) {
+        var gx = Math.round(o.x) + dx, gy = Math.round(o.y) + dy;
+        if (!inside(level, gx, gy)) continue;
+        var ox = gx - o.x, oy = gy - o.y;
+        if (ox * ox + oy * oy <= r * r) light(gx, gy);
       }
     }
     var lr = cfg.VIS_LANTERN;
@@ -1280,6 +1562,34 @@ var CemModel = (function() {
         }
       }
     }
+  }
+
+  /**
+   * Per-tile lantern light (0 dark .. 1 lit) and the two nearest lanterns,
+   * computed once so the renderer never scans every lantern per frame.
+   */
+  function computeLightMap(level) {
+    var n = level.W * level.H;
+    level.lightMap = new Float32Array(n);
+    level.nearLights = new Array(n);
+    var range = IsoModel.LIGHT.range;
+    for (var i = 0; i < n; i++) {
+      var t = level.tiles[i];
+      level.lightMap[i] = IsoModel.lightLevel(t.gx, t.gy, level.lights);
+      var best = [], bestD = [];
+      for (var li = 0; li < level.lights.length; li++) {
+        var dx = t.gx - level.lights[li].gx, dy = t.gy - level.lights[li].gy;
+        var d = dx * dx + dy * dy;
+        if (d > range * range) continue;
+        if (best.length < 2) { best.push(li); bestD.push(d); }
+        else if (d < bestD[0] || d < bestD[1]) {
+          var worst = bestD[0] > bestD[1] ? 0 : 1;
+          best[worst] = li; bestD[worst] = d;
+        }
+      }
+      level.nearLights[i] = best;
+    }
+    return level.lightMap;
   }
 
   function visibilityAt(level, gx, gy) {
@@ -1299,10 +1609,11 @@ var CemModel = (function() {
       var m = level.monsters[i];
       monsters.push({ uid: m.uid, gx: m.gx, gy: m.gy, dir: m.dir, acc: m.acc });
     }
+    var o = owlPos(level);
     return {
       seed: level.seed,
       attempt: level.attempt,
-      owl: { gx: level.owl.gx, gy: level.owl.gy },
+      owl: { gx: o.gx, gy: o.gy, x: o.x, y: o.y },
       keyParts: level.keyParts.slice(),
       defeated: defeated,
       monsters: monsters,
@@ -1316,7 +1627,12 @@ var CemModel = (function() {
   function loadState(state, opts) {
     var level = generate(state.seed, opts);
     if (!level) return null;
-    if (state.owl && inside(level, state.owl.gx, state.owl.gy)) level.owl = { gx: state.owl.gx, gy: state.owl.gy };
+    if (state.owl && inside(level, state.owl.gx, state.owl.gy)) {
+      // saves from the first cut only carry the tile
+      var sx = typeof state.owl.x === 'number' ? state.owl.x : state.owl.gx;
+      var sy = typeof state.owl.y === 'number' ? state.owl.y : state.owl.gy;
+      level.owl = { gx: state.owl.gx, gy: state.owl.gy, x: sx, y: sy, path: [] };
+    }
     if (state.keyParts) for (var k = 0; k < level.keyParts.length; k++) level.keyParts[k] = !!state.keyParts[k];
     if (state.defeated) {
       for (var d = 0; d < state.defeated.length; d++) {
@@ -1407,6 +1723,8 @@ var CemModel = (function() {
     KIND: KIND,
     DIRS: DIRS,
     THEME_MONSTERS: THEME_MONSTERS,
+    WANDERER_BANDS: WANDERER_BANDS,
+    GUARDIANS: GUARDIANS,
     BOSS_ID: BOSS_ID,
     KEY_PART_ITEM: KEY_PART_ITEM,
     makeRng: makeRng,
@@ -1419,6 +1737,13 @@ var CemModel = (function() {
     astar: astar,
     pathTo: pathTo,
     canEnter: canEnter,
+    owlPos: owlPos,
+    owlTile: owlTile,
+    setOwlTile: setOwlTile,
+    fitsCircle: fitsCircle,
+    moveBy: moveBy,
+    setPath: setPath,
+    tickOwl: tickOwl,
     moveOwl: moveOwl,
     stepDir: stepDir,
     respawnAtGate: respawnAtGate,
@@ -1435,6 +1760,7 @@ var CemModel = (function() {
     tombOfDoor: tombOfDoor,
     updateVisibility: updateVisibility,
     visibilityAt: visibilityAt,
+    computeLightMap: computeLightMap,
     exportState: exportState,
     loadState: loadState,
     drawOrder: drawOrder,
