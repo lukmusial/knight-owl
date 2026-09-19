@@ -178,6 +178,31 @@ var CemTextures = (function() {
     ctx.putImageData(img, 0, 0);
   }
 
+  /**
+   * The night itself: a dark square with a soft elliptical hole in the
+   * middle, carried by Mr Owl. Drawn once on a canvas (destination-out is
+   * plain 2D work), so the fog needs no render texture, mask or erase blend
+   * at runtime: some Android WebViews get all three wrong.
+   * @param {number} size - square texture size
+   * @param {number} rx - hole radius in px; the hole is a 2:1 ellipse
+   */
+  function drawDarkRing(ctx, size, rx) {
+    ctx.fillStyle = '#090c1a';
+    ctx.fillRect(0, 0, size, size);
+    var cx = size / 2, cy = size / 2;
+    var img = ctx.getImageData(0, 0, size, size);
+    var d = img.data;
+    for (var y = 0; y < size; y++) {
+      for (var x = 0; x < size; x++) {
+        var nx = (x - cx) / rx, ny = (y - cy) / (rx / 2);
+        var r = Math.sqrt(nx * nx + ny * ny);
+        var light = r >= 1 ? 0 : Math.pow(1 - r, 1.6);
+        d[(y * size + x) * 4 + 3] = Math.round(255 * (1 - light));
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
   function drawVignette(ctx, size) {
     var g = ctx.createRadialGradient(size / 2, size / 2, size * 0.18, size / 2, size / 2, size * 0.55);
     g.addColorStop(0, 'rgba(5,6,12,0)');
@@ -656,6 +681,7 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_glow_green', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(120,255,170,0.4)'); });
     canvasTexture(scene, 'cem_glow_red', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(255,70,50,0.55)'); });
     canvasTexture(scene, 'cem_soft_light', 256, 128, function(ctx) { drawSoftLight(ctx, 256, 128); });
+    canvasTexture(scene, 'cem_dark_ring', 1024, 1024, function(ctx) { drawDarkRing(ctx, 1024, 160); });
 
     // stand-in props
     for (var gv = 0; gv < 6; gv++) {
