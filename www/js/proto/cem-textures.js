@@ -279,9 +279,9 @@ var CemTextures = (function() {
     ctx.save();
     ctx.clip();
     var g = ctx.createLinearGradient(0, h, 0, h * 0.1);
-    g.addColorStop(0, 'rgba(255,255,255,0.95)');
-    g.addColorStop(0.45, 'rgba(255,255,255,0.45)');
-    g.addColorStop(1, 'rgba(255,255,255,0.04)');
+    g.addColorStop(0, 'rgba(255,255,255,0.8)');
+    g.addColorStop(0.35, 'rgba(255,255,255,0.3)');
+    g.addColorStop(1, 'rgba(255,255,255,0.03)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
