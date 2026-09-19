@@ -158,21 +158,37 @@ async function encounterStarts(page, ms) {
 async function walkTo(page, target, label) {
   log('  walk to ' + label);
   const deadline = Date.now() + 90000;
+  let quiet = false;
   while (Date.now() < deadline) {
     const st = await state(page);
     if (st.quiz || st.matching || st.result) return 'encounter';
     if (st.owl.gx === target.gx && st.owl.gy === target.gy) return 'arrived';
     const step = await page.evaluate(t => {
       const L = ProtoCem.getLevel();
-      const full = CemModel.pathTo(L, CemModel.owlTile(L), t);
-      if (!full.length) return null;
+      const from = CemModel.owlTile(L);
+      const full = CemModel.pathTo(L, from, t);
+      if (!full.length) return { none: 'no path', ahead: { x: t.gx - from.gx, y: t.gy - from.gy } };
       let pick = null;
       for (const s of full) if (CemModel.visibilityAt(L, s.gx, s.gy) > 0) pick = s;
-      if (!pick) return null;
+      if (!pick) {
+        const n = full[0];
+        return { none: 'nothing lit on the way', ahead: { x: n.gx - from.gx, y: n.gy - from.gy } };
+      }
       ProtoCem.onTileTap(pick.gx, pick.gy);
       return pick;
     }, target);
-    if (!step) { await wait(500); continue; }
+    if (step && step.none) {
+      // tap-to-walk needs a lit tile and a route; when there is neither, push
+      // the stick that way instead, exactly as a player would
+      if (!quiet) { log('  (' + step.none + ', steering instead)'); quiet = true; }
+      const a = step.ahead;
+      const len = Math.sqrt(a.x * a.x + a.y * a.y) || 1;
+      await page.evaluate(v => ProtoCem.setSteer(v[0], v[1]), [a.x / len, a.y / len]);
+      await wait(700);
+      await page.evaluate(() => ProtoCem.setSteer(0, 0));
+      continue;
+    }
+    quiet = false;
     // walk until he stops, or something interrupts him
     const stop = Date.now() + 30000;
     while (Date.now() < stop) {
@@ -269,10 +285,22 @@ async function main() {
     }
 
     log('the great tomb');
-    await travel(page, plan.big.porch, 'the great tomb');
-    await wait(1200);
-    await page.evaluate(d => ProtoCem.onTileTap(d.gx, d.gy), plan.big.door);
-    await page.waitForFunction(() => !document.getElementById('quiz-modal').classList.contains('hidden'), { timeout: 40000 });
+    // A wanderer often catches him on the porch, and a tap while the flow is
+    // still playing that fight out is ignored, so try the door until it opens.
+    var opened = false;
+    for (var attempt = 0; attempt < 6 && !opened; attempt++) {
+      await travel(page, plan.big.porch, 'the great tomb');
+      await page.waitForFunction(() => typeof ProtoCem !== 'undefined' && !ProtoCem.isBusy(), { timeout: 30000 })
+        .catch(() => {});
+      await wait(900);
+      const at = await state(page);
+      if (at.quiz || at.matching || at.result) { await playEncounter(page); continue; }
+      await page.evaluate(d => ProtoCem.onTileTap(d.gx, d.gy), plan.big.door);
+      opened = await page.waitForFunction(
+        () => !document.getElementById('quiz-modal').classList.contains('hidden'), { timeout: 15000 })
+        .then(function() { return true; }).catch(function() { return false; });
+    }
+    if (!opened) throw new Error('the great tomb never opened');
     log('  the Grim Reaper rises');
     await wait(1200);
     await playEncounter(page, 240000);
@@ -282,6 +310,8 @@ async function main() {
 
     await client.send('Page.stopScreencast');
     await wait(400);
+  } catch (e) {
+    log('recording stopped early: ' + e.message);
   } finally {
     await browser.close();
     server.kill();

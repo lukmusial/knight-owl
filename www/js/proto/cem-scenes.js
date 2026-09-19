@@ -481,10 +481,10 @@ var CemScenes = (function() {
         var tint, alpha;
         if (tomb.size === 'large') {
           tint = CemModel.hasAllKeyParts(L) ? DOOR_LIGHT.gold : DOOR_LIGHT.red;
-          alpha = 0.85;
+          alpha = 0.55;
         } else {
           tint = beaten ? DOOR_LIGHT.blue : DOOR_LIGHT.gold;
-          alpha = beaten ? 0.6 : 0.8;
+          alpha = beaten ? 0.45 : 0.6;
         }
         if (rec.glowTint !== tint) {
           rec.glow.setTint(tint);
