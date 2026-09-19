@@ -220,104 +220,114 @@ var CemTextures = (function() {
   }
 
   /**
-   * The tomb doorway sits on the wall that faces the camera's lower left, so
-   * its jambs stay upright while the sill and the lintel run down to the
-   * right along the tile edge, one pixel down for every two across. The path
-   * is built once and reused for the opening, its light and its frame.
+   * The crypt art has its own doorway, an arch on the wall that faces the
+   * camera's lower left; the kit manifest says where (`portal`: the sill
+   * centre and the arch's size, as fractions of the sprite). The jambs are
+   * upright and the sill runs down to the right along the wall, one pixel
+   * for every two, so the light is drawn in that shape and the spill on the
+   * ground starts on that same sloped line. Only a crypt without a portal
+   * gets an opening drawn for it.
    */
   var DOOR_SLOPE = 0.5;
+  var SPILL_REACH = 3.2;        // how far the light reaches out, in door widths
 
-  function doorPath(ctx, w, h, inset) {
-    var x0 = inset, x1 = w - inset;
-    var mid = (x0 + x1) / 2;
-    var r = (x1 - x0) / 2;
-    var baseY = h - inset;                       // sill at the left jamb
-    var rise = (x1 - x0) * DOOR_SLOPE;           // how far the sill drops across
+  /** Arch outline: jambs at x=0 and x=w, sloped sill, round top; (0,0) is the top-left */
+  function archPath(ctx, w, hL) {
+    var r = w / 2;
     ctx.beginPath();
-    ctx.moveTo(x0, baseY);
-    ctx.lineTo(x0, baseY - (h - inset * 2) * 0.52);
-    // the arch, sheared so it follows the wall
-    for (var a = Math.PI; a <= Math.PI * 2 + 0.001; a += Math.PI / 24) {
-      var px = mid + Math.cos(a) * r;
-      var py = baseY - (h - inset * 2) * 0.52 + Math.sin(a) * r * 0.62 + (px - x0) * DOOR_SLOPE;
-      ctx.lineTo(px, py);
+    ctx.moveTo(0, hL);
+    ctx.lineTo(0, r);
+    for (var a = Math.PI; a <= Math.PI * 2 + 0.001; a += Math.PI / 20) {
+      ctx.lineTo(r + Math.cos(a) * r, r + Math.sin(a) * r * 0.85);
     }
-    ctx.lineTo(x1, baseY + rise);
+    ctx.lineTo(w, hL + w * DOOR_SLOPE);
     ctx.closePath();
   }
 
-  /** The dark opening itself, with a stone reveal down the inside of the jamb */
-  function drawDoorway(ctx, w, h) {
-    doorPath(ctx, w, h, 3);
+  /** A drawn opening for crypts whose art has none */
+  function drawDoorDark(ctx, w, h) {
+    var hL = h - w * DOOR_SLOPE;
+    archPath(ctx, w, hL);
     var g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, '#05040a');
-    g.addColorStop(0.55, '#0b0916');
     g.addColorStop(1, '#171029');
     ctx.fillStyle = g;
     ctx.fill();
-    ctx.save();
-    ctx.clip();
-    // a sliver of lit stone on the left jamb reads as depth into the wall
-    var j = ctx.createLinearGradient(0, 0, w * 0.4, 0);
-    j.addColorStop(0, 'rgba(150,145,170,0.5)');
-    j.addColorStop(1, 'rgba(150,145,170,0)');
-    ctx.fillStyle = j;
-    ctx.fillRect(0, 0, w * 0.4, h);
-    ctx.restore();
     ctx.strokeStyle = 'rgba(26,22,34,0.9)';
     ctx.lineWidth = 3;
-    doorPath(ctx, w, h, 3);
     ctx.stroke();
   }
 
-  /**
-   * The light that fills the opening, painted white so the scene can tint it
-   * gold, blue or red. Brightest along the sill, fading up into the arch.
-   */
+  /** White light filling the arch, brightest at the threshold; tinted by the scene */
   function drawDoorGlow(ctx, w, h) {
-    doorPath(ctx, w, h, 4);
+    var hL = h - w * DOOR_SLOPE;
+    archPath(ctx, w, hL);
     ctx.save();
     ctx.clip();
-    var g = ctx.createLinearGradient(0, h, 0, h * 0.1);
-    g.addColorStop(0, 'rgba(255,255,255,0.8)');
-    g.addColorStop(0.35, 'rgba(255,255,255,0.3)');
-    g.addColorStop(1, 'rgba(255,255,255,0.03)');
+    var g = ctx.createLinearGradient(0, h, 0, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0.9)');
+    g.addColorStop(0.4, 'rgba(255,255,255,0.4)');
+    g.addColorStop(1, 'rgba(255,255,255,0.05)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
-    // a soft halo around the frame, so the stone catches the light too
-    ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-    ctx.lineWidth = 6;
-    ctx.filter = 'blur(4px)';
-    doorPath(ctx, w, h, 4);
-    ctx.stroke();
-    ctx.filter = 'none';
-    ctx.globalAlpha = 1;
   }
 
   /**
-   * The wedge of light the doorway throws onto the ground in front of it,
-   * drawn flat on the floor diamond: wide at the sill, fading away down-left.
+   * The wedge of light the door throws across the ground. The sill is a
+   * sloped segment of width w whose centre sits at (cx, cy); the light
+   * leaves it down-left, the way the tile's +y axis points on screen, and
+   * spreads as it goes, so it meets the doorway with no seam.
    */
-  function drawDoorSpill(ctx, w, h) {
-    var g = ctx.createRadialGradient(w / 2, h * 0.12, w * 0.04, w / 2, h * 0.12, w * 0.5);
-    g.addColorStop(0, 'rgba(255,255,255,0.85)');
-    g.addColorStop(0.45, 'rgba(255,255,255,0.33)');
+  function drawDoorSpill(ctx, w, cx, cy) {
+    var dx = -0.894, dy = 0.447;
+    var reach = w * SPILL_REACH;
+    var spread = w * 0.9;
+    var a = { x: cx - w / 2, y: cy - w * DOOR_SLOPE / 2 };
+    var b = { x: cx + w / 2, y: cy + w * DOOR_SLOPE / 2 };
+    var c = { x: b.x + dx * reach + 0.447 * spread, y: b.y + dy * reach + 0.894 * spread };
+    var d = { x: a.x + dx * reach - 0.447 * spread, y: a.y + dy * reach - 0.894 * spread };
+    var g = ctx.createRadialGradient(cx, cy, w * 0.15, cx, cy, reach);
+    g.addColorStop(0, 'rgba(255,255,255,0.9)');
+    g.addColorStop(0.3, 'rgba(255,255,255,0.4)');
     g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.save();
-    ctx.translate(w / 2, h * 0.12);
-    ctx.scale(1, 0.5);                            // the floor is a 2:1 diamond
-    ctx.translate(-w / 2, -h * 0.12);
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(w * 0.34, h * 0.06);
-    ctx.lineTo(w * 0.66, h * 0.06);
-    ctx.lineTo(w, h * 1.5);
-    ctx.lineTo(0, h * 1.5);
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
     ctx.closePath();
     ctx.fill();
-    ctx.restore();
+  }
+
+  /**
+   * Build the door light textures for one crypt at the size its arch is
+   * painted, and say where their origins sit.
+   * @param {Phaser.Scene} scene
+   * @param {string} name - sprite name, used in the texture keys
+   * @param {number} w - arch width in sprite px
+   * @param {number} h - arch height in sprite px (left jamb, top to sill)
+   * @returns {Object} { glow: {key, ox, oy}, spill: {key, ox, oy} } origins as fractions
+   */
+  function makeDoorLights(scene, name, w, h) {
+    w = Math.max(8, Math.round(w));
+    h = Math.max(12, Math.round(h));
+    var gh = Math.ceil(h + w * DOOR_SLOPE / 2);            // room for the sloped sill's right end
+    var glowKey = 'cem_door_glow_' + name;
+    if (!scene.textures.exists(glowKey)) {
+      canvasTexture(scene, glowKey, w, gh, function(ctx) { drawDoorGlow(ctx, w, gh); });
+    }
+    var reach = w * SPILL_REACH;
+    var cw = Math.ceil(w + reach * 0.894 * 2 + w * 2);
+    var ch = Math.ceil(w * DOOR_SLOPE + reach * 0.447 + w * 1.2 + 4);
+    var cx = cw / 2, cy = w * DOOR_SLOPE / 2 + 2;
+    var spillKey = 'cem_door_spill_' + name;
+    if (!scene.textures.exists(spillKey)) {
+      canvasTexture(scene, spillKey, cw, ch, function(ctx) { drawDoorSpill(ctx, w, cx, cy); });
+    }
+    return {
+      // the glow's origin is the sill centre: the left jamb's foot is w/4 above it, the right's w/4 below
+      glow: { key: glowKey, ox: 0.5, oy: (h + w * DOOR_SLOPE / 4) / gh },
+      spill: { key: spillKey, ox: 0.5, oy: cy / ch }
+    };
   }
 
   function drawLock(ctx, size) {
@@ -631,9 +641,7 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_mist', 256, 96, function(ctx) { drawMist(ctx, 256, 96); });
     canvasTexture(scene, 'cem_sparkle', 32, 32, function(ctx) { drawSparkle(ctx, 32); });
     canvasTexture(scene, 'cem_puff', 64, 64, function(ctx) { drawPuff(ctx, 64); });
-    canvasTexture(scene, 'cem_door_dark', 56, 76, function(ctx) { drawDoorway(ctx, 56, 76); });
-    canvasTexture(scene, 'cem_door_glow', 56, 76, function(ctx) { drawDoorGlow(ctx, 56, 76); });
-    canvasTexture(scene, 'cem_door_spill', 192, 128, function(ctx) { drawDoorSpill(ctx, 192, 128); });
+    canvasTexture(scene, 'cem_door_dark', 56, 76, function(ctx) { drawDoorDark(ctx, 56, 76); });
     canvasTexture(scene, 'cem_lock', 40, 40, function(ctx) { drawLock(ctx, 40); });
     canvasTexture(scene, 'cem_glow_green', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(120,255,170,0.4)'); });
     canvasTexture(scene, 'cem_glow_red', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(255,70,50,0.55)'); });
@@ -726,7 +734,8 @@ var CemTextures = (function() {
   function sprite(scene, name) {
     if (kit && kit.sprites[name] && scene.textures.exists('kit_' + name)) {
       var s = kit.sprites[name];
-      return { key: 'kit_' + name, w: s.w, h: s.h, anchor: s.anchor, footprint: s.footprint || { w: 1, h: 1 }, light: s.light || null, door: s.door || null, procedural: false };
+      return { key: 'kit_' + name, w: s.w, h: s.h, anchor: s.anchor, footprint: s.footprint || { w: 1, h: 1 }, light: s.light || null, door: s.door || null,
+        portal: s.portal || null, procedural: false, name: name };
     }
     if (fallbacks[name] && scene.textures.exists(fallbacks[name].key)) return fallbacks[name];
     return null;
@@ -735,6 +744,7 @@ var CemTextures = (function() {
   function hasKit() { return !!kit; }
 
   return {
+    makeDoorLights: makeDoorLights,
     TILE_W: TILE_W,
     TILE_H: TILE_H,
     KIT_DIR: KIT_DIR,

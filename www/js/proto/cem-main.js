@@ -73,6 +73,15 @@ var ProtoCem = (function() {
     if (el) el.classList.toggle('hidden', !show);
   }
 
+  /** The veil's line: the page's default speaks of the dungeon */
+  function setLoadingText(en, pl) {
+    var el = document.getElementById('iso-loading');
+    if (!el) return;
+    var e = el.querySelector('.bi-en'), p = el.querySelector('.bi-pl');
+    if (e) e.textContent = en;
+    if (p) p.textContent = pl;
+  }
+
   /** Which cemetery loop to play: URL parameter, then the remembered choice, then the default */
   function musicChoice() {
     var choice = null;
@@ -110,6 +119,7 @@ var ProtoCem = (function() {
     ProtoHud.setName(sess.name);
     ProtoHud.setNote({ en: 'Tap a lit path to walk. Find the 4 parts of the skeleton key.', pl: 'Dotknij oświetlonej ścieżki. Znajdź 4 części szkieletowego klucza.' });
     ProtoHud.setKeyParts(CemModel.keyPartCount(level), 4);
+    setLoadingText('Entering a haunted cemetery\u2026', 'Wchodzisz na nawiedzony cmentarz\u2026');
     showLoading(true);
     startMusic();
 
@@ -269,6 +279,7 @@ var ProtoCem = (function() {
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
       if (e.type === 'encounter') { beginEncounter(e.uid); return false; }
+      if (e.type === 'boss_rises') { bossRises(); continue; }
       if (e.type === 'enter_large_tomb') { startBossEncounter(); return false; }
       if (e.type === 'tomb_locked') sealedToast();
     }
@@ -439,6 +450,15 @@ var ProtoCem = (function() {
       idle();
     });
     scene.playDefeat(uid, afterDefeat);
+  }
+
+  /** The Reaper steps out of the great tomb in a puff of smoke as Mr Owl nears it */
+  function bossRises() {
+    if (!scene || level.monstersByUid.boss.defeated) return;
+    scene.revealBoss(null, true);
+    fx('creak');
+    if (typeof FX !== 'undefined') FX.haptic('onEncounter');
+    toast('The Grim Reaper rises from the great tomb!', 'Ponury \u017bniwiarz powstaje z wielkiego grobowca!', 'error');
   }
 
   function startBossEncounter() {

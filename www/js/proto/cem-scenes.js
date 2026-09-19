@@ -1102,13 +1102,14 @@ var CemScenes = (function() {
       var self = this;
       for (var i = 0; i < count; i++) {
         var a = (i / count) * Math.PI * 2 + Math.random() * 0.6;
-        var r = 8 + Math.random() * 26;
+        var r = 14 + Math.random() * 40;
+        // plain alpha, not additive: a cloud of smoke, not a flash of light
         var puff = this.add.image(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.5 + 10, 'cem_puff')
-          .setScale(0.7 + Math.random() * 0.5).setAlpha(1).setDepth(1e5)
-          .setBlendMode(Phaser.BlendModes.ADD).setTint(0xd8ccf0);
+          .setScale(0.5 + Math.random() * 0.4).setAlpha(0.85).setDepth(1e5)
+          .setTint(0x8f80b0);
         this.tweens.add({
           targets: puff,
-          scale: 2.2 + Math.random() * 1.2, alpha: 0,
+          scale: 1.6 + Math.random() * 0.9, alpha: 0,
           x: puff.x + (Math.random() - 0.5) * 50, y: puff.y - 30 - Math.random() * 40,
           duration: 900 + Math.random() * 600, delay: Math.random() * 180, ease: 'Sine.easeOut',
           onComplete: (function(p) { return function() { p.destroy(); }; })(puff)
@@ -1238,8 +1239,7 @@ var CemScenes = (function() {
         o.sy *= st.animScale || 1;
         if (st.lockScale) { o.sx *= st.lockScale.x; o.sy *= st.lockScale.y; }
         if (st.collapse) { o.sx *= st.collapse.sx; o.sy *= st.collapse.sy; o.dy += st.collapse.dy; o.alpha *= st.collapse.alpha; }
-        var base = st.animScale || 1;   // the sheet's own scale; the pose only modulates it
-        st.sprite.setPosition(st.bx + o.dx, st.by + o.dy).setScale(o.sx * base, o.sy * base).setAlpha(o.alpha).setFlipX(st.flip);
+        st.sprite.setPosition(st.bx + o.dx, st.by + o.dy).setScale(o.sx, o.sy).setAlpha(o.alpha).setFlipX(st.flip);
         if (!st.pulse || !st.pulse.isPlaying()) st.sprite.setRotation(o.rot);
         st.contact.setPosition(st.bx, st.by).setAlpha(0.5 * o.alpha);
         if (st.glow) st.glow.setPosition(st.bx + o.dx, st.by + o.dy - 40).setAlpha(0.6 * o.alpha);

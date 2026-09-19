@@ -110,6 +110,8 @@ async function main() {
     await page.evaluate(() => { ProtoCem.getLevel().monsters.forEach(m => { m.encounterType = 'quiz'; m.matchingCategory = null; }); });
     check(boot.level === 'cemetery', 'session level is cemetery');
     check(/Cemetery Gate/.test(boot.title), 'ribbon shows the gate');
+    const veil = await page.evaluate(() => (document.querySelector('#iso-loading .bi-en') || {}).textContent || '');
+    check(/haunted cemetery/i.test(veil), 'the loading veil spoke of the cemetery, not the dungeon');
     await shot(page, '01-gate');
 
     console.log('steering');
@@ -178,7 +180,7 @@ let errorSink = null;
     check(look.owlFacings.length === 5 && look.owlFacings.indexOf('down_right') !== -1,
       'Mr Owl has five rendered facings (' + look.owlFacings.join(', ') + ')');
     check(look.distinct === 8, 'he faces eight different ways as he walks (' + look.distinct + ')');
-    check(look.door && look.glow && look.spill, 'the tomb doorway has an opening, its light and a spill on the ground');
+    check(look.glow && look.spill, 'the tomb doorway has its light and a spill on the ground');
     check(look.tint === 0xffd08a, 'a tomb still holding its key part burns gold');
     check(!!look.animated && look.animated.facings.length === 5,
       'monsters carry the same five facings' + (look.animated ? ' (' + look.animated.facings.join(', ') + ')' : ''));
@@ -279,8 +281,10 @@ let errorSink = null;
     });
     check(await page.evaluate(() => window.__unlocked), 'great tomb unlocked with four parts');
     await waitFor(page, () => !document.getElementById('quiz-modal').classList.contains('hidden'), 'the reaper quiz');
-    const boss = await page.evaluate(() => ({ enc: ProtoCem.getLevel().encounterUid, dots: document.querySelectorAll('#quiz-modal .streak-dot').length, label: (document.querySelector('#quiz-modal .streak-label') || {}).innerText }));
+    const boss = await page.evaluate(() => ({ enc: ProtoCem.getLevel().encounterUid, dots: document.querySelectorAll('#quiz-modal .streak-dot').length, label: (document.querySelector('#quiz-modal .streak-label') || {}).innerText,
+      rose: ProtoCem.getLevel().bossRevealed, standing: !!(ProtoCem.getScene().monsters.boss && ProtoCem.getScene().monsters.boss.shown) }));
     check(boss.enc === 'boss', 'reaper encounter');
+    check(boss.rose && boss.standing, 'the Reaper rose from the tomb as Mr Owl came near');
     check(boss.dots === 3, 'three streak dots');
     check(/Reaper/.test(boss.label || ''), 'reaper challenge label');
     await shot(page, '07-reaper');
