@@ -195,10 +195,8 @@ var ProtoCem = (function() {
       if (e.type === 'moved') scene.moveMonster(e.uid, e.to);
       if (e.type === 'encounter') encounter = e;
     }
-    if (events.length) {
-      scene.refreshMonsters();
-      ProtoHud.setMinimap(CemMinimap.render(level));
-    }
+    if (events.length) scene.refreshMonsters();
+    drawMinimap();
     if (encounter && !busy) beginEncounter(encounter.uid);
 
     // autosave once he has settled, and at most every five seconds
@@ -455,6 +453,22 @@ var ProtoCem = (function() {
   // HUD
   // ---------------------------------------------------------------------------
 
+  var mapKey = null;
+  var mapAt = 0;
+
+  /** Redraw the little map at most once a second, and only when it changed */
+  function drawMinimap(force) {
+    var now = Date.now();
+    if (!force && now - mapAt < 1000) return;
+    var key = CemMinimap.stateKey(level);
+    if (!force && key === mapKey) return;
+    var canvas = ProtoHud.minimapCanvas(360, 200);
+    if (!canvas) return;
+    CemMinimap.draw(level, canvas.getContext('2d'));
+    mapKey = key;
+    mapAt = now;
+  }
+
   /** Just the parchment ribbon: called on every tile change */
   function updateRibbon() {
     var t = CemModel.tileAt(level, level.owl.gx, level.owl.gy);
@@ -488,7 +502,7 @@ var ProtoCem = (function() {
       totalLoot: Player.getTotalLootValue()
     });
     ProtoHud.setLoot(Player.getInventory());
-    ProtoHud.setMinimap(CemMinimap.render(level));
+    drawMinimap(true);
     ProtoHud.setKeyParts(CemModel.keyPartCount(level), 4);
     lastRibbon = null;
     updateRibbon();
