@@ -158,6 +158,7 @@ var ProtoCem = (function() {
       onFrame: onFrame
     });
     mountStick();
+    ProtoHud.onMinimapTap(openMap);
     if (opts.onGame) opts.onGame(game);
     return game;
   }
@@ -533,6 +534,105 @@ var ProtoCem = (function() {
     mapAt = now;
   }
 
+  // ---------------------------------------------------------------------------
+  // The big map: tap the little one to open it. Zoom with the buttons, drag
+  // to pan, tap a remembered lane to walk there.
+  // ---------------------------------------------------------------------------
+
+  var mapModal = null;
+  var mapZoom = 1;
+  var mapFit = null;
+
+  function openMap() {
+    if (!level || !gameInProgress || busy || mapModal) return;
+    setModalOpen(true);
+    var m = document.createElement('div');
+    m.id = 'cem-map-modal';
+    m.className = 'modal cem-map';
+    m.innerHTML =
+      '<div class="modal-content cem-map-panel">' +
+        '<div class="cem-map-head">' +
+          '<span class="cem-map-title"><span class="label-en">Cemetery map</span><span class="label-pl">Mapa cmentarza</span></span>' +
+          '<span class="cem-map-tools">' +
+            '<button type="button" class="hud-btn cem-map-zoom" data-zoom="-1" aria-label="Zoom out">&minus;</button>' +
+            '<button type="button" class="hud-btn cem-map-zoom" data-zoom="1" aria-label="Zoom in">+</button>' +
+            '<button type="button" class="hud-btn cem-map-close" aria-label="Close">&#x2715;</button>' +
+          '</span>' +
+        '</div>' +
+        '<div class="cem-map-view"><canvas class="cem-map-canvas" width="1400" height="800"></canvas></div>' +
+        '<div class="cem-map-legend">' +
+          '<span><i class="cem-map-dot you"></i><span class="label-en">Mr Owl</span><span class="label-pl">Pan Sowa</span></span>' +
+          '<span><i class="cem-map-dot tomb"></i><span class="label-en">tomb you have seen</span><span class="label-pl">widziany grobowiec</span></span>' +
+          '<span><i class="cem-map-dot great"></i><span class="label-en">the great tomb</span><span class="label-pl">wielki grobowiec</span></span>' +
+          '<span><i class="cem-map-dot monster"></i><span class="label-en">monster in sight</span><span class="label-pl">potw\u00f3r w zasi\u0119gu wzroku</span></span>' +
+          '<span class="cem-map-hint"><span class="label-en">Tap a lane to walk there.</span><span class="label-pl">Dotknij \u015bcie\u017cki, by tam p\u00f3j\u015b\u0107.</span></span>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+    mapModal = m;
+    var canvas = m.querySelector('.cem-map-canvas');
+    var view = m.querySelector('.cem-map-view');
+    mapFit = CemMinimap.draw(level, canvas.getContext('2d'), { markerScale: 2.4 });
+    mapZoom = 1;
+    applyMapZoom(canvas, view, true);
+    m.querySelector('.cem-map-close').addEventListener('click', closeMap);
+    m.addEventListener('click', function(e) { if (e.target === m) closeMap(); });
+    Array.prototype.forEach.call(m.querySelectorAll('.cem-map-zoom'), function(b) {
+      b.addEventListener('click', function() {
+        mapZoom = Math.max(1, Math.min(3, mapZoom + Number(b.getAttribute('data-zoom')) * 0.5));
+        applyMapZoom(canvas, view, false);
+        fx('tap');
+      });
+    });
+    // drag to pan (mouse or finger); a short tap walks
+    var drag = null;
+    view.addEventListener('pointerdown', function(e) { drag = { x: e.clientX, y: e.clientY, sl: view.scrollLeft, st: view.scrollTop, moved: false }; });
+    view.addEventListener('pointermove', function(e) {
+      if (!drag) return;
+      var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 6) drag.moved = true;
+      view.scrollLeft = drag.sl - dx; view.scrollTop = drag.st - dy;
+    });
+    function endDrag(e) {
+      if (!drag) return;
+      var wasTap = !drag.moved;
+      drag = null;
+      if (!wasTap || e.target !== canvas) return;
+      var r = canvas.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width * canvas.width, y = (e.clientY - r.top) / r.height * canvas.height;
+      var g = CemMinimap.gridAt(mapFit, x, y);
+      var t = CemModel.tileAt(level, g.gx, g.gy);
+      if (!t || !t.walk || !level.seen[CemModel.index(level, g.gx, g.gy)]) { fx('creak', { volume: 0.3 }); return; }
+      closeMap();
+      onTileTap(g.gx, g.gy);
+    }
+    view.addEventListener('pointerup', endDrag);
+    view.addEventListener('pointercancel', function() { drag = null; });
+    fx('reveal');
+  }
+
+  /** Scale the canvas on screen and keep Mr Owl in the middle of the view */
+  function applyMapZoom(canvas, view, centre) {
+    var base = Math.min(view.clientWidth || 800, (view.clientHeight || 460) * canvas.width / canvas.height);
+    var w = base * mapZoom;
+    canvas.style.width = w + 'px';
+    canvas.style.height = (w * canvas.height / canvas.width) + 'px';
+    var op = CemMinimap.project(level.owl.gx, level.owl.gy);
+    var sx = ((op.x - mapFit.left) * mapFit.scale + mapFit.ox) / canvas.width * w;
+    var sy = ((op.y - mapFit.top) * mapFit.scale + mapFit.oy) / canvas.height * (w * canvas.height / canvas.width);
+    if (centre || mapZoom > 1) {
+      view.scrollLeft = sx - view.clientWidth / 2;
+      view.scrollTop = sy - view.clientHeight / 2;
+    }
+  }
+
+  function closeMap() {
+    if (!mapModal) return;
+    if (mapModal.parentNode) mapModal.parentNode.removeChild(mapModal);
+    mapModal = null;
+    setModalOpen(false);
+  }
+
   /** Just the parchment ribbon: called on every tile change */
   function updateRibbon() {
     var t = CemModel.tileAt(level, level.owl.gx, level.owl.gy);
@@ -578,6 +678,8 @@ var ProtoCem = (function() {
     onTileTap: onTileTap,
     setSteer: setSteer,
     teleport: teleport,
+    openMap: openMap,
+    closeMap: closeMap,
     getLevel: function() { return level; },
     getScene: function() { return scene; },
     isBusy: function() { return busy; }

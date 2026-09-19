@@ -185,6 +185,26 @@ let errorSink = null;
     check(!!look.animated && look.animated.facings.length === 5,
       'monsters carry the same five facings' + (look.animated ? ' (' + look.animated.facings.join(', ') + ')' : ''));
 
+    console.log('the big map');
+    const bigMap = await page.evaluate(() => {
+      ProtoCem.openMap();
+      const m = document.getElementById('cem-map-modal');
+      const c = m && m.querySelector('.cem-map-canvas');
+      const L = ProtoCem.getLevel();
+      // the owl's marker pixel is cyan on the big canvas
+      const t = CemMinimap.fit(L, c.width, c.height);
+      const p = CemMinimap.project(L.owl.gx, L.owl.gy);
+      const x = Math.round((p.x - t.left) * t.scale + t.ox), y = Math.round((p.y - t.top) * t.scale + t.oy);
+      const d = c.getContext('2d').getImageData(x, y, 1, 1).data;
+      const cyan = d[2] > 150 && d[1] > 120 && d[0] < 80;
+      const paused = L.paused;
+      ProtoCem.closeMap();
+      return { opened: !!m, cyan, paused, gone: !document.getElementById('cem-map-modal'), busy: ProtoCem.isBusy() };
+    });
+    check(bigMap.opened && bigMap.gone, 'the little map opens the big one, and it closes again');
+    check(bigMap.cyan, 'Mr Owl is marked on the big map');
+    check(bigMap.paused && !bigMap.busy, 'the grounds pause while the map is open');
+
     console.log('lose a fight');
     await page.evaluate(() => {
       const L = ProtoCem.getLevel(), S = ProtoCem.getScene();

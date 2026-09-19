@@ -104,6 +104,9 @@ var ProtoHud = (function() {
     hud.appendChild(mini);
     els.minimap = mini;
     els.mapContainer = mapContainer;
+    mapContainer.setAttribute('role', 'button');
+    mapContainer.title = 'Open the map / Otw\u00f3rz map\u0119';
+    mapContainer.addEventListener('click', function() { if (els.onMapTap) els.onMapTap(); });
     function toggleMap() {
       mini.classList.toggle('collapsed');
       miniToggle.innerHTML = mini.classList.contains('collapsed') ? '&#x1f5fa;' : '&#x25BE;';
@@ -374,6 +377,8 @@ var ProtoHud = (function() {
     setKeyParts: setKeyParts,
     setMinimap: setMinimap,
     minimapCanvas: minimapCanvas,
+    /** Called when the little map is tapped */
+    onMinimapTap: function(fn) { els.onMapTap = fn; },
     setCompass: setCompass,
     setLoot: setLoot,
     loadSprites: loadSprites,

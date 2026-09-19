@@ -2193,11 +2193,11 @@ const GRAMMAR_QUESTIONS = [
     difficulty: 3,
     category: 'grammar',
     prompt: 'Complete with the correct form:',
-    sentence: 'Musisz ___ się uczyć (You must learn)',
+    sentence: 'Musisz ___ (You must learn)',
     hint: '"Musieć" (must) + infinitive',
-    options: ['się uczyć', 'uczysz', 'uczyć', 'nauczyć'],
+    options: ['się uczyć', 'uczysz się', 'uczę się', 'uczyli się'],
     correctIndex: 0,
-    explanation: 'Rule: Modal verbs (musieć, móc, chcieć) are followed by infinitives. "Musisz się uczyć" = You must learn (oneself).'
+    explanation: 'Rule: Modal verbs (musieć, móc, chcieć) are followed by an infinitive, and the reflexive "się" stays with it. "Musisz się uczyć" = You must learn.'
   },
   {
     id: 'gram_194',
