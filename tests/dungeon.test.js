@@ -183,7 +183,7 @@ TestRunner.suite('Dungeon Module', () => {
       var placed = byDifficulty[diff];
       if (!placed || placed.length === 0) return;
 
-      var allOfDiff = MONSTERS.filter(function(m) { return m.difficulty === diff; });
+      var allOfDiff = MONSTERS.filter(function(m) { return m.difficulty === diff && !m.theme; });
       var uniquePlaced = [];
       placed.forEach(function(id) {
         if (uniquePlaced.indexOf(id) === -1) uniquePlaced.push(id);
@@ -211,5 +211,16 @@ TestRunner.suite('Dungeon Module', () => {
     TestRunner.assertTruthy(entrance.imagePrompt, 'Entrance should have image prompt');
     TestRunner.assertTruthy(boss.description, 'Boss room should have description');
     TestRunner.assertTruthy(boss.imagePrompt, 'Boss room should have image prompt');
+  });
+});
+
+TestRunner.suite('Monster roster themes', () => {
+  TestRunner.test('themed (cemetery) monsters never come up in the dungeon', () => {
+    const themed = MONSTERS.filter(m => m.theme).map(m => m.id);
+    TestRunner.assert(themed.length >= 5, 'cemetery monsters are flagged');
+    for (let i = 0; i < 300; i++) {
+      const m = getRandomMonster(1 + (i % 3));
+      TestRunner.assert(themed.indexOf(m.id) === -1, 'dungeon draw returned ' + m.id);
+    }
   });
 });
