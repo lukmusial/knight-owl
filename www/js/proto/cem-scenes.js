@@ -10,6 +10,7 @@
 var CemScenes = (function() {
   // how fast a monster swings its heading around (radians per second)
   var TURN_RATE = Math.PI * 1.6;
+  var FOG_DARK = 0.62;         // how dark the night is away from any light
   // what the light in a tomb doorway means: waiting, taken, sealed
   var DOOR_LIGHT = { gold: 0xffd08a, blue: 0x7fd8ff, red: 0xff5a46 };
   var REDUCED_MOTION = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
@@ -49,8 +50,8 @@ var CemScenes = (function() {
   var FLOOR_BAND = -300000;
   var POOL_BAND = -200000;
   var SHADOW_BAND = -100000;
-  var SEEN_TINT = 0x3d4560;    // remembered but unlit tiles
-  var DARK = { r: 0x8c, g: 0x98, b: 0xc2 };   // moonlit, no lantern
+  var SEEN_TINT = 0x4b5578;    // remembered but unlit tiles
+  var DARK = { r: 0x9e, g: 0xaa, b: 0xd4 };   // night sky light, no lantern
   var LIT = { r: 0xff, g: 0xe6, b: 0xc4 };    // next to a lantern
   var CASTERS = {
     owl: { h: 0.9, r: 0.22 },
@@ -606,18 +607,23 @@ var CemScenes = (function() {
      * drawn at all (the chunk bake skips it), so this only softens the edge
      * between what he remembers and what he can see right now.
      */
+    /**
+     * The night is a camera-fixed texture at half resolution: filled dark
+     * each frame, then the lights are erased out of it with soft stamps.
+     * No bitmap mask: some Android WebViews draw a masked object as if it had
+     * no mask at all, which put a flat veil over the whole screen.
+     */
     buildFog: function() {
       var cam = this.cameras.main;
-      this.softFog = this.sys.game.renderer.type === Phaser.WEBGL && !!this.textures.exists('cem_soft_light');
+      this.softFog = !!this.textures.exists('cem_soft_light');
       if (!this.softFog) return;
       this.fogRes = 0.5;
       this.fogTex = this.textures.addDynamicTexture('cem_fog_' + this.scene.key,
         Math.max(2, Math.ceil(cam.width * this.fogRes)), Math.max(2, Math.ceil(cam.height * this.fogRes)));
-      this.fogStamp = this.make.image({ key: 'cem_soft_light', add: false }).setOrigin(0.5, 0.5);
-      this.fogMaskImg = this.make.image({ key: this.fogTex.key, add: false }).setOrigin(0.5, 0.5);
-      this.fogOverlay = this.add.rectangle(0, 0, cam.width, cam.height, 0x090c1a, 0.8).setDepth(900000);
-      this.fogOverlay.setMask(new Phaser.Display.Masks.BitmapMask(this, this.fogMaskImg));
-      this.fogOverlay.mask.invertAlpha = true;
+      this.fogStamp = this.make.image({ key: 'cem_soft_light', add: false }).setOrigin(0.5, 0.5)
+        .setBlendMode(Phaser.BlendModes.ERASE);
+      this.fogImg = this.add.image(0, 0, this.fogTex.key).setOrigin(0, 0).setScrollFactor(0).setDepth(900000)
+        .setScale(1 / this.fogRes);
     },
 
     /** Repaint the holes in the night for this frame */
@@ -626,15 +632,17 @@ var CemScenes = (function() {
       var cam = this.cameras.main;
       var view = cam.worldView;
       var L = this.level;
-      if (this.fogTex.width !== Math.ceil(cam.width * this.fogRes) || this.fogTex.height !== Math.ceil(cam.height * this.fogRes)) {
-        this.fogTex.setSize(Math.max(2, Math.ceil(cam.width * this.fogRes)), Math.max(2, Math.ceil(cam.height * this.fogRes)));
+      var tw = Math.max(2, Math.ceil(cam.width * this.fogRes)), th = Math.max(2, Math.ceil(cam.height * this.fogRes));
+      if (this.fogTex.width !== tw || this.fogTex.height !== th) {
+        this.fogTex.setSize(tw, th);
+        this.fogImg.setTexture(this.fogTex.key).setScale(1 / this.fogRes);
       }
-      this.fogOverlay.setPosition(view.centerX, view.centerY).setSize(view.width, view.height);
-      this.fogMaskImg.setPosition(view.centerX, view.centerY).setScale(1 / (cam.zoom * this.fogRes));
+      this.fogImg.setPosition(0, 0);
 
       var k = cam.zoom * this.fogRes;
       var self = this;
       this.fogTex.clear();
+      this.fogTex.fill(0x090c1a, FOG_DARK);
       this.fogTex.beginDraw();
       function blob(wx, wy, tiles, alpha) {
         if (wx < view.x - 400 || wx > view.right + 400 || wy < view.y - 400 || wy > view.bottom + 400) return;
@@ -663,8 +671,7 @@ var CemScenes = (function() {
 
     buildAtmosphere: function() {
       var cam = this.cameras.main;
-      this.moonGlow = this.add.image(0, 0, 'cem_moon_glow').setScrollFactor(0).setDepth(-1e6 + 1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8);
-      this.moon = this.add.image(0, 0, 'cem_moon').setScrollFactor(0).setDepth(-1e6 + 2).setScale(0.8);
+      // no moon in the sky: it read as a stray disc behind the grounds
       // the fog sheet already frames the view, so the vignette only deepens the corners
       this.vignette = this.add.image(0, 0, 'cem_vignette').setScrollFactor(0).setDepth(1e6).setAlpha(this.softFog ? 0.3 : 0.9);
       this.mist = [];
@@ -681,9 +688,7 @@ var CemScenes = (function() {
     },
 
     layoutAtmosphere: function(w, h) {
-      if (!this.moon) return;
-      this.moon.setPosition(w - 70, 90);
-      this.moonGlow.setPosition(w - 70, 90);
+      if (!this.vignette) return;
       var s = Math.max(w, h) * 2.4 / 512;
       this.vignette.setScale(s);
       this.vignette.setPosition(w / 2, h / 2);

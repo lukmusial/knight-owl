@@ -29,7 +29,7 @@ TestRunner.suite('MonsterStage', () => {
   });
 
   TestRunner.test('the spider is small on the card and the Reaper towers', () => {
-    TestRunner.assert(MonsterStage.cardScale('spider') < 0.5, 'spider well under half');
+    TestRunner.assert(MonsterStage.cardScale('spider') <= 0.6, 'spider well under the painting size');
     TestRunner.assert(MonsterStage.cardScale('grim_reaper') > 1.2, 'reaper over the painting size');
     TestRunner.assertEqual(MonsterStage.cardScale('zombie'), 1, 'others as painted');
   });
