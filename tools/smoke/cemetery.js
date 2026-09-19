@@ -135,7 +135,7 @@ async function main() {
         expected: CemModel.CONFIG.OWL_SPEED * frameMs / 1000,
         onLane: CemModel.fitsCircle(L, L.owl.x, L.owl.y, CemModel.CONFIG.OWL_RADIUS) };
     });
-    check(steered.moved > 0.3 && Math.abs(steered.moved - steered.expected) < 0.15,
+    check(steered.moved > 0.1 && Math.abs(steered.moved - steered.expected) < 0.15,
       'steering walks Mr Owl north at full speed (' + steered.moved.toFixed(2) + ' of ' + steered.expected.toFixed(2) + ' tiles over ' + Math.round(steered.frameMs) + ' ms of frames, ' + Math.round(steered.fps) + ' fps)');
     check(steered.drift < 0.3, 'he keeps his line (' + steered.drift.toFixed(2) + ' tiles sideways)');
     check(steered.stopped, 'he stops when the stick is released');

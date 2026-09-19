@@ -182,7 +182,8 @@ var CemScenes = (function() {
       for (var i = 0; i < this.level.tiles.length; i++) {
         this.tileObjs.push([]); this.tileProps.push([]); this.tileLights.push([]); this.lastVis.push(-1);
       }
-      this.buildGround();
+      this.world = CemWorld.attach(this, this.level);
+      this.world.setBakeFn(this.bakeChunk.bind(this));
       this.buildFence();
       this.buildProps();
       this.buildTombs();
@@ -229,17 +230,69 @@ var CemScenes = (function() {
       return img;
     },
 
-    buildGround: function() {
+    /**
+     * Paint one 8x8-tile chunk: the ground Mr Owl has seen, tinted by the
+     * lanterns, with the prop shadows and warm pools baked on top. Runs when
+     * the camera reaches a chunk and again when new ground is revealed.
+     */
+    bakeChunk: function(rt, chunk, rect) {
       var L = this.level;
-      for (var i = 0; i < L.tiles.length; i++) {
-        var t = L.tiles[i];
+      var tiles = this.world.chunkTiles(chunk);
+      var i, t, idx;
+      rt.beginDraw();
+      for (i = 0; i < tiles.length; i++) {
+        idx = tiles[i];
+        if (!L.seen[idx]) continue;
+        t = L.tiles[idx];
         var frame = (t.kind === 'path' || t.kind === 'tomb_door' || t.kind === 'gate') ? 'path_' + (t.variant % 3) : 'grass_' + (t.variant % 4);
         if (t.tombId && t.kind !== 'tomb_door') frame = 'path_2';
         var p = IsoModel.gridToIso(t.gx, t.gy);
-        var img = this.add.image(p.x, p.y, 'cem_ground', frame).setOrigin(0.5, 0.5)
-          .setDepth(FLOOR_BAND + IsoModel.depthKey(t.gx, t.gy, LAYERS.floor));
-        this.tileGround[i] = img;
-        this.tileObjs[i].push(img);
+        rt.batchDrawFrame('cem_ground', frame, p.x - rect.left - TILE_W / 2, p.y - rect.top - TILE_H / 2, 1, lerpTint(L.lightMap[idx]));
+      }
+      rt.endDraw();
+      // shadows and light pools of everything standing in or near this chunk
+      var stamp = this.bakeStamp;
+      var pad = 2;
+      var r0 = { x0: (chunk % Math.ceil(L.W / this.world.CHUNK)) * this.world.CHUNK, y0: Math.floor(chunk / Math.ceil(L.W / this.world.CHUNK)) * this.world.CHUNK };
+      for (var gy = r0.y0 - pad; gy < r0.y0 + this.world.CHUNK + pad; gy++) {
+        for (var gx = r0.x0 - pad; gx < r0.x0 + this.world.CHUNK + pad; gx++) {
+          var tile = CemModel.tileAt(L, gx, gy);
+          if (!tile) continue;
+          idx = CemModel.index(L, gx, gy);
+          if (!L.seen[idx]) continue;
+          if (tile.kind === 'lantern') {
+            var lp = IsoModel.gridToIso(gx, gy);
+            stamp.setTexture('light_pool').setOrigin(0.5, 0.5).setScale(1.25).setAngle(0)
+              .setAlpha(0.5).setTint(0xffd9a0).setBlendMode(Phaser.BlendModes.ADD);
+            rt.draw(stamp, lp.x - rect.left, lp.y - rect.top);
+            stamp.setBlendMode(Phaser.BlendModes.NORMAL).clearTint();
+          }
+          var caster = this.casterFor(tile);
+          if (!caster) continue;
+          var near = L.nearLights[idx] || [];
+          for (var li = 0; li < near.length; li++) {
+            var sh = IsoModel.castShadow({ gx: gx, gy: gy, height: caster.h, radius: caster.r }, L.lights[near[li]]);
+            if (!sh) continue;
+            var sp = IsoModel.gridToIso(gx, gy);
+            stamp.setTexture('cast_shadow').setOrigin(0.12, 0.5).setRotation(sh.angle)
+              .setScale(sh.length / 100, sh.width / 26).setAlpha(Math.min(1, sh.alpha / 0.6));
+            rt.draw(stamp, sp.x - rect.left, sp.y - rect.top);
+          }
+        }
+      }
+      stamp.setRotation(0).setAlpha(1).setScale(1);
+    },
+
+    casterFor: function(tile) {
+      switch (tile.kind) {
+        case 'grave': return CASTERS.grave;
+        case 'tree': return CASTERS.tree;
+        case 'statue': return CASTERS.statue;
+        case 'bench': return CASTERS.bench;
+        case 'pumpkin': return CASTERS.pumpkin;
+        case 'rock': return CASTERS.rock;
+        case 'lantern': return null;
+        default: return tile.tombId && tile.kind !== 'tomb_door' ? null : null;
       }
     },
 
@@ -267,7 +320,7 @@ var CemScenes = (function() {
         } else {
           if (segW) img = this.placeSprite(segW, t.gx + 1, t.gy, { layer: LAYERS.wall });
         }
-        if (img) { this.tileObjs[i].push(img); this.tileProps[i].push(img); }
+        if (img) { this.tileObjs[i].push(img); this.tileProps[i].push(img); this.world.addProp(img, t.gx, t.gy); }
       }
     },
 
@@ -294,6 +347,7 @@ var CemScenes = (function() {
             .setAlpha(0.7).setScale(0.75).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.token) + 0.5);
           if (hash(t.gx, t.gy) < 0.5) { web.setFlipX(true); web.setOrigin(1, 0); }
           this.tileObjs[i].push(web); this.tileProps[i].push(web);
+          this.world.addProp(web, t.gx, t.gy);
           continue;
         }
         var spec = this.propFor(t);
@@ -304,11 +358,13 @@ var CemScenes = (function() {
         img.castSpec = spec.cast;
         this.tileObjs[i].push(img);
         this.tileProps[i].push(img);
+        this.world.addProp(img, t.gx, t.gy);
         if (t.kind === 'pumpkin' && t.variant > 0) {
           var pp = IsoModel.gridToIso(t.gx, t.gy);
           var glow = this.add.image(pp.x, pp.y - 10, 'glow_warm').setScale(0.45).setAlpha(0.5)
             .setBlendMode(Phaser.BlendModes.ADD).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.token) + 0.2);
           this.tileObjs[i].push(glow); this.tileLights[i].push(glow);
+          this.world.addProp(glow, t.gx, t.gy, { light: true });
           if (!REDUCED_MOTION) this.tweens.add({ targets: glow, alpha: 0.75, duration: 900 + hash(t.gy, t.gx) * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
       }
@@ -324,6 +380,7 @@ var CemScenes = (function() {
           rec.sprite = this.placeSprite(entry, tomb.x0, tomb.y0);
           rec.sprite.castSpec = tomb.size === 'large' ? CASTERS.tomb_large : CASTERS.tomb_small;
           rec.objs.push(rec.sprite);
+          this.world.addProp(rec.sprite, tomb.x0 + tomb.w - 1, tomb.y0 + tomb.h - 1);
         }
         // door overlay on the door tile: dark opening once opened, chained lock while sealed
         var dp = IsoModel.gridToIso(tomb.door.gx, tomb.door.gy);
@@ -331,9 +388,12 @@ var CemScenes = (function() {
         rec.door = this.add.image(dp.x, dp.y - 6, 'cem_door_dark').setOrigin(0.5, 1).setScale(0.8).setDepth(depth).setVisible(false);
         rec.glow = this.add.image(dp.x, dp.y - 30, 'glow_purple').setScale(0.7).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth - 0.1);
         rec.lit.push(rec.door, rec.glow);
+        this.world.addProp(rec.door, tomb.door.gx, tomb.door.gy, { light: true });
+        this.world.addProp(rec.glow, tomb.door.gx, tomb.door.gy, { light: true });
         if (tomb.size === 'large') {
           rec.lock = this.add.image(dp.x, dp.y - 34, 'cem_lock').setDepth(depth + 0.1);
           rec.lit.push(rec.lock);
+          this.world.addProp(rec.lock, tomb.door.gx, tomb.door.gy, { light: true });
         }
         this.tombObjs[tomb.id] = rec;
       }
@@ -367,6 +427,7 @@ var CemScenes = (function() {
         if (entry) {
           var img = this.placeSprite(entry, t.gx, t.gy);
           this.tileObjs[i].push(img); this.tileProps[i].push(img);
+          this.world.addProp(img, t.gx, t.gy);
           if (entry.light) {
             var sc = img.scaleX || 1;
             flameX = img.x + (entry.light.x - entry.anchor.x) * entry.w * sc;
@@ -384,8 +445,11 @@ var CemScenes = (function() {
           this.tweens.add({ targets: glow, alpha: 0.95, scale: 0.95, duration: dur, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
           this.tweens.add({ targets: pool, alpha: 0.65, duration: dur * 1.3, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
-        this.tileObjs[i].push(glow, flame, pool);
-        this.tileLights[i].push(glow, flame, pool);
+        this.tileObjs[i].push(glow, flame);
+        this.tileLights[i].push(glow, flame);
+        this.world.addProp(glow, t.gx, t.gy, { light: true });
+        this.world.addProp(flame, t.gx, t.gy, { light: true });
+        pool.destroy();   // the warm floor pool is baked into the ground chunk
       }
     },
 
@@ -399,34 +463,10 @@ var CemScenes = (function() {
       return img;
     },
 
-    /** Static lantern shadows of every prop and tomb (shown with the prop's tile) */
+    /** Prop and tomb shadows are baked into the ground chunks (see bakeChunk) */
     buildShadows: function() {
-      var L = this.level;
-      var self = this;
-      function shadowsFor(gx, gy, caster, sink) {
-        for (var li = 0; li < L.lights.length; li++) {
-          var sh = IsoModel.castShadow({ gx: gx, gy: gy, height: caster.h, radius: caster.r }, L.lights[li]);
-          if (!sh) continue;
-          sink.push(self.placeShadow(self.add.image(0, 0, 'cast_shadow').setOrigin(0.12, 0.5), gx, gy, sh));
-        }
-      }
-      for (var i = 0; i < L.tiles.length; i++) {
-        var props = this.tileProps[i];
-        for (var p = 0; p < props.length; p++) {
-          if (!props[p].castSpec) continue;
-          var t = L.tiles[i];
-          var out = [];
-          shadowsFor(t.gx, t.gy, props[p].castSpec, out);
-          for (var o = 0; o < out.length; o++) { this.tileObjs[i].push(out[o]); this.tileLights[i].push(out[o]); }
-        }
-      }
-      for (var id in this.tombObjs) {
-        if (!this.tombObjs.hasOwnProperty(id) || !this.tombObjs[id].sprite) continue;
-        var rec = this.tombObjs[id];
-        var out2 = [];
-        shadowsFor(rec.tomb.x0 + (rec.tomb.w - 1) / 2, rec.tomb.y0 + (rec.tomb.h - 1) / 2, rec.sprite.castSpec, out2);
-        for (var o2 = 0; o2 < out2.length; o2++) rec.lit.push(out2[o2]);
-      }
+      // one reusable sprite is stamped into the chunk textures
+      this.bakeStamp = this.make.image({ key: 'cast_shadow', add: false });
     },
 
     buildAtmosphere: function() {
@@ -508,6 +548,12 @@ var CemScenes = (function() {
     updatePlayerDepth: function() {
       var feetY = this.player.y - 12;
       this.player.setDepth((feetY / (TILE_H / 2)) * 4 + LAYERS.token + 1);
+      if (this.world) {
+        var o = CemModel.owlPos(this.level);
+        this.world.placeDynamic(this.player, o.gx, o.gy);
+        this.world.placeDynamic(this.owlContact, o.gx, o.gy);
+        for (var i = 0; i < this.owlShadows.length; i++) this.world.placeDynamic(this.owlShadows[i], o.gx, o.gy);
+      }
     },
 
     /** Snap the owl sprite onto a tile (respawn, teleport, boot) */
@@ -644,6 +690,11 @@ var CemScenes = (function() {
       st.sprite.setDepth((feetY / (TILE_H / 2)) * 4 + LAYERS.token + 1);
       st.contact.setDepth(SHADOW_BAND + (feetY / (TILE_H / 2)) * 4 + 0.2);
       if (st.glow) st.glow.setDepth(st.sprite.depth - 0.1);
+      if (this.world) {
+        this.world.placeDynamic(st.sprite, st.gx, st.gy);
+        this.world.placeDynamic(st.contact, st.gx, st.gy);
+        if (st.glow) this.world.placeDynamic(st.glow, st.gx, st.gy);
+      }
     },
 
     /** Show monsters standing on lit tiles only */
@@ -747,6 +798,11 @@ var CemScenes = (function() {
       if (!st || st.removed) return;
       st.removed = true;
       if (st.tween) st.tween.stop();
+      if (this.world) {
+        this.world.removeDynamic(st.sprite);
+        this.world.removeDynamic(st.contact);
+        if (st.glow) this.world.removeDynamic(st.glow);
+      }
       st.sprite.destroy(); st.contact.destroy();
       if (st.glow) st.glow.destroy();
       delete this.monsters[uid];
@@ -892,14 +948,12 @@ var CemScenes = (function() {
       for (var i = 0; i < L.tiles.length; i++) {
         var v = L.vis[i];
         if (v === this.lastVis[i]) continue;
-        var t = L.tiles[i];
         var objs = this.tileObjs[i], lights = this.tileLights[i], props = this.tileProps[i];
         var shown = v > 0;
-        for (var o = 0; o < objs.length; o++) { objs[o].visible = shown; objs[o].cemShown = shown; }
+        for (var o = 0; o < objs.length; o++) this.world.setPropShown(objs[o], shown);
         if (shown) {
-          for (var l = 0; l < lights.length; l++) { lights[l].visible = v === 2; lights[l].cemShown = v === 2; }
-          var tint = v === 2 ? lerpTint(IsoModel.lightLevel(t.gx, t.gy, L.lights)) : SEEN_TINT;
-          if (this.tileGround[i]) this.tileGround[i].setTint(tint);
+          for (var l = 0; l < lights.length; l++) this.world.setPropShown(lights[l], v === 2);
+          var tint = v === 2 ? lerpTint(L.lightMap[i]) : SEEN_TINT;
           for (var p = 0; p < props.length; p++) props[p].setTint(tint);
         }
         this.lastVis[i] = v;
@@ -912,36 +966,13 @@ var CemScenes = (function() {
           for (var xx = rec.tomb.x0; xx < rec.tomb.x0 + rec.tomb.w; xx++) best = Math.max(best, L.vis[this.idx(xx, yy)]);
         }
         best = Math.max(best, L.vis[this.idx(rec.tomb.door.gx, rec.tomb.door.gy)]);
-        for (var k = 0; k < rec.objs.length; k++) { rec.objs[k].cemShown = best > 0; rec.objs[k].visible = best > 0; }
-        for (var k2 = 0; k2 < rec.lit.length; k2++) { rec.lit[k2].cemShown = best === 2; rec.lit[k2].visible = best === 2; }
-        if (rec.sprite) rec.sprite.setTint(best === 2 ? lerpTint(IsoModel.lightLevel(rec.tomb.door.gx, rec.tomb.door.gy, L.lights)) : SEEN_TINT);
+        for (var k = 0; k < rec.objs.length; k++) this.world.setPropShown(rec.objs[k], best > 0);
+        for (var k2 = 0; k2 < rec.lit.length; k2++) this.world.setPropShown(rec.lit[k2], best === 2);
+        if (rec.sprite) rec.sprite.setTint(best === 2 ? lerpTint(L.lightMap[CemModel.index(L, rec.tomb.door.gx, rec.tomb.door.gy)]) : SEEN_TINT);
       }
       this.refreshTombs();
       this.refreshMonsters();
-      this.cull(true);
-    },
-
-    /** Hide everything outside the camera (Phaser does not cull images itself) */
-    cull: function(force) {
-      var now = this.time.now;
-      if (!force && now < this.cullAt) return;
-      this.cullAt = now + CULL_MS;
-      var cam = this.cameras.main;
-      var view = cam.worldView;
-      var pad = 300;
-      var left = view.x - pad, right = view.right + pad, top = view.y - pad, bottom = view.bottom + pad;
-      var L = this.level;
-      for (var i = 0; i < L.tiles.length; i++) {
-        var objs = this.tileObjs[i];
-        if (!objs.length) continue;
-        var g = this.tileGround[i];
-        var inView = g.x > left && g.x < right && g.y > top - 200 && g.y < bottom + 60;
-        for (var o = 0; o < objs.length; o++) {
-          var obj = objs[o];
-          var want = obj.cemShown !== false && inView;
-          if (obj.visible !== want) obj.visible = want;
-        }
-      }
+      this.world.update(true);
     },
 
     // --- Camera and input ----------------------------------------------------------
@@ -982,8 +1013,9 @@ var CemScenes = (function() {
       this.scale.on('resize', function(size) {
         cam.setSize(size.width, size.height);
         self.layoutAtmosphere(size.width, size.height);
+        self.followOffset = self.hudOffset();
         if (self.player && self.player.visible) self.focusOn(self.player.x, self.player.y - 12, true);
-        self.cull(true);
+        self.world.update(true);
       });
     },
 
@@ -992,7 +1024,8 @@ var CemScenes = (function() {
     },
 
     /** Newly revealed tiles: show their ground and props */
-    onTilesRevealed: function() {
+    onTilesRevealed: function(indices) {
+      if (indices && indices.length && this.world) this.world.markSeen(indices);
       this.refreshVisibility();
     },
 
@@ -1045,7 +1078,7 @@ var CemScenes = (function() {
       });
       this.input.on('wheel', function(pointer, objects, dx, dy) {
         cam.setZoom(Phaser.Math.Clamp(cam.zoom * (dy > 0 ? 0.9 : 1.1), 0.4, 2));
-        self.cull(true);
+        self.world.update(true);
       });
       this.pinchState = function() { return pinch; };
       this.setPinch = function(v) { pinch = v; };
@@ -1086,7 +1119,8 @@ var CemScenes = (function() {
         if (!pinch) this.setPinch({ dist: d, zoom: cam.zoom });
         else cam.setZoom(Phaser.Math.Clamp(pinch.zoom * (d / pinch.dist), 0.4, 2));
       }
-      this.cull(false);
+      this.world.update(false);
+      if (this.perf) this.perf.frame();
     }
   });
 
