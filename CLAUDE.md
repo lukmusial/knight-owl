@@ -125,9 +125,9 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 
 **Cemetery level** (cem-model.js): 60x52 tile grid with a 1-tile fence ring and 2-3 tile wide winding lanes, 4 small tombs (2x2, named guardians banshee/pumpkin_man/skeleton/ghost with key parts 1..4) + 1 large tomb (3x3, Grim Reaper), ~16 wandering monsters banded by lane distance (`WANDERER_BANDS`), sight radius 4 around Mr Owl plus 3 around each lamp post. Mr Owl moves continuously (`tickOwl`, `moveBy`, `OWL_SPEED` tiles/s, circle radius `OWL_RADIUS`) steered by the dock thumb-stick (`cem-stick.js`), drag or keys; tap-to-walk still uses A* (`pathTo` + `setPath`)
 
-**Cemetery rendering** (cem-world.js): ground, prop shadows and lantern pools are baked into pooled 8x8-tile render textures; props live in depth-band Layers with cell culling; the night is a masked overlay that follows Mr Owl (`buildFog`). `?perf=1` shows frame rate, logic time, draw calls and the chunk pool
+**Cemetery rendering** (cem-world.js): ground, prop shadows and lantern pools are baked into pooled 8x8-tile render textures; props live in depth-band Layers with cell culling; the night is an erased fog texture that follows Mr Owl (`buildFog`). `?perf=1` shows frame rate, logic time, draw calls and the chunk pool
 
-**Night reveal**: tiles within `VIS_OWL` of Mr Owl are lit; tiles out to `VIS_OWL + SEEN_EXTRA` become remembered (dim) first, so ground surfaces under the dark edge of the fog and brightens as he nears rather than popping; props of newly seen tiles fade in (`fadeIn`). The fog overlay is 0.8 dark with the owl's light reaching `VIS_OWL + 2.5`
+**Night reveal**: tiles within `VIS_OWL` of Mr Owl are lit; tiles out to `VIS_OWL + SEEN_EXTRA` become remembered (dim) first, so ground surfaces under the dark edge of the fog and brightens as he nears rather than popping; props of newly seen tiles fade in (`fadeIn`). The night is a camera-fixed half-resolution DynamicTexture filled `FOG_DARK` (0.7) each frame with the lights erased out of it by soft stamps (no BitmapMask: some Android WebViews ignore masks); the owl's light reaches `VIS_OWL + 2.5`. There is no moon
 
 **Fliers**: `HOVER_PX` in cem-scenes.js lifts bats, wisps and spectres above their ground shadow
 
@@ -139,9 +139,11 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 
 **Cemetery monsters**: rendered sprite sheets (`assets/proto/iso/monsters/<id>.png|json`, built by `tools/monsters3d/render_monster_iso.py` + `render_all.sh`, packed with `tools/owl3d/pack_sprites.py --quant 128`; `render_all.sh` records a per-model yaw where a model's front is off-axis, the ghost at -45 and the lost soul at 90) with walk/idle/attack/hit clips in five facings; `CemMonsters.clipFor` picks the clip, `pose` adds the reactions. Missing sheets fall back to the still cutout
 
-**Cemetery music**: `ProtoCem` plays `assets/music/cemetery-<name>.mp3` (`?music=gothic|quirky|ominous|carousel|shanty|lullaby|none`, remembered in `mrowl_cem_music`); loops are made by `tools/music/generate_loop.py` (ACE-Step)
+**Cemetery music**: `ProtoCem` plays `assets/music/cemetery-<name>.mp3` (`?music=shanty|gothic|quirky|ominous|carousel|lullaby|fjord|tristram|solveig|none`, default `shanty`, remembered in `mrowl_cem_music`); `BOSS_TRACK` (quirky) plays during the Reaper fight via `switchMusic`; `Music.VOLUME` is 0.25, half the SFX master gain; loops are made by `tools/music/generate_loop.py` (ACE-Step, `--seconds 120` for the two-minute ones)
 
 **Victory screen**: styled by `rpggui.css` like every other panel (wooden board, parchment stats, wooden bar button); the cemetery's loading veil says "Entering a haunted cemetery" via `setLoadingText` in cem-main.js
+
+**Level picker**: the isometric page's dungeon/cemetery cards show `assets/proto/iso/pick-dungeon.jpg` and `pick-cemetery.jpg`, cut from the docs screenshots
 
 **Encounter card**: `MonsterStage` (js/modules/monster-stage.js) lifts the character off the painted scene onto its own layer over an inpainted backdrop (`assets/proto/monsters/<id>_bg.jpg`), plays sheet frames when they exist and reacts to answers (hit, lunge, exit styles in css/fx.css). `CARD_SCALE` sizes each species about its feet (spider small, Reaper towering; node-tested in tests/monster-stage.test.js). With a sheet it uses the model's facings: it opens with its back turned and spins round to meet the player, squares up before a reaction, and turns away to walk off when beaten. Backdrops are painted by `tools/extract-sprites.py --bg-only`, which inpaints the character out and blends the patch back with a distance feather
 

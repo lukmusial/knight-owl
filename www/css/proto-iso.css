@@ -80,22 +80,12 @@ body.proto .direction-bar {
 .iso-level-card.selected { border-color: var(--hud-gold, #e8b64a); box-shadow: inset 0 0 0 2px rgba(232, 182, 74, 0.5); }
 .iso-level-art {
   display: block;
-  height: 96px;
+  height: 120px;
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.5);
 }
-.iso-level-art.dungeon {
-  background:
-    radial-gradient(circle at 25% 60%, rgba(255, 170, 60, 0.55), transparent 35%),
-    radial-gradient(circle at 75% 55%, rgba(255, 140, 40, 0.45), transparent 32%),
-    linear-gradient(180deg, #3c4356, #1d2130);
-}
-.iso-level-art.cemetery {
-  background:
-    radial-gradient(circle at 80% 22%, rgba(255, 245, 210, 0.95) 0 14px, rgba(255, 245, 210, 0.25) 15px 26px, transparent 27px),
-    radial-gradient(circle at 30% 85%, rgba(255, 190, 90, 0.5), transparent 28%),
-    linear-gradient(180deg, #131a2c 0%, #1e2f2f 70%, #26382f 100%);
-}
+.iso-level-art.dungeon { background: #1d2130 url('../assets/proto/iso/pick-dungeon.jpg') center / cover no-repeat; }
+.iso-level-art.cemetery { background: #131a2c url('../assets/proto/iso/pick-cemetery.jpg') center / cover no-repeat; }
 .iso-level-name { font-family: var(--hud-serif, Georgia, serif); font-size: 1.1rem; color: var(--hud-gold-bright, #f1d27a); }
 .iso-level-name small { display: block; font-size: 0.8rem; font-style: italic; color: var(--hud-parchment, #e8d9b0); opacity: 0.85; }
 .iso-level-desc { font-size: 0.85rem; line-height: 1.3; }
