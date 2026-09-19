@@ -52,6 +52,7 @@ async function shot(page, name) {
 }
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
+let errorSink = null;
 
 /** The result card unlocks its Continue button after a few seconds */
 async function pressContinue(page) {
@@ -72,6 +73,10 @@ async function waitFor(page, fn, what, arg) {
         combat: typeof Combat !== 'undefined' && Combat.hasActiveEncounter(), stats: typeof Player !== 'undefined' && Player.getQuestionStats() };
     });
     console.log('   timed out waiting for ' + what + '; state: ' + JSON.stringify(state));
+    if (typeof errorSink === 'function') {
+      var errs = errorSink();
+      if (errs.length) console.log('   page errors: ' + errs.slice(0, 3).join(' | '));
+    }
     throw e;
   }
 }
@@ -89,6 +94,7 @@ async function main() {
     await page.setViewport({ width: 1200, height: 860 });
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
+    errorSink = () => errors;
     page.on('console', m => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(m.text()); });
     const base = 'http://localhost:' + PORT + '/proto/isometric.html';
 
@@ -109,6 +115,7 @@ async function main() {
     console.log('steering');
     const steered = await page.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
+let errorSink = null;
       const L = ProtoCem.getLevel();
       // stand on a wide lane far from monsters, then push the stick
       window.__saved = L.monsters.map(m => ({ uid: m.uid, gx: m.gx, gy: m.gy, home: m.home, stepMs: m.stepMs }));

@@ -189,6 +189,7 @@ var CemScenes = (function() {
       this.buildTombs();
       this.buildLanterns();
       this.buildShadows();
+      this.buildFog();
       this.buildAtmosphere();
       this.createPlayer();
       this.spawnMonsters();
@@ -387,7 +388,7 @@ var CemScenes = (function() {
         var dp = IsoModel.gridToIso(tomb.door.gx, tomb.door.gy);
         var depth = CemModel.tombDepth(tomb, LAYERS.token) + 0.5;
         rec.door = this.add.image(dp.x, dp.y - 6, 'cem_door_dark').setOrigin(0.5, 1).setScale(0.8).setDepth(depth).setVisible(false);
-        rec.glow = this.add.image(dp.x, dp.y - 30, 'glow_purple').setScale(0.7).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth - 0.1);
+        rec.glow = this.add.image(dp.x, dp.y - 24, 'glow_gold').setScale(0.7).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth - 0.1);
         rec.lit.push(rec.door, rec.glow);
         this.world.addProp(rec.door, tomb.door.gx, tomb.door.gy, { light: true });
         this.world.addProp(rec.glow, tomb.door.gx, tomb.door.gy, { light: true });
@@ -409,10 +410,31 @@ var CemScenes = (function() {
         var rec = this.tombObjs[id];
         var tomb = rec.tomb;
         var guardian = L.monstersByUid[tomb.guardianUid];
-        var opened = tomb.size === 'large' ? (L.monstersByUid.boss.defeated || this.bossRevealed || this.bossBeaten) : (!guardian || guardian.defeated);
+        var beaten = !guardian || guardian.defeated;
+        var opened = tomb.size === 'large' ? (L.monstersByUid.boss.defeated || this.bossRevealed || this.bossBeaten) : beaten;
         rec.doorOpen = opened;
         rec.door.visible = opened && rec.door.cemShown !== false;
-        rec.glow.setAlpha(opened ? 0.55 : 0);
+        // the doorway tells you what is left to do: a small tomb burns yellow
+        // while its key part is still inside and blue once you have it; the
+        // great tomb glows red until the key is whole, then yellow
+        var key, alpha;
+        if (tomb.size === 'large') {
+          key = CemModel.hasAllKeyParts(L) ? 'glow_gold' : 'cem_glow_red';
+          alpha = 0.7;
+        } else {
+          key = beaten ? 'glow_cyan' : 'glow_gold';
+          alpha = beaten ? 0.5 : 0.65;
+        }
+        if (rec.glowKey !== key) {
+          rec.glow.setTexture(key);
+          rec.glowKey = key;
+          if (!REDUCED_MOTION) {
+            if (rec.glowTween) rec.glowTween.stop();
+            rec.glow.setScale(0.7);
+            rec.glowTween = this.tweens.add({ targets: rec.glow, scale: 0.95, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+          }
+        }
+        rec.glow.setAlpha(alpha);
         if (rec.lock) { rec.lockOn = !CemModel.hasAllKeyParts(L); rec.lock.visible = rec.lockOn && rec.lock.cemShown !== false; }
       }
     },
@@ -470,11 +492,68 @@ var CemScenes = (function() {
       this.bakeStamp = this.make.image({ key: 'cast_shadow', add: false });
     },
 
+    /**
+     * Night that follows Mr Owl: a dark sheet over the world with soft holes
+     * punched where he and the lanterns are. Ground he has never seen is not
+     * drawn at all (the chunk bake skips it), so this only softens the edge
+     * between what he remembers and what he can see right now.
+     */
+    buildFog: function() {
+      var cam = this.cameras.main;
+      this.softFog = this.sys.game.renderer.type === Phaser.WEBGL && !!this.textures.exists('cem_soft_light');
+      if (!this.softFog) return;
+      this.fogRes = 0.5;
+      this.fogTex = this.textures.addDynamicTexture('cem_fog_' + this.scene.key,
+        Math.max(2, Math.ceil(cam.width * this.fogRes)), Math.max(2, Math.ceil(cam.height * this.fogRes)));
+      this.fogStamp = this.make.image({ key: 'cem_soft_light', add: false }).setOrigin(0.5, 0.5);
+      this.fogMaskImg = this.make.image({ key: this.fogTex.key, add: false }).setOrigin(0.5, 0.5);
+      this.fogOverlay = this.add.rectangle(0, 0, cam.width, cam.height, 0x090c1a, 0.62).setDepth(900000);
+      this.fogOverlay.setMask(new Phaser.Display.Masks.BitmapMask(this, this.fogMaskImg));
+      this.fogOverlay.mask.invertAlpha = true;
+    },
+
+    /** Repaint the holes in the night for this frame */
+    updateFog: function() {
+      if (!this.softFog) return;
+      var cam = this.cameras.main;
+      var view = cam.worldView;
+      var L = this.level;
+      if (this.fogTex.width !== Math.ceil(cam.width * this.fogRes) || this.fogTex.height !== Math.ceil(cam.height * this.fogRes)) {
+        this.fogTex.setSize(Math.max(2, Math.ceil(cam.width * this.fogRes)), Math.max(2, Math.ceil(cam.height * this.fogRes)));
+      }
+      this.fogOverlay.setPosition(view.centerX, view.centerY).setSize(view.width, view.height);
+      this.fogMaskImg.setPosition(view.centerX, view.centerY).setScale(1 / (cam.zoom * this.fogRes));
+
+      var k = cam.zoom * this.fogRes;
+      var self = this;
+      this.fogTex.clear();
+      this.fogTex.beginDraw();
+      function blob(wx, wy, tiles, alpha) {
+        if (wx < view.x - 400 || wx > view.right + 400 || wy < view.y - 400 || wy > view.bottom + 400) return;
+        var rx = (tiles + 0.5) * TILE_W / 2;
+        self.fogStamp.setScale(rx * 2 / 256 * k, rx / 128 * k).setAlpha(alpha);
+        self.fogTex.batchDraw(self.fogStamp, (wx - view.x) * k, (wy - view.y) * k);
+      }
+      var o = CemModel.owlPos(L);
+      var op = IsoModel.gridToIso(o.x, o.y);
+      // a bright core around Mr Owl with a soft skirt, so the reveal travels with him
+      blob(op.x, op.y, L.cfg.VIS_OWL + 1.5, 0.75);
+      blob(op.x, op.y, L.cfg.VIS_OWL * 0.6, 1);
+      for (var i = 0; i < L.lights.length; i++) {
+        var li = L.lights[i];
+        if (!L.seen[CemModel.index(L, li.gx, li.gy)]) continue;
+        var lp = IsoModel.gridToIso(li.gx, li.gy);
+        blob(lp.x, lp.y, L.cfg.VIS_LANTERN, 0.95);
+      }
+      this.fogTex.endDraw();
+    },
+
     buildAtmosphere: function() {
       var cam = this.cameras.main;
       this.moonGlow = this.add.image(0, 0, 'cem_moon_glow').setScrollFactor(0).setDepth(-1e6 + 1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8);
       this.moon = this.add.image(0, 0, 'cem_moon').setScrollFactor(0).setDepth(-1e6 + 2).setScale(0.8);
-      this.vignette = this.add.image(0, 0, 'cem_vignette').setScrollFactor(0).setDepth(1e6).setAlpha(0.9);
+      // the fog sheet already frames the view, so the vignette only deepens the corners
+      this.vignette = this.add.image(0, 0, 'cem_vignette').setScrollFactor(0).setDepth(1e6).setAlpha(this.softFog ? 0.3 : 0.9);
       this.mist = [];
       if (!REDUCED_MOTION) {
         var b = this.level.bounds;
@@ -521,6 +600,15 @@ var CemScenes = (function() {
       }, this);
       this.owlTint = null;
       this.owlContact = this.add.image(0, 0, 'glow_warm').setTint(0x000000).setScale(0.42, 0.2).setAlpha(0.55).setVisible(false);
+      // Mr Owl carries his own light: a warm pool that travels with him, so the
+      // ground he walks on is lit and not merely uncovered
+      this.owlPool = this.add.image(0, 0, 'light_pool').setBlendMode(Phaser.BlendModes.ADD)
+        .setAlpha(0.42).setScale(1.5).setTint(0xffd9a0).setDepth(-99000).setVisible(false);
+      this.owlLamp = this.add.image(0, 0, 'glow_warm').setBlendMode(Phaser.BlendModes.ADD)
+        .setAlpha(0.35).setScale(0.8).setTint(0xffe2b0).setDepth(-98999).setVisible(false);
+      if (!REDUCED_MOTION) {
+        this.tweens.add({ targets: this.owlPool, alpha: 0.5, scale: 1.62, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
       if (!REDUCED_MOTION) {
         this.tweens.add({ targets: this.highlight, scaleX: 1.08, scaleY: 1.08, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         this.startIdle();
@@ -600,6 +688,8 @@ var CemScenes = (function() {
       if (!this.player.visible) {
         shadows.forEach(function(sh) { sh.setVisible(false); });
         this.owlContact.setVisible(false);
+        if (this.owlPool) this.owlPool.setVisible(false);
+        if (this.owlLamp) this.owlLamp.setVisible(false);
         return;
       }
       var feet = IsoModel.isoToGridExact(this.player.x, this.player.y - 12);
@@ -617,6 +707,8 @@ var CemScenes = (function() {
       }
       var fp = IsoModel.gridToIso(feet.gx, feet.gy);
       this.owlContact.setPosition(fp.x, fp.y + 12).setDepth(SHADOW_BAND + (feet.gx + feet.gy) * 4 + 0.2).setVisible(true);
+      this.owlPool.setPosition(fp.x, fp.y + 10).setVisible(true);
+      this.owlLamp.setPosition(fp.x, fp.y - 26).setVisible(true);
       var lvl = (L.lightMap && L.lightMap[tileIdx] !== undefined) ? L.lightMap[tileIdx] : IsoModel.lightLevel(feet.gx, feet.gy, lights);
       var k = 0.55 + 0.45 * lvl;
       var tint = (Math.round(255 * k) << 16) | (Math.round(240 * k) << 8) | Math.round(230 * k);
@@ -968,7 +1060,7 @@ var CemScenes = (function() {
         }
         best = Math.max(best, L.vis[this.idx(rec.tomb.door.gx, rec.tomb.door.gy)]);
         for (var k = 0; k < rec.objs.length; k++) this.world.setPropShown(rec.objs[k], best > 0);
-        for (var k2 = 0; k2 < rec.lit.length; k2++) this.world.setPropShown(rec.lit[k2], best === 2);
+        for (var k2 = 0; k2 < rec.lit.length; k2++) this.world.setPropShown(rec.lit[k2], best > 0);
         if (rec.sprite) rec.sprite.setTint(best === 2 ? lerpTint(L.lightMap[CemModel.index(L, rec.tomb.door.gx, rec.tomb.door.gy)]) : SEEN_TINT);
       }
       this.refreshTombs();
@@ -1109,6 +1201,7 @@ var CemScenes = (function() {
       this.syncOwl(step ? step.vx : 0, step ? step.vy : 0);
       this.updateOwlLighting();
       this.updateMonsters(time);
+      this.updateFog();
       if (this.player && this.player.visible) {
         var tx = this.player.x + this.followOffset.x / cam.zoom;
         var ty = this.player.y + this.followOffset.y / cam.zoom;
