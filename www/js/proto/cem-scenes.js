@@ -608,65 +608,53 @@ var CemScenes = (function() {
      * between what he remembers and what he can see right now.
      */
     /**
-     * The night is a camera-fixed texture at half resolution: filled dark
-     * each frame, then the lights are erased out of it with soft stamps.
-     * No bitmap mask: some Android WebViews draw a masked object as if it had
-     * no mask at all, which put a flat veil over the whole screen.
+     * The night without any render-to-texture: a big dark square with a soft
+     * hole in it rides on Mr Owl (his reveal), and the lanterns and the
+     * Reaper add their own light on top as additive glows. Bitmap masks,
+     * dynamic-texture erasing and even non-batched erase all failed on an
+     * Android WebView; plain sprites with blend modes work everywhere.
      */
     buildFog: function() {
-      var cam = this.cameras.main;
-      this.softFog = !!this.textures.exists('cem_soft_light');
+      this.softFog = this.textures.exists('cem_dark_ring') && this.textures.exists('cem_soft_light');
       if (!this.softFog) return;
-      this.fogRes = 0.5;
-      this.fogTex = this.textures.addDynamicTexture('cem_fog_' + this.scene.key,
-        Math.max(2, Math.ceil(cam.width * this.fogRes)), Math.max(2, Math.ceil(cam.height * this.fogRes)));
-      this.fogStamp = this.make.image({ key: 'cem_soft_light', add: false }).setOrigin(0.5, 0.5)
-        .setBlendMode(Phaser.BlendModes.ERASE);
-      this.fogImg = this.add.image(0, 0, this.fogTex.key).setOrigin(0, 0).setScrollFactor(0).setDepth(900000)
-        .setScale(1 / this.fogRes);
+      this.fogRing = this.add.image(0, 0, 'cem_dark_ring').setOrigin(0.5, 0.5).setDepth(900000).setAlpha(FOG_DARK);
+      this.fogGlows = [];        // additive lights over the dark: lanterns, the Reaper
     },
 
-    /** Repaint the holes in the night for this frame */
+    /** A pooled additive glow at a world point */
+    fogGlow: function(i, wx, wy, tiles, alpha, tint) {
+      var g = this.fogGlows[i];
+      if (!g) {
+        g = this.add.image(0, 0, 'cem_soft_light').setBlendMode(Phaser.BlendModes.ADD).setDepth(900001);
+        this.fogGlows[i] = g;
+      }
+      var rx = (tiles + 0.5) * TILE_W / 2;
+      g.setVisible(true).setPosition(wx, wy).setScale(rx * 2 / 256, rx / 128).setAlpha(alpha).setTint(tint);
+    },
+
+    /** Move the night with Mr Owl and light the lanterns through it */
     updateFog: function() {
       if (!this.softFog) return;
       var cam = this.cameras.main;
       var view = cam.worldView;
       var L = this.level;
-      var tw = Math.max(2, Math.ceil(cam.width * this.fogRes)), th = Math.max(2, Math.ceil(cam.height * this.fogRes));
-      if (this.fogTex.width !== tw || this.fogTex.height !== th) {
-        this.fogTex.setSize(tw, th);
-        this.fogImg.setTexture(this.fogTex.key).setScale(1 / this.fogRes);
-      }
-      this.fogImg.setPosition(0, 0);
-
-      var k = cam.zoom * this.fogRes;
-      var self = this;
-      this.fogTex.clear();
-      this.fogTex.fill(0x090c1a, FOG_DARK);
-      this.fogTex.beginDraw();
-      function blob(wx, wy, tiles, alpha) {
-        if (wx < view.x - 400 || wx > view.right + 400 || wy < view.y - 400 || wy > view.bottom + 400) return;
-        var rx = (tiles + 0.5) * TILE_W / 2;
-        self.fogStamp.setScale(rx * 2 / 256 * k, rx / 128 * k).setAlpha(alpha);
-        self.fogTex.batchDraw(self.fogStamp, (wx - view.x) * k, (wy - view.y) * k);
-      }
       var o = CemModel.owlPos(L);
       var op = IsoModel.gridToIso(o.x, o.y);
-      // a bright core around Mr Owl with a soft skirt, so the reveal travels with him
-      blob(op.x, op.y, L.cfg.VIS_OWL + 2.5, 0.7);      // reaches into the remembered band, so ground brightens as he nears
-      blob(op.x, op.y, L.cfg.VIS_OWL * 0.6, 1);
+      // the hole is 160 px wide in a 1024 texture; scale it to his sight
+      var holeR = (L.cfg.VIS_OWL + 3) * TILE_W / 2;
+      var sc = holeR / 160;
+      this.fogRing.setPosition(op.x, op.y + 12).setScale(sc);
+      var n = 0;
+      for (var i = 0; i < L.lights.length; i++) {
+        var lp = IsoModel.gridToIso(L.lights[i].gx, L.lights[i].gy);
+        if (lp.x < view.x - 400 || lp.x > view.right + 400 || lp.y < view.y - 400 || lp.y > view.bottom + 400) continue;
+        this.fogGlow(n++, lp.x, lp.y - 20, L.cfg.VIS_LANTERN + 0.5, 0.42, 0xffd9a8);
+      }
       var bossSt = this.monsters.boss;
       if (bossSt && bossSt.shown && !bossSt.removed) {
-        // the Reaper carries his own gloom-light: the night opens around him
-        blob(bossSt.bx, bossSt.by - 30, 2.6, 0.9);
+        this.fogGlow(n++, bossSt.bx, bossSt.by - 30, 2.6, 0.5, 0xc9b8ff);
       }
-      for (var i = 0; i < L.lights.length; i++) {
-        var li = L.lights[i];
-        if (!L.seen[CemModel.index(L, li.gx, li.gy)]) continue;
-        var lp = IsoModel.gridToIso(li.gx, li.gy);
-        blob(lp.x, lp.y, L.cfg.VIS_LANTERN, 0.95);
-      }
-      this.fogTex.endDraw();
+      for (var j = n; j < this.fogGlows.length; j++) this.fogGlows[j].setVisible(false);
     },
 
     buildAtmosphere: function() {

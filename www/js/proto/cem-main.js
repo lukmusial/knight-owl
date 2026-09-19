@@ -33,10 +33,10 @@ var ProtoCem = (function() {
   var MUSIC_TRACKS = {
     shanty: 'cemetery-shanty', gothic: 'cemetery-gothic', quirky: 'cemetery-quirky', ominous: 'cemetery-ominous',
     carousel: 'cemetery-carousel', lullaby: 'cemetery-lullaby',
-    // quieter, for wandering: a Grieg-like morning over the fjord, a Tristram-like guitar, a Solveig-like song
-    fjord: 'cemetery-fjord', tristram: 'cemetery-tristram', solveig: 'cemetery-solveig'
+    // quieter, for wandering: a Tristram-like guitar and a Solveig-like song
+    tristram: 'cemetery-tristram', solveig: 'cemetery-solveig'
   };
-  var MUSIC_DEFAULT = 'shanty';
+  var MUSIC_DEFAULT = 'solveig';
   var BOSS_TRACK = 'cemetery-quirky';        // the Reaper fights to the dark carnival tune
   var MUSIC_KEY = 'mrowl_cem_music';
   var VICTORY_MESSAGE = {
