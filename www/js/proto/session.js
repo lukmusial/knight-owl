@@ -163,7 +163,9 @@ var ProtoSession = (function() {
     resetRun(name);
     currentLevel = 'cemetery';
     if (seed === undefined) seed = (CemModel.seedFromString(name) ^ (Date.now() & 0xffffffff)) >>> 0;
+    var t0 = Date.now();
     cemeteryLevel = CemModel.generate(seed);
+    if (cemeteryLevel) cemeteryLevel.genMs = Date.now() - t0;
     return { loaded: false, name: name, level: 'cemetery', cemetery: cemeteryLevel };
   }
 

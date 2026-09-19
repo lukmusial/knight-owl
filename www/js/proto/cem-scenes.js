@@ -205,6 +205,7 @@ var CemScenes = (function() {
       }
       this.placeOwl(this.level.owl, true);
       this.refreshVisibility(true);
+      this.perf = (typeof CemPerf !== 'undefined') ? CemPerf.attach(this) : null;
       var cb = callbacks(this);
       if (cb.onReady) cb.onReady(this);
     },
@@ -1102,7 +1103,9 @@ var CemScenes = (function() {
       var cb = callbacks(this);
       var keys = this.readKeys();
       if (keys && cb.onSteer) cb.onSteer(keys.x, keys.y);
+      var t0 = this.perf ? performance.now() : 0;
       var step = cb.onFrame ? cb.onFrame(Math.min(delta || 16, 50)) : null;
+      if (this.perf) this.perf.mark(performance.now() - t0);
       this.syncOwl(step ? step.vx : 0, step ? step.vy : 0);
       this.updateOwlLighting();
       this.updateMonsters(time);

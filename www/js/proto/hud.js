@@ -231,8 +231,28 @@ var ProtoHud = (function() {
 
   var facingDir = null;
 
+  /**
+   * Canvas for the cemetery map (the dungeon keeps the SVG); created once and
+   * reused, so the HUD never reparses markup while Mr Owl walks.
+   */
+  function minimapCanvas(w, h) {
+    if (!els.mapContainer) return null;
+    if (!els.mapCanvas) {
+      els.mapContainer.innerHTML = '';
+      var c = el('canvas', 'dungeon-map-canvas');
+      c.width = w || 360;
+      c.height = h || 200;
+      els.mapContainer.appendChild(c);
+      els.mapCanvas = c;
+    }
+    return els.mapCanvas;
+  }
+
   function setMinimap(svg) {
-    if (els.mapContainer) els.mapContainer.innerHTML = svg;
+    if (els.mapContainer) {
+      els.mapContainer.innerHTML = svg;
+      els.mapCanvas = null;
+    }
     drawFacingArrow();
   }
 
@@ -353,6 +373,7 @@ var ProtoHud = (function() {
     setNote: setNote,
     setKeyParts: setKeyParts,
     setMinimap: setMinimap,
+    minimapCanvas: minimapCanvas,
     setCompass: setCompass,
     setLoot: setLoot,
     loadSprites: loadSprites,
