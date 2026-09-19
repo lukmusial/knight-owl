@@ -9,7 +9,7 @@
 
 var Music = (function() {
   var THEME_URL = 'assets/music/start-theme.mp3';
-  var VOLUME = 0.55;
+  var VOLUME = 0.25;   // half the effects' master gain (0.5): the music sits under the effects and the voice
   var SILENCE = 0.004;      // decoder padding below this amplitude is trimmed from the loop
   var AC = (typeof window !== 'undefined') ? (window.AudioContext || window.webkitAudioContext) : null;
 
