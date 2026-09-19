@@ -257,6 +257,10 @@ def render_sprite(name, entry):
         else:
             lp = (centre.x + lp[0], centre.y + lp[1], lo.z + lp[2])
         extra['light'] = project(scene, cam, lp, rx, ry)
+    if entry.get('portal'):
+        # measured off the rendered sprite: where the painted arch sits, so the
+        # game can put its light inside it instead of over it
+        extra['portal'] = entry['portal']
     if entry.get('door'):
         dp = entry['door']
         extra['door'] = project(scene, cam, (centre.x + dp[0], centre.y + dp[1], lo.z + dp[2]), rx, ry)
