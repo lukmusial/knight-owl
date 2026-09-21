@@ -89,7 +89,8 @@ var CemPerf = (function() {
           'cells ' + st.visibleCells + '/' + st.cells + '   bands ' + st.bands,
           'grid ' + scene.level.W + 'x' + scene.level.H + '   gen ' + (scene.level.genMs || '?') + ' ms',
           'rain ' + (rainSum / Math.max(1, frames)).toFixed(2) + ' ms   streaks ' + rs.streaks + '   puddles ' + rs.puddles + '   rings ' + rs.rings,
-          'mirror ' + rs.bakes + ' bakes (' + (rs.bakeMs / Math.max(1, rs.bakes)).toFixed(2) + ' ms)   ' + rs.schedule,
+          'mirror ' + rs.bakes + ' bakes (' + (rs.bakeMs / Math.max(1, rs.bakes)).toFixed(2) + ' ms)   ' + rs.schedule +
+            (rs.firstShowerMs >= 0 ? '   first ' + Math.round(rs.firstShowerMs / 1000) + 's, clock ' + Math.round(rs.elapsed / 1000) + 's' : ''),
           'storm ' + (ss.striking ? 'striking, ' : '') + ss.schedule
         ].join('\n'));
         var view = scene.cameras.main.worldView;

@@ -80,7 +80,8 @@ async function main() {
     await page.setViewport({ width: 1200, height: 860 });
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
-    page.on('console', m => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(m.text()); });
+    const logs = [];
+    page.on('console', m => { logs.push(m.text()); if (m.type() === 'error' && !/404/.test(m.text())) errors.push(m.text()); });
     if (REDUCED) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
     await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Rain&action=new&level=cemetery&perf=1&music=none',
       { waitUntil: 'load' });
@@ -92,7 +93,13 @@ async function main() {
       L.graceMs = 1e9;                        // no encounters while measuring
       L.cfg.OWL_SPEED *= 3;                   // headless Chrome renders a few frames a second: cover ground anyway
       const before = S.rainStats();
-      await wait(300);
+      // the clock as the scene leaves it must be running before the harness
+      // winds it: a create() at scene Clock time 0 once left it stopped, and
+      // the cemetery never rained on the phone
+      const clockA = S.rainElapsed();
+      await wait(1000);
+      const clockRan = S.rainElapsed() - clockA;
+      const natural = S.rainStats();
       const reducedFull = 0;
       // rain at once and for good, puddles full in a blink
       S.rainSchedule = CemRain.schedule(1, { FIRST_GAP_MIN_MS: 0, FIRST_GAP_MAX_MS: 0, EPISODE_MIN_MS: 3600000, EPISODE_MAX_MS: 3600000,
@@ -164,7 +171,7 @@ async function main() {
       const owlMirrored = S.puddles.filter(p => p.liveKey && p.liveKey.length > 0).length;   // still mirroring a mover right now
       return {
         overlay: overlay ? overlay.text : '(overlay missing)',
-        before, after: S.rainStats(), shownPuddles: shown, fullPuddles: full, reducedFull, mirrored, owlMirrored, liveBakes,
+        before, after: S.rainStats(), clockRan, natural, shownPuddles: shown, fullPuddles: full, reducedFull, mirrored, owlMirrored, liveBakes,
         rainMsPerFrame: Number((rainMs / Math.max(1, frames)).toFixed(3)),
         emitterMsPerFrame: Number((emitMs / Math.max(1, emitFrames)).toFixed(3)),
         frames, maxRings, maxPuddles, splashes, inPuddleSamples: inPuddle,
@@ -184,6 +191,10 @@ async function main() {
       splashes: out.splashes, inPuddleSamples: out.inPuddleSamples, emitterAlive: out.emitterAlive,
       ringsSpawned: out.ringsSpawned, ringsPerPuddleSec: out.ringsPerPuddleSec, avgWetInView: out.avgWetInView
     }, null, 2));
+    check(out.clockRan >= 700, 'the rain clock runs as the scene leaves it (' + Math.round(out.clockRan) + ' ms in a second; ' + out.natural.schedule + ')');
+    check(out.natural.firstShowerMs >= out.cfg.FIRST_GAP_MIN_MS && out.natural.firstShowerMs <= out.cfg.FIRST_GAP_MAX_MS,
+      'the first shower is due ' + Math.round(out.natural.firstShowerMs / 1000) + ' s after ready');
+    check(logs.some(l => /^ProtoCem: weather: first shower at \d+ s/.test(l)), 'the console says when the first shower is due (' + (logs.find(l => /weather/.test(l)) || 'no weather line') + ')');
     check(out.after.puddles > 0, 'puddles were laid (' + out.after.puddles + ')');
     check(out.maxPuddles <= out.cfg.MAX_PUDDLES, 'never more than MAX_PUDDLES');
     check(out.maxRings <= out.cfg.RING_CAP, 'never more than RING_CAP rings alive');
