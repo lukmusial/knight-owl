@@ -39,6 +39,8 @@ var CemPerf = (function() {
     var revealMs = 0;
     var revealSum = 0;
     var revealMax = 0;
+    var rainMs = 0;
+    var rainSum = 0;
 
     function countVisible() {
       var n = 0;
@@ -61,17 +63,23 @@ var CemPerf = (function() {
       /** Time spent moving the night reveal this frame (CemeteryScene.updateReveal) */
       markReveal: function(ms) { revealMs = ms; },
 
+      /** Time spent on the rain, puddles, rings and drops this frame */
+      markRain: function(ms) { rainMs = ms; },
+
       frame: function() {
         frames++;
         drawSum += draws;
         logicSum += logicMs;
         revealSum += revealMs;
         if (revealMs > revealMax) revealMax = revealMs;
+        rainSum += rainMs;
         draws = 0;
         var now = scene.time.now;
         if (now < at) return;
         at = now + 500;
         var st = scene.world ? scene.world.stats() : {};
+        var rs = scene.rainStats ? scene.rainStats() : { streaks: 0, puddles: 0, rings: 0, bakes: 0, bakeMs: 0, schedule: '' };
+        var ss = scene.stormStats ? scene.stormStats() : { striking: false, schedule: '' };
         var fps = Math.round(scene.sys.game.loop.actualFps);
         text.setText([
           'fps ' + fps + '   logic ' + (logicSum / Math.max(1, frames)).toFixed(2) + ' ms',
@@ -79,11 +87,14 @@ var CemPerf = (function() {
           'draws ' + Math.round(drawSum / Math.max(1, frames)) + '   sprites ' + countVisible(),
           'chunks ' + st.chunks + '/' + st.pool + ' (' + st.bakes + ' bakes)',
           'cells ' + st.visibleCells + '/' + st.cells + '   bands ' + st.bands,
-          'grid ' + scene.level.W + 'x' + scene.level.H + '   gen ' + (scene.level.genMs || '?') + ' ms'
+          'grid ' + scene.level.W + 'x' + scene.level.H + '   gen ' + (scene.level.genMs || '?') + ' ms',
+          'rain ' + (rainSum / Math.max(1, frames)).toFixed(2) + ' ms   streaks ' + rs.streaks + '   puddles ' + rs.puddles + '   rings ' + rs.rings,
+          'mirror ' + rs.bakes + ' bakes (' + (rs.bakeMs / Math.max(1, rs.bakes)).toFixed(2) + ' ms)   ' + rs.schedule,
+          'storm ' + (ss.striking ? 'striking, ' : '') + ss.schedule
         ].join('\n'));
         var view = scene.cameras.main.worldView;
         text.setPosition(8, 8);
-        frames = 0; drawSum = 0; logicSum = 0; revealSum = 0; revealMax = 0;
+        frames = 0; drawSum = 0; logicSum = 0; revealSum = 0; revealMax = 0; rainSum = 0;
         void view;
       }
     };
