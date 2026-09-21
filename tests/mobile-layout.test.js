@@ -68,7 +68,15 @@ TestRunner.suite('Mobile Layout', function() {
   TestRunner.test('Quiz modal mobile sizing reduces monster image height', function() {
     var css = readFile('../www/css/styles.css');
     if (!css) { TestRunner.assert(true, 'Skipped in browser context'); return; }
-    TestRunner.assert(css.indexOf('max-height: 120px') !== -1, 'monster image max-height reduced for mobile');
+    // the first rule is the desktop card; every later one sits in a phone
+    // media query and has to be smaller
+    var re = /\.monster-display \.monster-stage,\s*\.monster-display img\s*\{[^}]*max-height:\s*(\d+)px/g;
+    var caps = [], m;
+    while ((m = re.exec(css))) caps.push(Number(m[1]));
+    TestRunner.assert(caps.length >= 3, 'desktop, phone and landscape rules all size the card stage and its image (' + caps.length + ')');
+    caps.slice(1).forEach(function(cap) {
+      TestRunner.assert(cap < caps[0], 'the card is smaller on a phone (' + cap + 'px < ' + caps[0] + 'px)');
+    });
   });
 
 });

@@ -39,6 +39,8 @@ var CemModel = (function() {
     REVEAL_RADIUS: 4,          // tiles from the great tomb's door at which the Reaper rises
     LOCKED_TOAST_MS: 1500,
     MATCHING_SHARE: 0.3,
+    // share of middle- and far-ring wanderers that are strays from a nearer ring
+    STRAY_SHARE: 0.2,
     MAX_ATTEMPTS: 20,
     MAX_GRAVES: 220,
     TREES: 90,
@@ -79,15 +81,17 @@ var CemModel = (function() {
   // opposite index, for the "do not turn straight back" weighting
   var OPPOSITE8 = [2, 3, 0, 1, 6, 7, 4, 5];
 
-  // Who roams the grounds, by distance band from the gate
+  // Who roams which ring of the cemetery. Every band needs several kinds, or
+  // the ring fills with one monster: band 3 was the banshee alone, so every
+  // far corner held a banshee, and the six of band 2 were more than the few
+  // monsters that ring holds, so the will-o'-the-wisp never came out at all.
   var WANDERER_BANDS = {
-    1: ['giant_rat', 'bat_swarm', 'zombie'],
-    2: ['skeleton', 'ghost', 'spider', 'lost_soul', 'pumpkin_man'],
-    3: ['banshee']
+    1: ['giant_rat', 'bat_swarm', 'spider', 'zombie'],
+    2: ['skeleton', 'pumpkin_man', 'ghost', 'will_o_wisp'],
+    3: ['banshee', 'lost_soul', 'will_o_wisp', 'ghost']
   };
-  var THEME_MONSTERS = WANDERER_BANDS;   // older name, same table
   // One guardian per small tomb, in tomb order (always asked hard questions)
-  var GUARDIANS = ['banshee', 'pumpkin_man', 'skeleton', 'ghost'];
+  var GUARDIANS = ['banshee', 'pumpkin_man', 'clown', 'ghost'];
   var BOSS_ID = 'grim_reaper';
   var KEY_PART_ITEM = { id: 'skeleton_key_part', name: 'Skeleton Key Part', namePL: 'Część Szkieletowego Klucza', value: 25 };
 
@@ -937,10 +941,19 @@ var CemModel = (function() {
       for (var hh = 0; hh < homes.length; hh++) if (chebyshev(homes[hh], hpick) < cfg.HOME_SPACING) { okH = false; break; }
       if (okH) homes.push(hpick);
     }
+    // Strays: now and then a middle- or far-ring wanderer is one of the
+    // nearer kinds that has wandered out (a zombie among the spectres). It
+    // keeps its ring's difficulty. Drawn from a stream of its own, so the
+    // rest of the level comes out the same for a given seed.
+    var strayRng = makeRng(mixSeed(seed, attempt) + 7919);
+    function drawBand(band) {
+      if (band < 2 || strayRng() >= cfg.STRAY_SHARE) return band;
+      return band === 3 && strayRng() < 0.35 ? 1 : band - 1;
+    }
     for (var mi = 0; mi < homes.length; mi++) {
       var home = homes[mi];
       var band = bandOfDist(level, home.dist);
-      var mid = cyclers[band]();
+      var mid = cyclers[drawBand(band)]();
       if (!mid) continue;
       var et = encounterTypeFor();
       var m = {
@@ -1795,7 +1808,6 @@ var CemModel = (function() {
     KIND: KIND,
     DIRS: DIRS,
     DIRS8: DIRS8,
-    THEME_MONSTERS: THEME_MONSTERS,
     WANDERER_BANDS: WANDERER_BANDS,
     GUARDIANS: GUARDIANS,
     BOSS_ID: BOSS_ID,

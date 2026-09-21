@@ -6,7 +6,7 @@
 
 Reads each monster's `imagePrompt` from www/js/data/monsters.js (through
 node, so the file stays the single source of truth), appends the shared
-style line of the existing illustrations and writes www/assets/<id>.png at
+style line of the existing illustrations and writes www/assets/<id>.jpg at
 800x600 like the rest of the set. Existing files are kept unless --force.
 Needs `hf auth login` (the Space's GPU quota is per account) and the venv in
 tools/art/.venv (gradio_client, huggingface_hub, pillow).
@@ -67,7 +67,9 @@ def main():
     prompts = prompts_from_js(ids)
     from PIL import Image
     for mid in ids:
-        out = os.path.join(ROOT, 'www', 'assets', mid + '.png')
+        # JPEG: the paintings have no transparency, and as PNG the forty of
+        # them weighed 31 MB of the app
+        out = os.path.join(ROOT, 'www', 'assets', mid + '.jpg')
         if os.path.exists(out) and not force:
             print(mid, 'exists', flush=True)
             continue
@@ -87,7 +89,7 @@ def main():
                     path = call_space(sp, prompt, seed, steps, w, h)
                     img = Image.open(path).convert('RGB')
                     img = img.resize((800, 600), Image.LANCZOS)
-                    img.save(out, optimize=True)
+                    img.save(out, quality=86, optimize=True, progressive=True)
                     print(mid, 'ok %.0fs via %s' % (time.time() - t0, sp), flush=True)
                     done = True
                     break

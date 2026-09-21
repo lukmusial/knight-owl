@@ -98,7 +98,6 @@ var IsoScenes = (function() {
         // Optional art and cutouts are allowed to be missing
         self.missing[file.key] = true;
       });
-      this.load.image('palette_src', 'assets/directions/n_s_e.png');
       Object.keys(IsoTextures.OPTIONAL_FILES).forEach(function(key) {
         self.load.image(key, 'assets/proto/iso/' + IsoTextures.OPTIONAL_FILES[key]);
       });
@@ -119,10 +118,7 @@ var IsoScenes = (function() {
 
     create: function() {
       var self = this;
-      var palette = IsoTextures.FALLBACK_PALETTE;
-      if (this.textures.exists('palette_src')) {
-        palette = IsoTextures.samplePalette(this.textures.get('palette_src').getSourceImage());
-      }
+      var palette = IsoTextures.DUNGEON_PALETTE;
       var kenney = IsoTextures.KENNEY_REQUIRED.every(function(k) { return self.textures.exists(k); });
       IsoTextures.generateFallbacks(this, palette, kenney ? IsoTextures.KENNEY_STONE_PALETTE : null);
       this.registry.set('kenneyTiles', kenney);
@@ -138,7 +134,7 @@ var IsoScenes = (function() {
         var targetH = id === 'dragon' ? DRAGON_H : MONSTER_H;
         var img = cutout(id);
         if (img && IsoTextures.makeStanding(self, 'mon_' + id, img, targetH)) return;
-        jobs.push(IsoTextures.loadImage('assets/' + id + '.png').then(function(full) {
+        jobs.push(IsoTextures.loadImage('assets/' + id + '.jpg').then(function(full) {
           if (!full || !IsoTextures.makeStanding(self, 'mon_' + id, full, targetH)) {
             IsoTextures.makeFallbackToken(self, 'mon_' + id, '!', '#b71c1c', '#f44336', 96);
           }
@@ -162,7 +158,7 @@ var IsoScenes = (function() {
       if (this.textures.exists('owl3d')) {
         // nothing to build
       } else if (!owl || !IsoTextures.makeWalkCycle(this, 'owl', owl, OWL_H)) {
-        jobs.push(IsoTextures.loadImage('assets/knight_owl.png').then(function(full) {
+        jobs.push(IsoTextures.loadImage('assets/knight_owl.jpg').then(function(full) {
           if (!full || !IsoTextures.makeWalkCycle(self, 'owl', full, OWL_H)) {
             IsoTextures.makeFallbackToken(self, 'owl', 'O', '#006064', '#00bcd4', 96);
           }

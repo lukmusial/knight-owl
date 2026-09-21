@@ -2,6 +2,7 @@
  "monsters": [
   "banshee",
   "bat_swarm",
+  "clown",
   "ghost",
   "giant_rat",
   "grim_reaper",
@@ -9,6 +10,7 @@
   "pumpkin_man",
   "skeleton",
   "spider",
+  "will_o_wisp",
   "zombie"
  ]
 }

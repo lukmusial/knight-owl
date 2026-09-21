@@ -111,6 +111,32 @@ async function main() {
     const after = await chains();
     check(after < LIMIT, 'still one render loop after ' + STEPS + ' steps (' + after.toFixed(2) + ')');
     check(after < before + 0.5, 'walking does not add loops (' + before.toFixed(2) + ' then ' + after.toFixed(2) + ')');
+
+    // An encounter card animates its monster with a loop of its own; closing
+    // the card has to stop it, or every fight lost left a second loop behind
+    await page.evaluate(() => {
+      const q = { id: 'perf_q', category: 'vocabulary', difficulty: 1, prompt: 'What does "kot" mean?', hint: '',
+        options: ['cat', 'dog', 'fish', 'bird'], correctIndex: 0 };
+      UI.showQuizModal({ monster: MONSTERS.find(m => m.id === 'troll'), question: q, isDragon: false, dragonStreak: 0 }, function() {});
+    });
+    await wait(2500);
+    await page.evaluate(() => { UI.hideQuizModal(); FpRenderer.resume(); });
+    await wait(300);
+    const afterCard = await chains();
+    check(afterCard < LIMIT, 'one render loop after a card is put away (' + afterCard.toFixed(2) + ')');
+
+    // the dragon and the treasure hoard stand as models, not billboards
+    for (const e of [{ kind: 'treasure', imageId: 'treasure' }, { kind: 'dragon', imageId: 'dragon' }]) {
+      const kind = await page.evaluate(async e => {
+        const room = FpWorld.getState().roomId;
+        FpRenderer.setEntity(room, { kind: e.kind, imageId: e.imageId, fromDir: FpWorld.getFacing() });
+        for (let i = 0; i < 100 && FpRenderer.entityKind(room) === 'loading'; i++) await new Promise(r => setTimeout(r, 100));
+        const k = FpRenderer.entityKind(room);
+        FpRenderer.removeEntity(room);
+        return k;
+      }, e);
+      check(kind === 'model', 'the ' + e.imageId + ' stands as a 3D model (' + kind + ')');
+    }
   } finally {
     await browser.close();
     server.kill();

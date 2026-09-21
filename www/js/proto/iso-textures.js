@@ -16,6 +16,20 @@ var IsoTextures = (function() {
   var TILE_H = 64;
   var WALL_H = 64;
 
+  // What samplePalette reads off assets/directions/n_s_e.png (the painted
+  // corridor), measured once in Chrome. Both isometric scenes used to download
+  // the 682 KB painting at boot just to take these eight colours from it.
+  var DUNGEON_PALETTE = {
+    floor: 'rgb(85,71,49)',
+    floorDark: 'rgb(63,53,37)',
+    floorLight: 'rgb(109,93,67)',
+    wall: 'rgb(71,63,50)',
+    wallDark: 'rgb(46,41,34)',
+    edge: 'rgb(33,27,21)',
+    moss: '#5f7d3c',
+    mossDark: '#3f5a29'
+  };
+
   var FALLBACK_PALETTE = {
     floor: '#5a5b66',
     floorDark: '#454650',
@@ -1320,6 +1334,7 @@ var IsoTextures = (function() {
     TILE_H: TILE_H,
     WALL_H: WALL_H,
     FALLBACK_PALETTE: FALLBACK_PALETTE,
+    DUNGEON_PALETTE: DUNGEON_PALETTE,
     KENNEY_STONE_PALETTE: KENNEY_STONE_PALETTE,
     OPTIONAL_FILES: OPTIONAL_FILES,
     KENNEY_DIR: KENNEY_DIR,

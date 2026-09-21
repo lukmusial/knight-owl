@@ -20,7 +20,14 @@ PROMPT = ("Turn this flat cartoon illustration into a 3D rendered character figu
 # pixels as holes; the glow is added back in the game) and thin limbs need bulk.
 PROMPTS = {
     'bat_swarm': ("Turn this flat cartoon illustration of a swarm of bats into a 3D rendered group of cute cartoon bats like Pixar toys, "
-                  "flying close together in a tight cluster, same colours, soft studio lighting, whole group visible and centred, plain white background."),
+                  "flying in a loose swarm with a hand's gap between them, none of them touching, each bat whole and separate, "
+                  "the swarm together making a rounded cluster about as wide as it is tall, wings open, at different heights, "
+                  "same colours, soft studio lighting, whole group visible and centred, plain white background."),
+    'beholder': ("Turn this into a 3D rendered cartoon beholder figurine like a vinyl toy: a perfectly round ball-shaped body, spherical from "
+                 "every side, one big eye in the middle, eye stalks spread evenly around the sphere, same purple and green colours, "
+                 "soft studio lighting, whole body visible and centred, plain white background."),
+    'slime': ("Turn this into a 3D rendered cartoon slime figurine like a vinyl toy: a fat round dome of green jelly, ball-shaped and deep, "
+              "not flat, same smiling face and colours, soft studio lighting, whole body visible and centred, plain white background."),
     'ghost': ("Turn this into a 3D rendered opaque cartoon ghost figurine like a vinyl toy: solid pale surface, no transparency, no glow, "
               "same friendly face and shape, soft studio lighting, whole body visible and centred, plain white background."),
     'lost_soul': ("Turn this into a 3D rendered opaque cartoon spirit figurine like a vinyl toy: solid pale blue surface, no transparency, no glow, "
@@ -29,6 +36,18 @@ PROMPTS = {
                 "no transparency, no glow, same pose and face, soft studio lighting, whole body visible and centred, plain white background."),
     'skeleton': ("Turn this into a 3D rendered cartoon skeleton figurine like a chunky vinyl toy: thick sturdy bones, chunky proportions, "
                  "same pose and armour, soft studio lighting, whole body visible and centred, plain white background."),
+    'will_o_wisp': ("Turn this into a 3D rendered opaque cartoon figurine of a little glowing flame spirit, like a vinyl toy: "
+                    "solid pale yellow-green surface, no transparency, no glow, same friendly face and teardrop shape, "
+                    "soft studio lighting, whole body visible and centred, plain white background."),
+    'spirit_of_the_mine': ("Turn this into a 3D rendered opaque cartoon figurine of a friendly miner ghost in a helmet, like a vinyl toy: "
+                           "solid pale surface, no transparency, no glow, same face and shape, soft studio lighting, "
+                           "whole body visible and centred, plain white background."),
+    'witch': ("Turn this into a 3D rendered cartoon witch figurine like a vinyl toy: the same friendly witch in her hat and robe, "
+              "stirring a deep round cast-iron cauldron that stands on three legs, the cauldron a fat rounded pot seen from the side, "
+              "whole figure and whole cauldron visible and centred, soft studio lighting, plain white background."),
+    'dark_knight': ("Turn this into a 3D rendered cartoon knight figurine like a vinyl toy: the same black armour, purple cape and glowing "
+                    "red eyes, standing at full height from head to feet with both armoured legs and boots visible, holding his sword down, "
+                    "whole body in frame and centred, soft studio lighting, plain white background."),
     'spider': ("Turn this into a 3D rendered cartoon spider figurine like a chunky vinyl toy: fat round body, thick sturdy legs, "
                "same colours and friendly eyes, soft studio lighting, whole body visible and centred, plain white background."),
 }

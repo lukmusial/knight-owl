@@ -225,9 +225,11 @@ TestRunner.describe('E2E: iOS Platform', () => {
       return;
     }
 
-    var uiSource = fs.readFileSync(
-      require('path').resolve(__dirname, '../../www/js/modules/ui.js'), 'utf8'
-    );
+    // run from tests/ (run-tests.js) or from tests/e2e/
+    var p = require('path');
+    var uiPath = [p.resolve(__dirname, '../www/js/modules/ui.js'), p.resolve(__dirname, '../../www/js/modules/ui.js')]
+      .filter(function(f) { return fs.existsSync(f); })[0];
+    var uiSource = fs.readFileSync(uiPath, 'utf8');
 
     // Verify the guard variable exists
     TestRunner.assert(

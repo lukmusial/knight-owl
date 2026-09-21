@@ -53,7 +53,7 @@ var ProtoHud = (function() {
     top.appendChild(el('span', 'hud-rivet-tr'));
     top.appendChild(el('span', 'hud-rivet-bl'));
     var identity = el('div', 'hud-identity');
-    var portrait = el('div', 'hud-portrait', '<img alt="Mr Owl" src="assets/knight_owl.png">');
+    var portrait = el('div', 'hud-portrait', '<img alt="Mr Owl" src="assets/knight_owl.jpg">');
     identity.appendChild(portrait);
     els.portraitImg = portrait.querySelector('img');
     els.name = el('div', 'hud-name', opts.name || 'Mr Owl');

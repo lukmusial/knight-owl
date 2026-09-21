@@ -132,6 +132,8 @@ var ProtoCem = (function() {
     opts = opts || {};
     session = sess;
     level = sess.cemetery;
+    // the encounter cards are played in cemetery rooms, not dungeon ones
+    if (typeof MonsterStage !== 'undefined') MonsterStage.setTheme('cemetery');
     ProtoHud.setName(sess.name);
     ProtoHud.setNote({ en: 'Tap a lit path to walk. Find the 4 parts of the skeleton key.', pl: 'Dotknij oświetlonej ścieżki. Znajdź 4 części szkieletowego klucza.' });
     ProtoHud.setKeyParts(CemModel.keyPartCount(level), 4);

@@ -7,10 +7,12 @@ ENGINE="${1:-eevee}"
 PY="$ROOT/tools/art/.venv/bin/python"
 OUT="$ROOT/www/assets/proto/iso/monsters"
 mkdir -p "$OUT"
-# id:motion:yaw (motion names match CemMonsters.MOTION)
+# id:motion:yaw - motion is a render_monster_iso.py motion (CemMonsters.MOTION's
+# names plus flap and scurry); keep each yaw in step with render_cards.sh
 for spec in \
-  zombie:shamble:0 skeleton:shamble:0 ghost:hover:0 lost_soul:hover:90 banshee:hover:0 \
-  pumpkin_man:waddle:0 spider:skitter:0 bat_swarm:flap:0 giant_rat:scurry:0 grim_reaper:glide:0
+  zombie:shamble:0 skeleton:shamble:0 ghost:hover:-45 lost_soul:hover:90 banshee:hover:0 \
+  pumpkin_man:waddle:0 spider:skitter:0 bat_swarm:flap:0 giant_rat:scurry:0 grim_reaper:glide:0 \
+  will_o_wisp:hover:0 clown:bounce:0
 do
   id="${spec%%:*}"; rest="${spec#*:}"; motion="${rest%%:*}"; yaw="${rest##*:}"
   glb="$ROOT/www/assets/proto/fp/monsters/$id.glb"

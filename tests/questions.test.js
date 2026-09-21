@@ -100,7 +100,10 @@ TestRunner.suite('Questions Module', () => {
       id: 'test_new_001',
       difficulty: 1,
       category: 'vocabulary',
-      prompt: 'Test question?',
+      // shaped like a real vocabulary prompt: it stays in the shared pool,
+      // and the next test draws from that pool (a bare 'Test question?' made
+      // it fail about one run in 180)
+      prompt: 'What does "testowe" mean?',
       options: ['a', 'b', 'c', 'd'],
       correctIndex: 0
     };

@@ -213,7 +213,9 @@ TestRunner.suite('CemModel', () => {
           TestRunner.assertEqual(t.kind, K.path, 'wanderer on a path');
           TestRunner.assert(manh(m, L.start) > CemModel.CONFIG.GATE_SAFE_RADIUS, 'outside the safe zone');
           TestRunner.assertEqual(m.difficulty, CemModel.difficultyAt(L, m.gx, m.gy), 'band matches distance');
-          TestRunner.assert(CemModel.WANDERER_BANDS[m.difficulty].indexOf(m.id) !== -1, 'roaming id ' + m.id);
+          var home = [];
+          for (var b = 1; b <= m.difficulty; b++) home = home.concat(CemModel.WANDERER_BANDS[b]);
+          TestRunner.assert(home.indexOf(m.id) !== -1, 'roaming id ' + m.id + ' belongs to its ring or a nearer one');
           total++;
           if (m.encounterType === 'matching') matching++;
         } else if (m.role === 'guard') {
@@ -581,5 +583,78 @@ TestRunner.suite('CemModel', () => {
     TestRunner.assertTruthy(M, 'restored');
     TestRunner.assertEqual(M.owl.x, M.owl.gx, 'position falls back to the tile centre');
     TestRunner.assertEqual(M.owl.y, M.owl.gy, 'position falls back to the tile centre');
+  });
+
+  TestRunner.test('the will-o-the-wisp roams the cemetery', () => {
+    TestRunner.assert(CemModel.WANDERER_BANDS[2].indexOf('will_o_wisp') !== -1, 'in the middle band with the other spectres');
+  });
+
+  TestRunner.test('the clown guards a tomb, and no cemetery monster wanders the dungeon', () => {
+    TestRunner.assert(CemModel.GUARDIANS.indexOf('clown') !== -1, 'the clown is a tomb guardian');
+    TestRunner.assertEqual(CemModel.GUARDIANS.length, 4, 'still one guardian per small tomb');
+    const clown = MONSTERS.find(function(m) { return m.id === 'clown'; });
+    TestRunner.assertEqual(clown.theme, 'cemetery', 'and belongs to the cemetery, not the dungeon');
+  });
+
+  TestRunner.test('the roaming crowd is mixed, no ring left to one kind', () => {
+    const counts = {};
+    let wanderers = 0;
+    [17, 18, 19, 20, 22, 31, 42].forEach(function(seed) {
+      const L = gen(seed);
+      const perBand = { 1: {}, 2: {}, 3: {} };
+      L.monsters.filter(function(m) { return m.role === 'wander'; }).forEach(function(m) {
+        counts[m.id] = (counts[m.id] || 0) + 1;
+        perBand[m.difficulty][m.id] = true;
+        wanderers++;
+      });
+      [1, 2, 3].forEach(function(band) {
+        TestRunner.assert(CemModel.WANDERER_BANDS[band].length >= 3,
+          'band ' + band + ' has several kinds to draw from');
+      });
+    });
+    ['will_o_wisp', 'lost_soul', 'spider', 'ghost'].forEach(function(id) {
+      TestRunner.assert(counts[id] > 0, id + ' turns up among the wanderers');
+    });
+    Object.keys(counts).forEach(function(id) {
+      TestRunner.assert(counts[id] / wanderers < 0.35, id + ' is not half the cemetery (' + counts[id] + '/' + wanderers + ')');
+    });
+  });
+
+  TestRunner.test('the outer rings have the odd stray from nearer in, but only the odd one', () => {
+    let outer = 0, strays = 0;
+    [17, 18, 19, 20, 22, 31, 42, 57, 63, 77].forEach(function(seed) {
+      gen(seed).monsters.filter(function(m) { return m.role === 'wander' && m.difficulty > 1; }).forEach(function(m) {
+        outer++;
+        if (CemModel.WANDERER_BANDS[m.difficulty].indexOf(m.id) === -1) strays++;
+      });
+    });
+    TestRunner.assert(strays > 0, 'some strays turn up (' + strays + '/' + outer + ')');
+    TestRunner.assert(strays / outer < 0.35, 'but the rings keep their own character (' + strays + '/' + outer + ')');
+  });
+
+  TestRunner.test('strays change only who roams, never where or how', () => {
+    [17, 18, 19, 20, 22, 31, 42, 57, 63, 77].forEach(function(seed) {
+      const none = gen(seed, { STRAY_SHARE: 0 });
+      const some = gen(seed);
+      TestRunner.assertEqual(kinds(some), kinds(none), 'same ground for seed ' + seed);
+      TestRunner.assertEqual(some.monsters.length, none.monsters.length, 'same number of monsters');
+      some.monsters.forEach(function(m, i) {
+        const o = none.monsters[i];
+        TestRunner.assert(m.uid === o.uid && m.gx === o.gx && m.gy === o.gy && m.stepMs === o.stepMs &&
+          m.encounterType === o.encounterType && m.difficulty === o.difficulty,
+          'seed ' + seed + ' ' + m.uid + ' stands and moves the same with or without strays');
+      });
+    });
+  });
+
+  TestRunner.test('the far ring can hold a stray from right by the gate', () => {
+    let fromGate = 0;
+    [17, 18, 19, 20, 22, 31, 42, 57, 63, 77].forEach(function(seed) {
+      gen(seed).monsters.forEach(function(m) {
+        if (m.role === 'wander' && m.difficulty === 3 && CemModel.WANDERER_BANDS[3].indexOf(m.id) === -1 &&
+            CemModel.WANDERER_BANDS[1].indexOf(m.id) !== -1) fromGate++;
+      });
+    });
+    TestRunner.assert(fromGate > 0, 'a gate-ring kind turns up in the far ring (' + fromGate + ')');
   });
 });

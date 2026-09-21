@@ -17,6 +17,7 @@
     "test:cem": "node tools/smoke/cemetery.js",
     "test:cem:perf": "node tools/smoke/cem-perf.js",
     "test:fp:perf": "node tools/smoke/fp-perf.js",
+    "test:card": "node tools/smoke/card.js",
     "record:cem": "node tools/smoke/cem-record.js",
     "record:fp": "node tools/smoke/fp-record.js --mode explore --seconds 60",
     "record:fp:dragon": "node tools/smoke/fp-record.js --mode dragon",

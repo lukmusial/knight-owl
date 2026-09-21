@@ -408,7 +408,11 @@ const UI = (function() {
     FX.haptic('onWrongAnswer');
     return FX.answerFeedback(btn, false, correctBtn).then(function() {
       FX.play('attack');
-      if (typeof MonsterStage !== 'undefined') MonsterStage.play(img, 'attack');
+      if (typeof MonsterStage !== 'undefined') {
+        // the lunge is the one move allowed out of the frame
+        MonsterStage.allowLunge(img, 1000);
+        MonsterStage.play(img, 'attack');
+      }
       return FX.monsterAttack(actor, content);
     });
   }
@@ -451,7 +455,10 @@ const UI = (function() {
         if (elements.gameScreen) elements.gameScreen.classList.remove('hidden');
         break;
       case 'victory':
-        if (elements.victoryScreen) elements.victoryScreen.classList.remove('hidden');
+        if (elements.victoryScreen) {
+          loadDeferredImages(elements.victoryScreen);
+          elements.victoryScreen.classList.remove('hidden');
+        }
         break;
     }
   }
@@ -533,7 +540,7 @@ const UI = (function() {
   function getDirectionImage(room) {
     // Only for regular rooms with coordinates
     if (typeof room.x !== 'number' || typeof room.y !== 'number') {
-      return 'assets/knight_owl.png';
+      return 'assets/knight_owl.jpg';
     }
 
     const directions = [];
@@ -565,7 +572,7 @@ const UI = (function() {
       return `assets/directions/${key}.png`;
     }
 
-    return 'assets/knight_owl.png';
+    return 'assets/knight_owl.jpg';
   }
 
   /**
@@ -774,6 +781,24 @@ const UI = (function() {
   }
 
   /**
+   * Point the card's Listen button at this question's Polish word. A boss
+   * fight asks three questions on the same card (updateQuizQuestion), and
+   * without this the button kept reading the first one out.
+   * @param {Object} question - the question now on the card
+   */
+  function wireSpeakWord(question) {
+    if (!elements.speakWordBtn) return;
+    var polishWord = question && question.category === 'vocabulary' ? extractPolishWord(question.prompt) : null;
+    if (polishWord) {
+      elements.speakWordBtn.classList.remove('hidden');
+      elements.speakWordBtn.onclick = function() { speakPolishWord(polishWord); };
+    } else {
+      elements.speakWordBtn.classList.add('hidden');
+      elements.speakWordBtn.onclick = null;
+    }
+  }
+
+  /**
    * Show quiz modal for monster encounter
    * @param {Object} encounter - Encounter data
    * @param {Function} onAnswer - Callback when answer selected
@@ -797,13 +822,17 @@ const UI = (function() {
 
     if (elements.monsterImage) {
       // Use monster-specific image, fallback to placeholder
+      // MonsterStage owns the image's loading and its fallbacks; setting an
+      // onerror here as well would replace its retry guard
       if (typeof MonsterStage !== 'undefined') MonsterStage.show(elements.monsterImage, monster.id);
-      else elements.monsterImage.src = `assets/${monster.id}.png`;
+      else {
+        elements.monsterImage.onerror = function() {
+          this.src = 'assets/placeholder.svg';
+          this.onerror = null;
+        };
+        elements.monsterImage.src = `assets/${monster.id}.jpg`;
+      }
       elements.monsterImage.alt = monster.name;
-      elements.monsterImage.onerror = function() {
-        this.src = 'assets/placeholder.svg';
-        this.onerror = null;
-      };
     }
 
     if (elements.monsterDescription) {
@@ -820,16 +849,7 @@ const UI = (function() {
     }
 
     // Show speak button for vocabulary questions
-    if (elements.speakWordBtn) {
-      const polishWord = question.category === 'vocabulary' ? extractPolishWord(question.prompt) : null;
-      if (polishWord) {
-        elements.speakWordBtn.classList.remove('hidden');
-        elements.speakWordBtn.onclick = () => speakPolishWord(polishWord);
-      } else {
-        elements.speakWordBtn.classList.add('hidden');
-        elements.speakWordBtn.onclick = null;
-      }
-    }
+    wireSpeakWord(question);
 
     // Show sentence for grammar questions (has separate sentence field)
     if (elements.sentenceText) {
@@ -908,6 +928,9 @@ const UI = (function() {
     if (elements.quizModal) {
       elements.quizModal.classList.add('hidden');
     }
+    // the fight is over: stop the card's animation, and let the next monster
+    // of this kind roll a fresh room
+    if (typeof MonsterStage !== 'undefined') MonsterStage.release(elements.monsterImage);
   }
 
   /**
@@ -940,6 +963,9 @@ const UI = (function() {
     if (elements.hintText) {
       elements.hintText.textContent = question.hint || '';
     }
+
+    // the next challenge of a boss fight has its own word to read out
+    wireSpeakWord(question);
 
     if (elements.dragonProgress) {
       elements.dragonProgress.innerHTML = `
@@ -1209,8 +1235,23 @@ const UI = (function() {
    * @param {Array} loot - Array of treasure items
    * @param {Function} onCollect - Callback when treasure is collected
    */
+  /**
+   * Load the pictures a screen keeps in data-src. The treasure and victory
+   * paintings sit in hidden markup from the start; with a plain src they were
+   * fetched and decoded at boot, 1.6 MB before the first step was taken.
+   * @param {Element} root - the screen or modal about to be shown
+   */
+  function loadDeferredImages(root) {
+    if (!root || !root.querySelectorAll) return;
+    var imgs = root.querySelectorAll('img[data-src]');
+    for (var i = 0; i < imgs.length; i++) {
+      if (!imgs[i].getAttribute('src')) imgs[i].setAttribute('src', imgs[i].getAttribute('data-src'));
+    }
+  }
+
   function showTreasureModal(loot, onCollect) {
     if (!elements.treasureModal) return;
+    loadDeferredImages(elements.treasureModal);
 
     const labels = getLabels();
 
@@ -1385,10 +1426,13 @@ const UI = (function() {
     if (elements.matchingMonsterImage) {
       if (hasFx()) FX.resetMonster(elements.matchingMonsterImage);
       if (typeof MonsterStage !== 'undefined' && monster.id) MonsterStage.show(elements.matchingMonsterImage, monster.id);
-      else elements.matchingMonsterImage.src = 'assets/' + (monster.id || 'placeholder') + '.png';
-      elements.matchingMonsterImage.onerror = function() {
-        elements.matchingMonsterImage.src = 'assets/placeholder.svg';
-      };
+      else {
+        elements.matchingMonsterImage.onerror = function() {
+          elements.matchingMonsterImage.onerror = null;
+          elements.matchingMonsterImage.src = 'assets/placeholder.svg';
+        };
+        elements.matchingMonsterImage.src = (monster.id ? 'assets/' + monster.id + '.jpg' : 'assets/placeholder.svg');
+      }
     }
     if (elements.matchingMonsterName) {
       elements.matchingMonsterName.innerHTML =
@@ -1514,8 +1558,16 @@ const UI = (function() {
 
         playSfx('wrong');
         if (hasFx()) FX.haptic('onWrongAnswer');
+        // the character lunges, not the room, and is let out of the frame
+        // for it, as on the quiz card
+        var matchImg = elements.matchingMonsterImage;
+        var lunger = (typeof MonsterStage !== 'undefined' && MonsterStage.actorFor(matchImg)) || matchImg;
+        if (typeof MonsterStage !== 'undefined') {
+          MonsterStage.allowLunge(matchImg, 1000);
+          MonsterStage.play(matchImg, 'attack');
+        }
         var attackFx = hasFx()
-          ? FX.monsterAttack(elements.matchingMonsterImage, elements.matchingModal.querySelector('.modal-content'))
+          ? FX.monsterAttack(lunger, elements.matchingModal.querySelector('.modal-content'))
           : Promise.resolve();
         var minWrongDelay = new Promise(function(resolve) { setTimeout(resolve, 800); });
         Promise.all([attackFx, minWrongDelay]).then(function() {
@@ -1534,6 +1586,7 @@ const UI = (function() {
     if (elements.matchingModal) {
       elements.matchingModal.classList.add('hidden');
     }
+    if (typeof MonsterStage !== 'undefined') MonsterStage.release(elements.matchingMonsterImage);
   }
 
   /**

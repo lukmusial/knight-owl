@@ -52,3 +52,13 @@ npm-debug.log*
 
 # Screenshots and recordings (local testing)
 /screenshots/
+
+# 3D monster pipeline intermediates (tools/monsters3d/README.md): the padded
+# inputs, restyled renders and TRELLIS turntables are rebuilt by the scripts.
+# The raw <id>.glb meshes are not ignored: render_cards.sh builds the card
+# sheets from them.
+tools/monsters3d/*.mp4
+tools/monsters3d/*_in.png
+tools/monsters3d/*_white.png
+tools/monsters3d/*_3dlook.png
+tools/monsters3d/__pycache__/

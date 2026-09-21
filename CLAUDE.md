@@ -15,7 +15,9 @@ Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game wher
 - Browser test runner: Open `tests/test-runner.html`
 - Cemetery smoke test (headless Chrome, plays the whole level): `npm run test:cem`
 - Cemetery performance readout (headless Chrome, walks a long route, prints the `?perf=1` numbers): `npm run test:cem:perf`
-- 3D view render-loop check (headless Chrome, walks 20 steps, fails if the view starts running more than one animation loop): `npm run test:fp:perf`
+- 3D view render-loop check (headless Chrome, walks 20 steps and opens and closes an encounter card, fails if the view starts running more than one animation loop; also checks the dragon and the treasure stand as 3D models): `npm run test:fp:perf`
+- Encounter card check (headless Chrome, classic page: dropped and missing backdrops, the loop stopping when the card closes, rooms kept per level, only the lunge leaving the frame): `npm run test:card`
+- Performance baseline and how to re-measure it: `docs/performance-baseline.md`
 - 3D view playthrough videos (headless Chrome on the GPU): `npm run record:fp` (a minute of exploring) and `npm run record:fp:dragon` (walks to the boss chamber and beats the dragon)
 - Cemetery playthrough video (headless Chrome on the GPU, plays gate to Grim Reaper and encodes it with ffmpeg): `npm run record:cem`
 - E2E tests: `npm run test:e2e` (requires Maestro and running emulator)
@@ -67,7 +69,7 @@ const ModuleName = (function() {
 | ProtoSharedDom | `js/proto/shared-dom.js` | Shared modal markup for the standalone prototype pages |
 | FpWorld / FpRenderer | `js/proto/fp-*.js` | First-person prototype (pure grid model + three.js renderer + bootstrap) |
 | FpLayout | `js/proto/fp-layout.js` | Pure chamber geometry, torch and lava layout, and the gothic wall dressing (`wallFeatures`: bricked-up lancet windows, a blind arcade, a niche) |
-| FpMonsters | `js/proto/fp-monsters.js` | 3D models of the level-1 monsters (`assets/proto/fp/monsters/`, pipeline in `tools/monsters3d/`), procedural idle/flinch/lunge |
+| FpMonsters | `js/proto/fp-monsters.js` | 3D models of every monster and of the treasure hoard (`assets/proto/fp/monsters/`, pipeline in `tools/monsters3d/`), procedural idle/flinch/lunge |
 | FpOwl | `js/proto/fp-owl.js` | Rigged 3D Mr Owl (`assets/proto/fp/mr_owl.glb`, pipeline in `tools/owl3d/`) and the third-person camera placement |
 | IsoModel / scenes | `js/proto/iso-*.js` | Isometric fog-of-war prototype (pure tile model + Phaser scenes + bootstrap; `iso-main.js` also holds the dungeon/cemetery level picker) |
 | CemModel | `js/proto/cem-model.js` | Halloween cemetery level: seeded organic generator (fence, gate, lanes, graves, tombs, lanterns, decor), A* walking, wandering monsters with proximity attacks, skeleton-key gating, night visibility, save state (pure, node-tested) |
@@ -116,14 +118,18 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 
 **3D view render loop** (fp-renderer.js): `frame()` holds `inFrame` for its whole run, because anything it calls that wants the loop going (`assignLights`, `setVisibility`, a nested tween) would otherwise pass `startLoop`'s guard and fork a second, permanent animation-frame chain. That cost one extra chain per walked step and is what made the view grind to a halt while exploring. `npm run test:fp:perf` guards it. Encounter entities hang off `cells[id].group` (see `entityHost`) so the chamber culling covers them
 
+**3D monsters and loot** (fp-monsters.js, fp-renderer.js): every monster in `monsters.js` has a model in `assets/proto/fp/monsters/<id>.glb`, and so does the treasure hoard; `setEntity` stands a model wherever `FpMonsters.has(imageId)` - monster, dragon or treasure - and keeps the billboard only for what has none. `FpMonsters.MODELS` holds each one's height (Mr Owl is 1.35), motion (`breathe`, `squash`, `hover`, `sway`, or `still` for the gold) and how it leaves. Flat line-art characters (the orc, the vampire lord, the wisp, the mine spirit) come out of TRELLIS as picture cards, so they go through `tools/monsters3d/restyle_3d.py` first; `tools/monsters3d/prepare_all.sh` prepares every mesh the generator has produced
+
 **Dungeon Generation** (dungeon.js):
 - MAZE_WIDTH: 7, MAZE_HEIGHT: 6 (creates 42-cell grid)
 - MIN_MONSTER_ROOMS: 20
 - Difficulty scaling: depths 1-7 (easy), 8-14 (medium), 15+ (hard)
 
+**Boss challenges**: each of the three questions re-renders the card through `UI.updateQuizQuestion`, which re-points the Listen button at the word now on screen (`wireSpeakWord`); the cemetery smoke test guards it
+
 **Bosses** (`Combat.isBoss`: `boss: true` or difficulty 4): the dragon in the dungeon and the Grim Reaper in the cemetery need 3 consecutive correct answers; a wrong answer resets the streak and pushes the player back (cemetery: back to the gate)
 
-**Cemetery level** (cem-model.js): 60x52 tile grid with a 1-tile fence ring and 2-3 tile wide winding lanes, 4 small tombs (2x2, named guardians banshee/pumpkin_man/skeleton/ghost with key parts 1..4) + 1 large tomb (3x3, Grim Reaper), ~16 wandering monsters banded by lane distance (`WANDERER_BANDS`), sight radius 4 around Mr Owl plus 3 around each lamp post. Mr Owl moves continuously (`tickOwl`, `moveBy`, `OWL_SPEED` tiles/s, circle radius `OWL_RADIUS`) steered by the dock thumb-stick (`cem-stick.js`), drag or keys; tap-to-walk still uses A* (`pathTo` + `setPath`)
+**Cemetery level** (cem-model.js): 60x52 tile grid with a 1-tile fence ring and 2-3 tile wide winding lanes, 4 small tombs (2x2, named guardians banshee/pumpkin_man/clown/ghost with key parts 1..4) + 1 large tomb (3x3, Grim Reaper), ~16 wandering monsters banded by lane distance (`WANDERER_BANDS`, four kinds per ring, the will-o'-the-wisp among them; `STRAY_SHARE` of the middle and far wanderers are strays from a nearer ring, drawn from their own RNG stream so the rest of a seed's level is unchanged), sight radius 4 around Mr Owl plus 3 around each lamp post. Mr Owl moves continuously (`tickOwl`, `moveBy`, `OWL_SPEED` tiles/s, circle radius `OWL_RADIUS`) steered by the dock thumb-stick (`cem-stick.js`), drag or keys; tap-to-walk still uses A* (`pathTo` + `setPath`)
 
 **Cemetery rendering** (cem-world.js): ground, prop shadows and lantern pools are baked into pooled 8x8-tile render textures; props live in depth-band Layers with cell culling; the night is an erased fog texture that follows Mr Owl (`buildFog`). `?perf=1` shows frame rate, logic time, draw calls and the chunk pool
 
@@ -145,9 +151,17 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 
 **Level picker**: the isometric page's dungeon/cemetery cards show `assets/proto/iso/pick-dungeon.jpg` and `pick-cemetery.jpg`, cut from the docs screenshots
 
-**Encounter card**: `MonsterStage` (js/modules/monster-stage.js) lifts the character off the painted scene onto its own layer over an inpainted backdrop (`assets/proto/monsters/<id>_bg.jpg`), plays sheet frames when they exist and reacts to answers (hit, lunge, exit styles in css/fx.css). `CARD_SCALE` sizes each species about its feet (spider small, Reaper towering; node-tested in tests/monster-stage.test.js). With a sheet it uses the model's facings: it opens with its back turned and spins round to meet the player, squares up before a reaction, and turns away to walk off when beaten. Backdrops are painted by `tools/extract-sprites.py --bg-only`, which inpaints the character out and blends the patch back with a distance feather
+**Encounter card**: `MonsterStage` (js/modules/monster-stage.js) stands the character on a painted room (`assets/proto/backdrops/<scene>_<n>.jpg`, generated by `tools/art/generate_backdrops.py`), plays sheet frames when they exist and reacts to answers (hit, lunge, exit styles in css/fx.css). The room is picked for the level theme (`setTheme`, the cemetery flow sets it) and for the kind of monster - `SCENE_FOR` puts the dragon on a hoard of gold and the dark knight in a throne hall - with two variants of each, chosen at random per fight. The illustrations are no longer used as plates: painting the character out of its own picture left a scar where it had stood. `stand`/`confine` place the figure centred, feet on the ground line, as tall as `CARD_SCALE` says its species is, and shrink it about its feet until the whole of it is inside the picture; `.monster-stage` clips, so nothing walks out of the frame - only the lunge is let out, for the moment `allowLunge` lasts (ui.js opens it for both the quiz and the matching card). MonsterStage owns the card image: ui.js must not set its own `onerror` on it (that replaced the retry for a dropped backdrop), and `release(img)` is called when a card is put away, which stops the idle loop and forgets the room. Rooms are remembered per level and monster (`roomFor`), so a monster keeps its room for the whole fight but does not carry a dungeon room into the cemetery. A sheet is fetched first; the cutout is only measured when there is no sheet. With a sheet it uses the model's facings: it opens with its back turned and spins round to meet the player, squares up before a reaction, and turns away to walk off when beaten
+
+**Card sprite sheets** (`assets/proto/card/<id>.png|json`, `tools/monsters3d/render_cards.sh`): the card shows a monster ten times the size the isometric map does, so it has its own sheets (about 340 KB each, 12 MB for all of them; a map sheet is about 200 KB) - 448 px frames seen almost head on (`--elev 12`), lit harder (`--exposure`, `--contrast`) and rendered from a 60k-triangle, 1024 px copy of the mesh instead of the 9k/512 px model the game downloads (rebuilt whenever the generator has produced a newer mesh, and with the same loose-piece gap the game model uses, or the swarm loses its bats and the clown his balloon). Only what the card plays is kept: the idle loop facing the player, one idle frame for each facing the turn-around passes through, attack and hit facing the player, and the walk away (`--clip-facings idle:*,attack:down,hit:down,walk:up`, then the unused idle frames are dropped before packing): 28 frames a sheet. A model wider than it is tall (the dragon on its hoard, a spider, a swarm) widens the camera and renders more pixels to match, instead of having its edges cut off by the frame. Monsters without a card sheet fall back to the map sheet in `assets/proto/iso/monsters/`, and then to the still cutout
 
 **Save Format** (version 4): `{ player, dungeon, usedQuestions, mapState, usedMatchingQuestions, level: 'dungeon'|'cemetery', cemetery? }` (older versions load as dungeon saves; the cemetery state stores the owl's float position, saves from the first cut still load)
+
+**Illustrations** (`assets/<id>.jpg`, plus `start`, `victory`, `treasure`, `knight_owl`): JPEG, not PNG - the paintings have no transparency, and as PNG the forty of them were 31 MB of the app (now 3.5 MB). `tools/art/generate_monster.py` writes them and `tools/extract-sprites.py` reads them. The treasure and victory pictures sit in hidden markup with `data-src` and are loaded when their screen opens (`UI.loadDeferredImages`)
+
+**Isometric palette**: `IsoTextures.DUNGEON_PALETTE` holds the colours `samplePalette` used to read off `assets/directions/n_s_e.png` at boot; both isometric scenes use the constant instead of downloading the 682 KB painting
+
+**Tests that read files**: `tests/run-tests.js` puts `require` and `__dirname` (the tests folder) in the sandbox; tests that check files on disk guard on `typeof require` so the browser runner skips them. Before this they skipped in node too
 
 ## Bilingual Content Pattern
 
