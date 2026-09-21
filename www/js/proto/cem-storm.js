@@ -10,9 +10,11 @@
 
 var CemStorm = (function() {
   var DEFAULTS = {
-    firstDelayMs: 15000,    // first strike after the scene is ready
-    minGapMs: 25000,        // then one every 25-60 s
-    maxGapMs: 60000,
+    announceMinMs: 4000,    // the first strike of an episode comes this long before its rain starts
+    announceMaxMs: 10000,
+    announceFloorMs: 1000,  // but never before the scene is a second old (the first rain can come sooner than the lead)
+    minGapMs: 25000,        // gaps between strikes while it rains, in a long episode; shorter ones
+    maxGapMs: 60000,        // scale the gaps down so even a 30 s episode gets at least two
     retryMs: 4000,          // a strike skipped (card up, input off) is tried again this soon
     minDist: 2,             // tiles between Mr Owl and the struck tile, at least
     maxDist: 8,             // and at most: his own sight plus a lantern's, so the strike is on screen; the thunder lags longest at this range
@@ -47,38 +49,115 @@ var CemStorm = (function() {
 
   function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
 
-  function fallbackRng() {
-    return function() { return Math.random(); };
-  }
-
   // ---------------------------------------------------------------------------
   // Scheduling
   // ---------------------------------------------------------------------------
 
   /**
-   * A storm: `next()` says how long to wait before the coming strike (the
-   * first one comes sooner), `retry()` how long to wait when a strike had to
-   * be skipped. `count` is how many strikes have been scheduled.
-   * @param {Object} [opts] - overrides of DEFAULTS, plus `rng` (a () => [0,1) function)
+   * The storm is tied to the rain: every rain episode gets one strike
+   * 4-10 s before its rain starts (the storm announces the rain), then
+   * strikes at random gaps while it rains, none once the rain has begun to
+   * fade out, none in a dry spell. `plan` wraps a CemRain schedule; the
+   * strikes of an episode are drawn from a generator seeded by the storm
+   * seed and the episode's start, so they are the same however the
+   * schedule is queried, and cached per episode.
+   * @param {Object} rain - a CemRain schedule ({ episodes, cfg, ... })
+   * @param {number} seed
+   * @param {Object} [opts] - overrides of DEFAULTS
    */
-  function create(opts) {
-    opts = opts || {};
-    var cfg = config(opts);
-    var rng = typeof opts.rng === 'function' ? opts.rng : fallbackRng();
-    var state = { cfg: cfg, rng: rng, count: 0 };
-    state.next = function() {
-      var ms = state.count === 0 ? cfg.firstDelayMs : gap(rng, cfg);
-      state.count++;
-      return ms;
-    };
-    state.retry = function() { return cfg.retryMs; };
-    return state;
+  function plan(rain, seed, opts) {
+    return { rain: rain, seed: (seed >>> 0) || 1, cfg: config(opts), cache: {}, fired: 0 };
   }
 
-  /** A random pause between strikes, in [minGapMs, maxGapMs] */
-  function gap(rng, cfg) {
-    cfg = cfg || DEFAULTS;
-    return Math.round(cfg.minGapMs + rng() * (cfg.maxGapMs - cfg.minGapMs));
+  /** mulberry32, the generator CemModel uses, so the plan needs nothing loaded before it */
+  function makeRng(seed) {
+    var a = (seed >>> 0) || 1;
+    return function() {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /** How much the gaps shrink for an episode: 1 for a long one, down to a share that fits two strikes in it */
+  function gapScale(activeMs, cfg) {
+    return Math.min(1, activeMs / (2 * cfg.maxGapMs)) * 0.98;
+  }
+
+  /**
+   * The strikes of one rain episode, in order: { at, until, kind, episode }.
+   * `at` is when it is due (ms on the rain clock), `until` how long a
+   * blocked strike may still wait before it is dropped: the announcing
+   * strike until the rain starts, a rain strike until the rain starts
+   * fading. Gaps while it rains are minGapMs-maxGapMs scaled to the
+   * episode, so the strikes never run past the fade and a 30 s episode
+   * still gets two.
+   */
+  function strikesFor(pl, episode) {
+    var key = String(Math.round(episode.start));
+    if (pl.cache[key]) return pl.cache[key];
+    var cfg = pl.cfg;
+    var rng = makeRng((pl.seed ^ Math.round(episode.start) * 2654435761) >>> 0);
+    var out = [];
+    var announceAt = episode.start - (cfg.announceMinMs + rng() * (cfg.announceMaxMs - cfg.announceMinMs));
+    // rain that starts within moments of the gate is announced as soon as the scene is up
+    if (announceAt < cfg.announceFloorMs) announceAt = Math.min(cfg.announceFloorMs, episode.start);
+    out.push({ at: Math.round(announceAt), until: episode.start, kind: 'announce', episode: episode });
+    var fadeMs = (pl.rain && pl.rain.cfg && pl.rain.cfg.RAIN_FADE_MS) || 0;
+    var fadeAt = episode.end - fadeMs;
+    var k = gapScale(fadeAt - episode.start, cfg);
+    var t = episode.start;
+    for (;;) {
+      t += (cfg.minGapMs + rng() * (cfg.maxGapMs - cfg.minGapMs)) * k;
+      if (t >= fadeAt) break;
+      out.push({ at: Math.round(t), until: fadeAt, kind: 'rain', episode: episode });
+    }
+    pl.cache[key] = out;
+    return out;
+  }
+
+  /**
+   * The first strike due after `t` (ms on the rain clock), reaching into
+   * the rain schedule for more episodes as needed (through CemRain.episodeAt,
+   * which extends it). Null only if the rain schedule cannot be extended.
+   */
+  function nextStrike(pl, t) {
+    var rain = pl.rain;
+    for (var round = 0; round < 12; round++) {
+      var eps = rain.episodes;
+      for (var i = 0; i < eps.length; i++) {
+        var strikes = strikesFor(pl, eps[i]);
+        for (var s = 0; s < strikes.length; s++) if (strikes[s].at > t) return strikes[s];
+      }
+      var last = eps[eps.length - 1], had = eps.length;
+      // CemRain.episodeAt draws more episodes from the rain's seed as far as it is asked
+      if (typeof CemRain === 'undefined' || !CemRain.episodeAt) return null;
+      CemRain.episodeAt(rain, last.end + 1);
+      if (rain.episodes.length === had) return null;
+    }
+    return null;
+  }
+
+  /**
+   * A strike was due at `next.at` but could not go (a card is up, input is
+   * off): try it again in retryMs while its window is still open, or
+   * drop it and take the next one. Returns the strike to wait for.
+   */
+  function afterBlocked(pl, next, t) {
+    var again = t + pl.cfg.retryMs;
+    if (again < next.until) return { at: again, until: next.until, kind: next.kind, episode: next.episode, retried: (next.retried || 0) + 1 };
+    return nextStrike(pl, next.until);
+  }
+
+  /** The overlay's one-liner: what comes next and how many have struck */
+  function describe(pl, next, t) {
+    var sec = function(ms) { return Math.max(0, Math.round(ms / 1000)) + 's'; };
+    if (!next) return 'no strike planned, ' + pl.fired + ' struck';
+    var n = pl.rain && pl.rain.episodes ? pl.rain.episodes.indexOf(next.episode) + 1 : 0;
+    return (next.kind === 'announce' ? 'announces ep ' + n : 'in ep ' + n) + ' in ' + sec(next.at - t) +
+      (next.retried ? ' (retry ' + next.retried + ')' : '') + ', ' + pl.fired + ' struck';
   }
 
   // ---------------------------------------------------------------------------
@@ -331,8 +410,12 @@ var CemStorm = (function() {
   return {
     DEFAULTS: DEFAULTS,
     config: config,
-    create: create,
-    gap: gap,
+    plan: plan,
+    gapScale: gapScale,
+    strikesFor: strikesFor,
+    nextStrike: nextStrike,
+    afterBlocked: afterBlocked,
+    describe: describe,
     pickTarget: pickTarget,
     origin: origin,
     bolt: bolt,

@@ -71,6 +71,7 @@ var CemPerf = (function() {
         at = now + 500;
         var st = scene.world ? scene.world.stats() : {};
         var rs = scene.rainStats ? scene.rainStats() : { streaks: 0, puddles: 0, rings: 0, bakes: 0, bakeMs: 0, schedule: '' };
+        var ss = scene.stormStats ? scene.stormStats() : { striking: false, schedule: '' };
         var fps = Math.round(scene.sys.game.loop.actualFps);
         text.setText([
           'fps ' + fps + '   logic ' + (logicSum / Math.max(1, frames)).toFixed(2) + ' ms',
@@ -79,7 +80,8 @@ var CemPerf = (function() {
           'cells ' + st.visibleCells + '/' + st.cells + '   bands ' + st.bands,
           'grid ' + scene.level.W + 'x' + scene.level.H + '   gen ' + (scene.level.genMs || '?') + ' ms',
           'rain ' + (rainSum / Math.max(1, frames)).toFixed(2) + ' ms   streaks ' + rs.streaks + '   puddles ' + rs.puddles + '   rings ' + rs.rings,
-          'mirror ' + rs.bakes + ' bakes (' + (rs.bakeMs / Math.max(1, rs.bakes)).toFixed(2) + ' ms)   ' + rs.schedule
+          'mirror ' + rs.bakes + ' bakes (' + (rs.bakeMs / Math.max(1, rs.bakes)).toFixed(2) + ' ms)   ' + rs.schedule,
+          'storm ' + (ss.striking ? 'striking, ' : '') + ss.schedule
         ].join('\n'));
         var view = scene.cameras.main.worldView;
         text.setPosition(8, 8);

@@ -13,28 +13,102 @@ TestRunner.suite('CemStorm', () => {
 
   function dist(a, b) { return Math.sqrt((a.gx - b.gx) * (a.gx - b.gx) + (a.gy - b.gy) * (a.gy - b.gy)); }
 
-  TestRunner.test('the first strike comes after firstDelayMs, the rest 25-60 s apart, skipped ones retry soon', () => {
-    var storm = CemStorm.create({ rng: CemModel.makeRng(5) });
-    TestRunner.assertEqual(storm.next(), D.firstDelayMs, 'first strike waits the short delay');
-    var lo = Infinity, hi = -Infinity;
-    for (var i = 0; i < 200; i++) {
-      var ms = storm.next();
-      lo = Math.min(lo, ms); hi = Math.max(hi, ms);
-      TestRunner.assert(ms >= D.minGapMs && ms <= D.maxGapMs, 'gap in range: ' + ms);
+  function rainWith(seed, over) {
+    return CemRain.schedule(seed, over || {});
+  }
+
+  TestRunner.test('every rain episode is announced 4-10 s before it and struck while it rains, never in the fade or a dry spell', () => {
+    for (var seed = 1; seed <= 12; seed++) {
+      var rain = rainWith(seed);
+      CemRain.episodeAt(rain, 600000);
+      var pl = CemStorm.plan(rain, seed * 31);
+      var fade = rain.cfg.RAIN_FADE_MS;
+      var prevEnd = -Infinity;
+      rain.episodes.forEach(function(e, n) {
+        var st = CemStorm.strikesFor(pl, e);
+        TestRunner.assertEqual(st[0].kind, 'announce', 'the first strike announces the rain');
+        var lead = e.start - st[0].at;
+        if (e.start - D.announceMinMs < D.announceFloorMs) TestRunner.assert(st[0].at === Math.min(D.announceFloorMs, e.start), 'rain right after the gate is announced as soon as the scene is up');
+        else TestRunner.assert(lead >= D.announceMinMs && lead <= D.announceMaxMs, 'announced ' + lead + ' ms before the rain');
+        TestRunner.assertEqual(st[0].until, e.start, 'an announcing strike may wait until the rain starts');
+        TestRunner.assert(st[0].at > prevEnd, 'not in the previous episode');
+        var during = st.slice(1);
+        TestRunner.assert(during.length >= 2, 'at least two strikes while it rains (' + during.length + ' in a ' + Math.round((e.end - e.start) / 1000) + ' s episode)');
+        var active = e.end - fade - e.start;
+        var k = CemStorm.gapScale(active, D.cfg || D);
+        for (var i = 0; i < during.length; i++) {
+          var s = during[i];
+          TestRunner.assertEqual(s.kind, 'rain', 'a rain strike');
+          TestRunner.assert(s.at > e.start && s.at < e.end - fade, 'inside the episode, before the fade: ' + s.at);
+          TestRunner.assertEqual(s.until, e.end - fade, 'a rain strike may wait until the fade');
+          var gap = s.at - (i ? during[i - 1].at : e.start);
+          TestRunner.assert(gap >= D.minGapMs * k - 1 && gap <= D.maxGapMs * k + 1, 'gap ' + gap + ' within the scaled range');
+        }
+        prevEnd = e.end;
+      });
     }
-    TestRunner.assert(hi - lo > (D.maxGapMs - D.minGapMs) * 0.5, 'gaps spread over the range');
-    TestRunner.assertEqual(storm.retry(), D.retryMs, 'retry delay');
-    TestRunner.assertEqual(storm.count, 201, 'counts the strikes it scheduled');
   });
 
-  TestRunner.test('the schedule is deterministic for a seed and takes overrides', () => {
-    var a = CemStorm.create({ rng: CemModel.makeRng(9) }), b = CemStorm.create({ rng: CemModel.makeRng(9) });
-    for (var i = 0; i < 20; i++) TestRunner.assertEqual(a.next(), b.next(), 'same gaps');
-    var c = CemStorm.create({ rng: CemModel.makeRng(9), firstDelayMs: 100, minGapMs: 200, maxGapMs: 200 });
-    TestRunner.assertEqual(c.next(), 100, 'override first delay');
-    TestRunner.assertEqual(c.next(), 200, 'override gap');
-    TestRunner.assertEqual(c.cfg.totalMinMs, D.totalMinMs, 'untouched settings keep their defaults');
+  TestRunner.test('rain that comes within seconds of the gate is announced a second in, still before it', () => {
+    var rain = rainWith(2, { FIRST_GAP_MIN_MS: 2500, FIRST_GAP_MAX_MS: 2500 });
+    var st = CemStorm.strikesFor(CemStorm.plan(rain, 5), rain.episodes[0]);
+    TestRunner.assertEqual(st[0].at, D.announceFloorMs, 'a second after the scene is ready');
+    TestRunner.assert(st[0].at < rain.episodes[0].start, 'and before the rain');
+    var soon = rainWith(2, { FIRST_GAP_MIN_MS: 400, FIRST_GAP_MAX_MS: 400 });
+    TestRunner.assertEqual(CemStorm.strikesFor(CemStorm.plan(soon, 5), soon.episodes[0])[0].at, 400, 'never after the rain has started');
+  });
+
+  TestRunner.test('gaps scale to the episode: a long one keeps 25-60 s, a 30 s one fits two strikes', () => {
+    TestRunner.assertEqual(CemStorm.gapScale(200000, D), 0.98, 'a long episode keeps the full gaps');
+    var rain = rainWith(3, { EPISODE_MIN_MS: 30000, EPISODE_MAX_MS: 30000 });
+    CemRain.episodeAt(rain, 400000);
+    var pl = CemStorm.plan(rain, 77);
+    rain.episodes.forEach(function(e) {
+      var during = CemStorm.strikesFor(pl, e).slice(1);
+      TestRunner.assert(during.length >= 2, 'two or more in a 30 s episode: ' + during.length);
+      TestRunner.assert(during.length <= 5, 'not a barrage: ' + during.length);
+    });
+  });
+
+  TestRunner.test('nextStrike walks the strikes in order across episodes and reaches into the rain schedule for more', () => {
+    var rain = rainWith(5);
+    var pl = CemStorm.plan(rain, 9);
+    var t = -1e9, seen = [], prev = -Infinity;
+    for (var i = 0; i < 25; i++) {
+      var n = CemStorm.nextStrike(pl, t);
+      TestRunner.assertTruthy(n, 'a strike is always planned');
+      TestRunner.assert(n.at > t && n.at > prev, 'strictly later than the last');
+      seen.push(n); prev = n.at; t = n.at;
+    }
+    TestRunner.assert(rain.episodes.length >= 3, 'the rain schedule was extended for the storm: ' + rain.episodes.length + ' episodes');
+    var announces = seen.filter(function(s) { return s.kind === 'announce'; });
+    TestRunner.assert(announces.length >= 3, 'each episode announced once');
+    // the same plan queried again gives the same strikes
+    var pl2 = CemStorm.plan(rainWith(5), 9);
+    CemRain.episodeAt(pl2.rain, rain.episodes[rain.episodes.length - 1].end + 1);
+    seen.forEach(function(s) { TestRunner.assertEqual(CemStorm.nextStrike(pl2, s.at - 1).at, s.at, 'replayable'); });
+    var other = CemStorm.plan(rainWith(5), 10), ot = -1e9, others = [];
+    for (var j = 0; j < 6; j++) { var o = CemStorm.nextStrike(other, ot); others.push(o.at); ot = o.at; }
+    var mine = seen.slice(0, 6).map(function(s) { return s.at; });
+    TestRunner.assert(others.join(',') !== mine.join(','), 'the storm seed matters (rain that starts within seconds of the gate is announced at the same second by any seed)');
     TestRunner.assertEqual(CemStorm.config().flashPeak, D.flashPeak, 'config with nothing is the defaults');
+    TestRunner.assertEqual(CemStorm.plan(rain, 1, { retryMs: 1 }).cfg.totalMinMs, D.totalMinMs, 'untouched settings keep their defaults');
+  });
+
+  TestRunner.test('a blocked strike is retried while its window lasts, then dropped for the next', () => {
+    var rain = rainWith(6, { FIRST_GAP_MIN_MS: 30000, FIRST_GAP_MAX_MS: 30000 });
+    var pl = CemStorm.plan(rain, 4);
+    var first = CemStorm.nextStrike(pl, -1e9);
+    var again = CemStorm.afterBlocked(pl, first, first.at);
+    TestRunner.assertEqual(again.at, first.at + D.retryMs, 'retried in retryMs');
+    TestRunner.assertEqual(again.kind, first.kind, 'the same strike');
+    TestRunner.assertEqual(again.retried, 1, 'counts the retries');
+    var late = CemStorm.afterBlocked(pl, first, first.until - D.retryMs / 2);
+    TestRunner.assert(late.at > first.until, 'past its window it is dropped for the next one');
+    TestRunner.assertEqual(late.kind, 'rain', 'which is the first rain strike of that episode');
+    var d = CemStorm.describe(pl, again, first.at);
+    TestRunner.assert(d.indexOf('announces ep 1') === 0 && d.indexOf('retry 1') !== -1 && d.indexOf('0 struck') !== -1, 'overlay line: ' + d);
+    TestRunner.assert(CemStorm.describe(pl, null, 0).indexOf('no strike') === 0, 'overlay line without a plan');
   });
 
   TestRunner.test('picks a lit tile at least two tiles from Mr Owl', () => {

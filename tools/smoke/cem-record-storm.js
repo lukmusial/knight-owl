@@ -1,20 +1,22 @@
 #!/usr/bin/env node
 /**
- * Records a short video of the cemetery thunderstorm.
+ * Records a short video of the cemetery thunderstorm, rain and all.
  *
  *   node tools/smoke/cem-record-storm.js [--out docs/videos/cemetery-storm.mp4]
  *                                        [--port 8096] [--width 1000] [--height 700]
  *
  * Boots the cemetery in headless Chrome (GPU through Metal, like
- * cem-record.js; pass --software for the rasteriser), lets Mr Owl stand at
- * the gate, walks him up the lane past the lanterns to the nearest tomb, and
- * fires three strikes through `scene.strikeLightning()` on the way (one far
- * off from the gate, one close by as he walks, one on the tomb as he stands
- * before it) so the bolt, its re-strikes, the ground flash, the whole-view
- * flash and the shake are all on film without waiting for the storm's timer.
- * Encounters are held off for the take. Frames come over the DevTools
- * screencast with their own timestamps and are encoded with ffmpeg. No
- * sound: the screencast does not carry the thunder.
+ * cem-record.js; pass --software for the rasteriser) and winds the weather
+ * for the camera the way cem-record-rain.js does: one 22 s rain episode 13 s
+ * in, announced by the storm 6 s before it. The take: a dry night at the
+ * gate, the announcing strike far off, a closer one fired by hand, the rain
+ * arriving and ramping while Mr Owl walks to a puddle, the storm's own
+ * strikes during the rain lighting the wet ground, then the rain fading with
+ * no more strikes. Everything the storm does on its own comes from its plan
+ * over the rain schedule (CemStorm.plan); only the second strike is called
+ * directly. Encounters are held off. Frames come over the DevTools
+ * screencast and are encoded with ffmpeg. No sound: the screencast carries
+ * neither the thunder nor the rain.
  */
 const path = require('path');
 const fs = require('fs');
@@ -79,29 +81,36 @@ async function walkStep(page, target, ms) {
   return 'stepped';
 }
 
-/**
- * Lightning on a given tile ({ target }), or on a lit tile within a range of
- * Mr Owl ({ minDist, maxDist }), kept clear of the top of the view like the
- * storm's own strikes; the storm's default range when nothing is given
- */
-async function strike(page, spec, label) {
-  const hit = await page.evaluate(sp => {
+/** A strike fired by hand on a lit tile within a range of Mr Owl, clear of the top of the view like the storm's own */
+async function strikeByHand(page, range, label) {
+  const hit = await page.evaluate(rg => {
     const S = ProtoCem.getScene();
     const L = ProtoCem.getLevel();
-    let s;
-    if (sp.target) s = S.strikeLightning({ target: sp.target });
-    else {
-      const view = S.cameras.main.worldView;
-      const cfg = CemStorm.config({ minDist: sp.minDist, maxDist: sp.maxDist });
-      const clear = (gx, gy) => IsoModel.gridToIso(gx, gy).y >= view.y + view.height * 0.33;
-      const t = CemStorm.pickTarget(L, S.storm.rng, cfg, clear);
-      s = t ? S.strikeLightning({ target: t }) : null;
-    }
-    return s ? { gx: s.target.gx, gy: s.target.gy, dist: Number(s.target.dist.toFixed(1)), thunderAt: s.thunderAt,
-      totalMs: s.seq.totalMs, strokes: s.seq.strokes.length } : null;
-  }, spec || {});
-  log('  strike ' + label + ': ' + (hit ? 'tile ' + hit.gx + ',' + hit.gy + ' at ' + hit.dist + ' tiles, ' + hit.strokes + ' strokes over ' + hit.totalMs + ' ms, thunder in ' + hit.thunderAt + ' ms' : 'nothing to hit'));
+    const view = S.cameras.main.worldView;
+    const cfg = CemStorm.config(rg);
+    const clear = (gx, gy) => IsoModel.gridToIso(gx, gy).y >= view.y + view.height * 0.33;
+    const t = CemStorm.pickTarget(L, S.stormRng, cfg, clear);
+    const s = t ? S.strikeLightning({ target: t }) : null;
+    return s ? { gx: s.target.gx, gy: s.target.gy, dist: Number(s.target.dist.toFixed(1)), strokes: s.seq.strokes.length, totalMs: s.seq.totalMs } : null;
+  }, range);
+  log('  strike by hand, ' + label + ': ' + (hit ? 'tile ' + hit.gx + ',' + hit.gy + ' at ' + hit.dist + ' tiles, ' + hit.strokes + ' strokes over ' + hit.totalMs + ' ms' : 'nothing to hit'));
   return hit;
+}
+
+/** Log what the storm and the rain are doing, once a second, while `ms` pass */
+async function watch(page, ms, t0) {
+  const stop = Date.now() + ms;
+  let last = '';
+  while (Date.now() < stop) {
+    const st = await page.evaluate(() => {
+      const S = ProtoCem.getScene();
+      const ss = S.stormStats();
+      return { fired: ss.fired, striking: ss.striking, next: ss.schedule, rain: S.rainStrength.toFixed(2), t: Math.round(S.rainElapsed() / 1000) };
+    });
+    const line = 'fired ' + st.fired + ', rain ' + st.rain + ', ' + st.next;
+    if (line !== last) { log('  t+' + ((Date.now() - t0) / 1000).toFixed(1) + 's  ' + line); last = line; }
+    await wait(500);
+  }
 }
 
 async function main() {
@@ -126,8 +135,28 @@ async function main() {
     await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Owl&action=new&level=cemetery&music=none',
       { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 40000 });
-    await page.evaluate(() => { ProtoCem.getLevel().graceMs = 1e9; });   // a storm, not a fight
     await wait(2500);                                                     // the ground finishes baking
+
+    // the weather, wound for the camera: one 22 s episode 13 s in, ramping
+    // over 4 s and fading over 4 s, puddles full within about 10 s; the storm
+    // announces it 6 s before, then strikes every 4-9 s while it rains
+    const plan = await page.evaluate(() => {
+      const S = ProtoCem.getScene(), L = ProtoCem.getLevel();
+      L.graceMs = 1e9;
+      CemRain.CFG.RING_RATE = 10;
+      S.rainSchedule = CemRain.schedule(L.seed || 1, {
+        FIRST_GAP_MIN_MS: 13000, FIRST_GAP_MAX_MS: 13000, EPISODE_MIN_MS: 22000, EPISODE_MAX_MS: 22000,
+        RAIN_RAMP_MS: 4000, RAIN_FADE_MS: 4000, PUDDLE_FILL_MS: 6000, PUDDLE_STAGGER_MS: 4000, PUDDLE_DRY_MS: 9000,
+        GAP_MIN_MS: 600000, GAP_MAX_MS: 600000
+      });
+      S.rainT0 = S.time.now;
+      S.planStorm({ announceMinMs: 6000, announceMaxMs: 6000 });
+      S.tickStormSchedule();
+      const ep = S.rainSchedule.episodes[0];
+      const st = CemStorm.strikesFor(S.storm, ep).map(s => s.kind + ' at ' + (s.at / 1000).toFixed(1) + 's');
+      return { rain: (ep.start / 1000).toFixed(1) + 's to ' + (ep.end / 1000).toFixed(1) + 's', strikes: st.join(', ') };
+    });
+    log('rain ' + plan.rain + '; strikes planned: ' + plan.strikes);
 
     const client = await page.createCDPSession();
     let n = 0;
@@ -138,38 +167,34 @@ async function main() {
       try { await client.send('Page.screencastFrameAck', { sessionId: ev.sessionId }); } catch (e) { /* closed */ }
     });
     await client.send('Page.startScreencast', { format: 'jpeg', quality: 80, maxWidth: WIDTH, maxHeight: HEIGHT, everyNthFrame: 1 });
+    const t0 = Date.now();
 
-    log('recording');
-    await wait(3500);                                      // Mr Owl at the gate
-    await strike(page, { minDist: 6, maxDist: 8 }, 'one, far off');
-    await wait(5000);
+    log('recording: a dry night at the gate; the storm announces the rain from afar');
+    await watch(page, 9500, t0);                                          // the announcing strike at ~7 s
+    await strikeByHand(page, { minDist: 2, maxDist: 3.5 }, 'close by');
+    await watch(page, 3500, t0);                                          // the rain arrives at 13 s
 
-    const plan = await page.evaluate(() => {
-      const L = ProtoCem.getLevel();
+    log('the rain ramps up; Mr Owl walks to a puddle');
+    const stop = await page.evaluate(() => {
+      const L = ProtoCem.getLevel(), S = ProtoCem.getScene();
       const from = CemModel.owlTile(L);
-      const small = L.tombs.filter(t => t.size !== 'large')
-        .map(t => ({ id: t.id, porch: t.porch, len: CemModel.pathTo(L, from, t.porch).length }))
-        .filter(t => t.len > 0).sort((a, b) => a.len - b.len);
-      return small[0] || null;
+      const all = (S.puddles || []).map(p => ({ gx: p.spec.gx, gy: p.spec.gy, d: CemModel.pathTo(L, from, p.spec).length }))
+        .filter(p => p.d > 2).sort((a, b) => a.d - b.d);
+      return all[0] || null;
     });
-    if (!plan) throw new Error('no tomb within reach');
-    log('  walk to tomb ' + plan.id);
-    let struckOnTheWay = false;
-    const deadline = Date.now() + 40000;
-    while (Date.now() < deadline) {
-      const how = await walkStep(page, plan.porch, 6000);
-      if (how === 'arrived') break;
-      if (how === 'blocked') { await wait(500); continue; }
-      if (!struckOnTheWay) {
-        await wait(1500);
-        await strike(page, { minDist: 2, maxDist: 3.5 }, 'two, close by on the lane');
-        struckOnTheWay = true;
+    if (stop) {
+      const deadline = Date.now() + 12000;
+      while (Date.now() < deadline) {
+        const how = await walkStep(page, stop, 5000);
+        if (how === 'arrived') { log('  standing in the puddle at ' + stop.gx + ',' + stop.gy); break; }
+        if (how === 'blocked') await wait(400);
       }
     }
-    await wait(3000);                                      // he stands before the tomb
-    // the third bolt hits the tomb itself, just above the porch he stands on
-    await strike(page, { target: { gx: plan.porch.gx, gy: plan.porch.gy - 2 } }, 'three, on the tomb');
-    await wait(6000);
+    log('the storm strikes while it rains');
+    await watch(page, 30000 - (Date.now() - t0) + 12000, t0);            // through the episode and its fade (ends at 35 s)
+    log('the rain has gone; no more strikes');
+    await watch(page, 5000, t0);
+
     await client.send('Page.stopScreencast');
     await wait(400);
   } catch (e) {
