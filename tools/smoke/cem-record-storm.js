@@ -8,10 +8,10 @@
  * Boots the cemetery in headless Chrome (GPU through Metal, like
  * cem-record.js; pass --software for the rasteriser), lets Mr Owl stand at
  * the gate, walks him up the lane past the lanterns to the nearest tomb, and
- * fires three strikes through `scene.strikeLightning()` on the way (one on a
- * lantern-lit tile as he walks, one on the tomb porch as he arrives, one more
- * as he stands there) so the bolt, the ground flash, the whole-view flash and
- * the shake are all on film without waiting for the storm's own timer.
+ * fires three strikes through `scene.strikeLightning()` on the way (one far
+ * off from the gate, one close by as he walks, one on the tomb as he stands
+ * before it) so the bolt, its re-strikes, the ground flash, the whole-view
+ * flash and the shake are all on film without waiting for the storm's timer.
  * Encounters are held off for the take. Frames come over the DevTools
  * screencast with their own timestamps and are encoded with ffmpeg. No
  * sound: the screencast does not carry the thunder.
@@ -79,24 +79,28 @@ async function walkStep(page, target, ms) {
   return 'stepped';
 }
 
-/** Lightning on a given tile, or on the lit tile nearest a lantern in range when none is given */
-async function strike(page, target, label) {
-  const hit = await page.evaluate(t => {
+/**
+ * Lightning on a given tile ({ target }), or on a lit tile within a range of
+ * Mr Owl ({ minDist, maxDist }), kept clear of the top of the view like the
+ * storm's own strikes; the storm's default range when nothing is given
+ */
+async function strike(page, spec, label) {
+  const hit = await page.evaluate(sp => {
     const S = ProtoCem.getScene();
     const L = ProtoCem.getLevel();
-    if (!t) {
-      const o = CemModel.owlPos(L);
-      let best = null, bestD = 1e9;
-      for (const l of L.lights) {
-        const d = Math.hypot(l.gx - o.x, l.gy - o.y);
-        if (d >= 2.5 && d <= 7 && d < bestD) { best = l; bestD = d; }
-      }
-      t = best ? { gx: best.gx, gy: best.gy - 1 } : null;
+    let s;
+    if (sp.target) s = S.strikeLightning({ target: sp.target });
+    else {
+      const view = S.cameras.main.worldView;
+      const cfg = CemStorm.config({ minDist: sp.minDist, maxDist: sp.maxDist });
+      const clear = (gx, gy) => IsoModel.gridToIso(gx, gy).y >= view.y + view.height * 0.33;
+      const t = CemStorm.pickTarget(L, S.storm.rng, cfg, clear);
+      s = t ? S.strikeLightning({ target: t }) : null;
     }
-    const s = t ? S.strikeLightning({ target: t }) : S.strikeLightning();
-    return s ? { gx: s.target.gx, gy: s.target.gy, dist: Number(s.target.dist.toFixed(1)), thunderAt: s.thunderAt } : null;
-  }, target || null);
-  log('  strike ' + label + ': ' + (hit ? 'tile ' + hit.gx + ',' + hit.gy + ' at ' + hit.dist + ' tiles, thunder in ' + hit.thunderAt + ' ms' : 'nothing to hit'));
+    return s ? { gx: s.target.gx, gy: s.target.gy, dist: Number(s.target.dist.toFixed(1)), thunderAt: s.thunderAt,
+      totalMs: s.seq.totalMs, strokes: s.seq.strokes.length } : null;
+  }, spec || {});
+  log('  strike ' + label + ': ' + (hit ? 'tile ' + hit.gx + ',' + hit.gy + ' at ' + hit.dist + ' tiles, ' + hit.strokes + ' strokes over ' + hit.totalMs + ' ms, thunder in ' + hit.thunderAt + ' ms' : 'nothing to hit'));
   return hit;
 }
 
@@ -137,8 +141,8 @@ async function main() {
 
     log('recording');
     await wait(3500);                                      // Mr Owl at the gate
-    await strike(page, null, 'one, by the gate lanterns');
-    await wait(4500);
+    await strike(page, { minDist: 6, maxDist: 8 }, 'one, far off');
+    await wait(5000);
 
     const plan = await page.evaluate(() => {
       const L = ProtoCem.getLevel();
@@ -158,14 +162,14 @@ async function main() {
       if (how === 'blocked') { await wait(500); continue; }
       if (!struckOnTheWay) {
         await wait(1500);
-        await strike(page, null, 'two, on the lane');
+        await strike(page, { minDist: 2, maxDist: 3.5 }, 'two, close by on the lane');
         struckOnTheWay = true;
       }
     }
     await wait(3000);                                      // he stands before the tomb
     // the third bolt hits the tomb itself, just above the porch he stands on
-    await strike(page, { gx: plan.porch.gx, gy: plan.porch.gy - 2 }, 'three, on the tomb');
-    await wait(5500);
+    await strike(page, { target: { gx: plan.porch.gx, gy: plan.porch.gy - 2 } }, 'three, on the tomb');
+    await wait(6000);
     await client.send('Page.stopScreencast');
     await wait(400);
   } catch (e) {

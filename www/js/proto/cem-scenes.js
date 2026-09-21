@@ -702,8 +702,9 @@ var CemScenes = (function() {
       var seed = ((this.level.seed || 1) * 2654435761 + 97) >>> 0;
       this.storm = CemStorm.create({ rng: CemModel.makeRng(seed) });
       this.stormStrike = null;
+      // the view flash: additive and pale blue-white, so it brightens the scene instead of greying it
       this.stormFlash = this.add.image(0, 0, 'cem_flash').setScrollFactor(0).setDepth(1e6 + 1)
-        .setTint(0xdfe9ff).setAlpha(0).setVisible(false);
+        .setBlendMode(Phaser.BlendModes.ADD).setTint(0xb8ccff).setAlpha(0).setVisible(false);
       // the bolt: a wide, soft additive glow under a thin white core
       this.boltGlow = this.add.graphics().setDepth(1e5 + 40).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
       this.boltCore = this.add.graphics().setDepth(1e5 + 41).setVisible(false);
@@ -741,12 +742,15 @@ var CemScenes = (function() {
 
     /**
      * Lightning strikes a lit tile at least two tiles from Mr Owl: the bolt
-     * comes down from above the top of the view with a flash on the ground,
-     * the whole view lightens, nearby props catch the light, the camera
-     * shakes and thunder follows, later the farther away it struck. Under
-     * reduced motion there is no flash, no shake and no flicker, only a dim
-     * bolt and the sound. Returns the strike record, or null when nothing
-     * in sight could be hit.
+     * comes down from above the top of the view with a flash on the ground
+     * and plays out as a sequence (CemStorm.sequence: a dim leader, the main
+     * return stroke, two to four weaker re-strikes down the same channel,
+     * 0.8-1.5 s in all) whose brightness flutters on a seeded noise; the
+     * whole view lightens with it, nearby props catch the light, the camera
+     * shakes on the main stroke and thunder follows it, later the farther
+     * away it struck. Under reduced motion there is no flash, no shake and
+     * no flicker, only a dim bolt and the sound. Returns the strike record,
+     * or null when nothing in sight could be hit.
      * @param {Object} [opts] - { target: {gx, gy}, seed } to replay a strike (harnesses)
      */
     strikeLightning: function(opts) {
@@ -755,12 +759,16 @@ var CemScenes = (function() {
       var cfg = this.storm.cfg;
       var L = this.level;
       var rng = typeof opts.seed === 'number' ? CemModel.makeRng(opts.seed) : this.storm.rng;
-      var target = opts.target ? this.stormTargetAt(opts.target) : CemStorm.pickTarget(L, rng, cfg);
+      var cam = this.cameras.main;
+      var view = cam.worldView;
+      // no tiles in the top third of the view: the bolt would have no room to fall
+      var clear = function(gx, gy) { return IsoModel.gridToIso(gx, gy).y >= view.y + view.height * 0.33; };
+      var target = opts.target ? this.stormTargetAt(opts.target) : CemStorm.pickTarget(L, rng, cfg, clear);
       if (!target) return null;
       var p = IsoModel.gridToIso(target.gx, target.gy);
-      var cam = this.cameras.main;
-      var from = CemStorm.origin(rng, p, cam.worldView.y, 120);
+      var from = CemStorm.origin(rng, p, view.y, 120);
       var bolt = CemStorm.bolt(rng, from, p, cfg);
+      var seq = CemStorm.sequence(rng, cfg);
       var depth = 1e5 + 40;
 
       this.boltGlow.clear();
@@ -771,17 +779,17 @@ var CemScenes = (function() {
       this.boltGround.setPosition(p.x, p.y).setDepth(POOL_BAND + IsoModel.depthKey(target.gx, target.gy, 0));
       this.boltBurst.setPosition(p.x, p.y - 18).setDepth(depth - 1);
 
-      var strike = { target: target, dist: target.dist, t: 0, from: from, bolt: bolt,
-        boltMs: cfg.boltMs, flashMs: REDUCED_MOTION ? 0 : cfg.flashMs,
-        thunderAt: CemStorm.thunderDelay(target.dist, cfg) };
+      var strike = { target: target, dist: target.dist, t: 0, from: from, bolt: bolt, seq: seq,
+        endMs: seq.endMs, thunderAt: seq.mainAt + CemStorm.thunderDelay(target.dist, cfg) };
       this.stormStrike = strike;
-      this.setBoltAlpha(REDUCED_MOTION ? 0.35 : 1);
-      if (!REDUCED_MOTION) {
-        this.stormFlash.setAlpha(cfg.flashPeak).setVisible(true);
-        cam.shake(cfg.shakeMs, cfg.shakeStrength);
-        this.brightenProps(target, cfg.brightenRadius);
-      }
+      this.applyStorm(0);
       var self = this;
+      if (!REDUCED_MOTION) {
+        this.brightenProps(target, cfg.brightenRadius);
+        this.time.delayedCall(seq.mainAt, function() {
+          if (self.stormStrike === strike) cam.shake(cfg.shakeMs, cfg.shakeStrength);
+        });
+      }
       this.time.delayedCall(strike.thunderAt, function() {
         fx('thunder', { volume: CemStorm.thunderVolume(target.dist, cfg) });
       });
@@ -809,12 +817,13 @@ var CemScenes = (function() {
       g.strokePath();
     },
 
-    setBoltAlpha: function(a) {
-      var on = a > 0;
-      this.boltGlow.setAlpha(a).setVisible(on);
-      this.boltCore.setAlpha(a).setVisible(on);
-      this.boltGround.setAlpha(a * 0.9).setVisible(on);
-      this.boltBurst.setAlpha(a).setVisible(on);
+    /** The bolt at a core brightness and a glow brightness (the glow outlasts the core) */
+    setBoltAlpha: function(core, glow) {
+      if (glow === undefined) glow = core;
+      this.boltCore.setAlpha(core).setVisible(core > 0);
+      this.boltGlow.setAlpha(glow).setVisible(glow > 0);
+      this.boltGround.setAlpha(glow * 0.9).setVisible(glow > 0);
+      this.boltBurst.setAlpha(core).setVisible(core > 0);
     },
 
     /** Props near the strike take a cold white tint until the bolt is gone */
@@ -843,17 +852,22 @@ var CemScenes = (function() {
       this.litProps.length = 0;
     },
 
-    /** Per frame while a strike is in progress: the flicker and the flash, then tidy up */
+    /** Per frame while a strike is in progress: advance its clock, show that moment, tidy up at the end */
     tickStorm: function(delta) {
       var s = this.stormStrike;
       s.t += delta;
-      var a = REDUCED_MOTION ? (s.t < s.boltMs ? 0.35 : 0) : CemStorm.boltAlpha(s.t, s.boltMs);
-      this.setBoltAlpha(a);
-      if (s.flashMs) {
-        var f = CemStorm.flashAlpha(s.t, s.flashMs, this.storm.cfg.flashPeak);
-        this.stormFlash.setAlpha(f).setVisible(f > 0);
-      }
-      if (s.t >= Math.max(s.boltMs, s.flashMs)) this.endStrike();
+      if (s.t >= s.endMs) { this.endStrike(); return; }
+      this.applyStorm(s.t);
+    },
+
+    /** Show the strike as it is `t` ms in: the fluttering core, the lingering glow and the view flash */
+    applyStorm: function(t) {
+      var s = this.stormStrike;
+      var cfg = this.storm.cfg;
+      if (REDUCED_MOTION) { this.setBoltAlpha(t < s.seq.totalMs ? 0.35 : 0); return; }
+      this.setBoltAlpha(CemStorm.coreAlpha(s.seq, t, cfg), CemStorm.glowAlpha(s.seq, t, cfg));
+      var f = CemStorm.flashAlpha(s.seq, t, cfg);
+      this.stormFlash.setAlpha(f).setVisible(f > 0);
     },
 
     endStrike: function() {
