@@ -112,6 +112,9 @@ async function main() {
       (armed.at === CemStormDefault('announceFloorMs') && armed.at < armed.epStart);
     check(armed.has && armed.kind === 'announce' && leadOk,
       'the first strike announces the rain ' + Math.round(armed.lead) + ' ms before episode 1 (rain at ' + Math.round(armed.epStart) + ' ms); overlay: ' + armed.line);
+    // the storm runs on the rain clock: it must be counting as the scene
+    // leaves it (a create() at scene Clock time 0 once held it at 0 for ever)
+    check(armed.t >= 1500, 'the rain clock is running as the scene leaves it (' + Math.round(armed.t) + ' ms since ready)');
 
     // 2. a strike: bolt drawn, the leader lit, props brightened; the game is
     // held on the strike's brightest moment (the main stroke) for the

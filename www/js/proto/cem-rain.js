@@ -148,6 +148,25 @@ var CemRain = (function() {
     return 'dry, next in ' + (at.next ? sec(at.next.start - t) : '?');
   }
 
+  /**
+   * ms on the rain clock: `now - t0` once the clock has been started, 0
+   * before. A started clock is any number from 0 up. Phaser's scene Clock
+   * reads 0 until its first tick, and the scene's `create` runs before that,
+   * so a start of 0 is a real start, not a missing one: a `t0 || now`
+   * fallback took it for missing, held the schedule at 0 for ever, and the
+   * cemetery never rained on the phone.
+   */
+  function clockElapsed(t0, now) {
+    if (typeof t0 !== 'number' || !(t0 >= 0)) return 0;
+    return now - t0;
+  }
+
+  /** The console line at ready: when the first shower is due and how long it lasts */
+  function summary(sched) {
+    var e = sched.episodes[0];
+    return 'first shower at ' + Math.round(e.start / 1000) + ' s for ' + Math.round((e.end - e.start) / 1000) + ' s';
+  }
+
   // ---------------------------------------------------------------------------
   // Puddles
   // ---------------------------------------------------------------------------
@@ -317,6 +336,8 @@ var CemRain = (function() {
     episodeAt: episodeAt,
     strengthAt: strengthAt,
     describe: describe,
+    clockElapsed: clockElapsed,
+    summary: summary,
     isPuddleTile: isPuddleTile,
     wantsPuddle: wantsPuddle,
     puddleSpec: puddleSpec,

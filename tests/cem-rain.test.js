@@ -137,6 +137,29 @@ TestRunner.suite('CemRain', () => {
     }
   });
 
+  TestRunner.test('the rain clock counts from a start of 0: the scene Clock reads 0 before its first tick', () => {
+    TestRunner.assertEqual(CemRain.clockElapsed(0, 1500), 1500, 'a start of 0 is a start, not a missing one');
+    TestRunner.assertEqual(CemRain.clockElapsed(1000, 1500), 500, 'counts from the start');
+    TestRunner.assertEqual(CemRain.clockElapsed(-1, 1500), 0, 'not started yet');
+    TestRunner.assertEqual(CemRain.clockElapsed(undefined, 1500), 0, 'never set');
+    TestRunner.assertEqual(CemRain.clockElapsed(null, 1500), 0, 'null is not a start');
+    // the phone's case: a clock started at 0 must still bring the first shower within FIRST_GAP_MAX_MS
+    var sched = CemRain.schedule(2144581921);
+    var rainedAt = -1;
+    for (var now = 0; now <= CFG.FIRST_GAP_MAX_MS + CFG.RAIN_RAMP_MS && rainedAt < 0; now += 250) {
+      if (CemRain.strengthAt(sched, CemRain.clockElapsed(0, now)) > 0) rainedAt = now;
+    }
+    TestRunner.assert(rainedAt >= 0 && rainedAt <= CFG.FIRST_GAP_MAX_MS + 250, 'it rains within FIRST_GAP_MAX_MS on a clock started at 0 (' + rainedAt + ' ms)');
+  });
+
+  TestRunner.test('summary names the first shower for the console line at ready', () => {
+    var sched = CemRain.schedule(5);
+    var e = sched.episodes[0];
+    TestRunner.assertEqual(CemRain.summary(sched),
+      'first shower at ' + Math.round(e.start / 1000) + ' s for ' + Math.round((e.end - e.start) / 1000) + ' s', 'the line');
+    TestRunner.assert(/^first shower at ([4-9]|1\d|2[0-5]) s for ([3-5]\d|60) s$/.test(CemRain.summary(sched)), 'within the schedule\'s bounds');
+  });
+
   TestRunner.test('an episode ramps in, holds, fades out, and the gaps are dry', () => {
     var sched = CemRain.schedule(7);
     var e = sched.episodes[0];

@@ -215,6 +215,11 @@ var ProtoCem = (function() {
     showLoading(false);
     gameInProgress = true;
     console.log('ProtoCem: renderer ' + (game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas') + ', seed ' + level.seed);
+    // so a device log shows when to expect the weather
+    if (typeof CemRain !== 'undefined' && s.rainSchedule) {
+      console.log('ProtoCem: weather: ' + CemRain.summary(s.rainSchedule) +
+        (s.storm && typeof CemStorm !== 'undefined' ? '; lightning ' + CemStorm.describe(s.storm, CemStorm.nextStrike(s.storm, 0), 0) : ''));
+    }
     lastTick = Date.now();
     lastSave = lastTick;
     tickEvent = scene.time.addEvent({ delay: 250, loop: true, callback: tick });
