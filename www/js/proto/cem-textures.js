@@ -16,6 +16,7 @@ var CemTextures = (function() {
   var TILE_W = 128, TILE_H = 64;
   var KIT_DIR = 'assets/proto/iso/cemetery/';
   var KIT_JSON = 'cem_kit';
+  var PUDDLE_W = 112, PUDDLE_H = 56;   // a puddle texture, inside one tile diamond
   var kit = null;          // manifest { ppt, sprites: { name: {...} } }
   var fallbacks = {};      // name -> { key, w, h, anchor, footprint, light?, door? }
 
@@ -242,6 +243,123 @@ var CemTextures = (function() {
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, size, size);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rain and puddles
+  // ---------------------------------------------------------------------------
+
+  /** An irregular blob inside an ellipse of rx by ry, as a path; `wobble` is how uneven */
+  function blobPath(ctx, cx, cy, rx, ry, r, wobble) {
+    var n = 14;
+    var pts = [];
+    for (var i = 0; i < n; i++) {
+      var a = i / n * Math.PI * 2;
+      var k = 1 - wobble * r();
+      pts.push({ x: cx + Math.cos(a) * rx * k, y: cy + Math.sin(a) * ry * k });
+    }
+    ctx.beginPath();
+    for (var j = 0; j < n; j++) {
+      var p = pts[j], q = pts[(j + 1) % n];
+      var mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+      if (j === 0) ctx.moveTo((pts[n - 1].x + p.x) / 2, (pts[n - 1].y + p.y) / 2);
+      ctx.quadraticCurveTo(p.x, p.y, mx, my);
+    }
+    ctx.closePath();
+  }
+
+  /**
+   * A puddle in an iso tile: a wet dark halo, water that darkens the ground
+   * under it, a sky-coloured sheen across the far half so it reads as a
+   * mirror of the night sky, a bright rim on the far edge and a small
+   * specular gleam. The edge is softened by laying the blob down three times,
+   * each a little smaller.
+   */
+  function drawPuddle(ctx, w, h, variant) {
+    var cx = w / 2, cy = h / 2;
+    var rx = w * 0.42, ry = h * 0.4;
+    var wobble = 0.22 + variant * 0.06;
+    var seed = 701 + variant * 37;
+    // wet ground around the water
+    blobPath(ctx, cx, cy, rx * 1.16, ry * 1.2, rng(seed), wobble);
+    ctx.fillStyle = 'rgba(12,16,26,0.32)';
+    ctx.fill();
+    // the water, in three passes for a soft edge
+    var shades = ['rgba(28,38,62,0.35)', 'rgba(34,46,74,0.45)', 'rgba(40,54,86,0.55)'];
+    for (var pass = 0; pass < 3; pass++) {
+      var k = 1 - pass * 0.07;
+      blobPath(ctx, cx, cy, rx * k, ry * k, rng(seed), wobble);
+      ctx.fillStyle = shades[pass];
+      ctx.fill();
+    }
+    // clip the sheen and gleam to the water
+    ctx.save();
+    blobPath(ctx, cx, cy, rx, ry, rng(seed), wobble);
+    ctx.clip();
+    var sheen = ctx.createLinearGradient(cx - rx * 0.6, cy - ry, cx + rx * 0.3, cy + ry * 0.6);
+    sheen.addColorStop(0, 'rgba(176,198,236,0.5)');
+    sheen.addColorStop(0.45, 'rgba(150,176,222,0.22)');
+    sheen.addColorStop(1, 'rgba(120,150,200,0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 0, w, h);
+    // a gleam where the sky is brightest
+    var gx = cx - rx * 0.3, gy = cy - ry * 0.35;
+    var gleam = ctx.createRadialGradient(gx, gy, 0, gx, gy, rx * 0.4);
+    gleam.addColorStop(0, 'rgba(220,232,255,0.55)');
+    gleam.addColorStop(1, 'rgba(220,232,255,0)');
+    ctx.fillStyle = gleam;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+    // bright far rim, the lip the light catches
+    ctx.save();
+    blobPath(ctx, cx, cy, rx * 0.97, ry * 0.97, rng(seed), wobble);
+    ctx.strokeStyle = 'rgba(190,210,245,0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** A soft elliptical ring, the trace of a drop landing in water */
+  function drawDropRing(ctx, w, h) {
+    var cx = w / 2, cy = h / 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, h / w);
+    for (var i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, w * 0.42 - i * 1.4, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(200,220,255,' + (i === 1 ? 0.7 : 0.3) + ')';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** One raindrop as a slanted-later streak: a thin line, bright at the head */
+  function drawRainStreak(ctx, w, h) {
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(200,220,255,0)');
+    g.addColorStop(0.7, 'rgba(210,226,255,0.55)');
+    g.addColorStop(1, 'rgba(235,242,255,0.9)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(w / 2 - 0.6, 0);
+    ctx.lineTo(w / 2 + 0.6, 0);
+    ctx.lineTo(w / 2 + 1.1, h);
+    ctx.lineTo(w / 2 - 1.1, h);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** A splash droplet */
+  function drawDroplet(ctx, size) {
+    var c = size / 2;
+    var g = ctx.createRadialGradient(c - 1, c - 1, 0, c, c, c);
+    g.addColorStop(0, 'rgba(235,245,255,0.95)');
+    g.addColorStop(0.6, 'rgba(180,205,245,0.7)');
+    g.addColorStop(1, 'rgba(180,205,245,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
   }
 
   /**
@@ -682,6 +800,15 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_glow_red', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(255,70,50,0.55)'); });
     canvasTexture(scene, 'cem_soft_light', 256, 128, function(ctx) { drawSoftLight(ctx, 256, 128); });
     canvasTexture(scene, 'cem_dark_ring', 1024, 1024, function(ctx) { drawDarkRing(ctx, 1024, 160); });
+    // rain: four puddle shapes, a droplet ring, a streak and a splash drop
+    for (var pv = 0; pv < 4; pv++) {
+      (function(v) {
+        canvasTexture(scene, 'cem_puddle_' + v, PUDDLE_W, PUDDLE_H, function(ctx) { drawPuddle(ctx, PUDDLE_W, PUDDLE_H, v); });
+      })(pv);
+    }
+    canvasTexture(scene, 'cem_drop_ring', 64, 32, function(ctx) { drawDropRing(ctx, 64, 32); });
+    canvasTexture(scene, 'cem_rain_streak', 4, 30, function(ctx) { drawRainStreak(ctx, 4, 30); });
+    canvasTexture(scene, 'cem_droplet', 10, 10, function(ctx) { drawDroplet(ctx, 10); });
 
     // stand-in props
     for (var gv = 0; gv < 6; gv++) {
@@ -782,6 +909,8 @@ var CemTextures = (function() {
   return {
     makeDoorLights: makeDoorLights,
     TILE_W: TILE_W,
+    PUDDLE_W: PUDDLE_W,
+    PUDDLE_H: PUDDLE_H,
     TILE_H: TILE_H,
     KIT_DIR: KIT_DIR,
     generate: generate,

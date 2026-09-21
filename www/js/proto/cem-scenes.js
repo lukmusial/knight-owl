@@ -81,10 +81,9 @@ var CemScenes = (function() {
     return scene.registry.get('cemCallbacks') || {};
   }
 
+  /** Deterministic 0..1 for a tile; CemRain owns it so the puddles agree with the scene */
   function hash(a, b, c) {
-    var h = (a * 73856093) ^ (b * 19349663) ^ ((c || 0) * 83492791);
-    h = h >>> 0;
-    return (h % 1000) / 1000;
+    return CemRain.hash(a, b, c);
   }
 
   function lerpTint(k) {
@@ -255,6 +254,7 @@ var CemScenes = (function() {
       this.buildFog();
       this.buildAtmosphere();
       this.createPlayer();
+      this.buildRain();
       this.spawnMonsters();
       this.setupCamera();
       this.setupInput();
@@ -276,6 +276,7 @@ var CemScenes = (function() {
       this.time.delayedCall(500, function() { if (self2.world) { self2.world.rebakeAll(); self2.world.update(true); } });
       this.time.delayedCall(2000, function() { if (self2.world) { self2.world.rebakeAll(); self2.world.update(true); } });
       this.perf = (typeof CemPerf !== 'undefined') ? CemPerf.attach(this) : null;
+      this.rainT0 = this.time.now;          // the rain clock starts when the scene is ready
       var cb = callbacks(this);
       if (cb.onReady) cb.onReady(this);
     },
@@ -684,6 +685,312 @@ var CemScenes = (function() {
       this.vignette.setPosition(w / 2, h / 2);
     },
 
+    // --- Rain and puddles ------------------------------------------------------------
+    //
+    // CemRain (cem-rain.js) decides when it rains, which lane tiles collect a
+    // puddle and how fast each fills. Here: a screen-space particle emitter
+    // of slanted streaks (one texture, one draw), puddle images on the floor
+    // layer (under whoever stands in them, culled with their cell, hidden
+    // with the fog), a pool of droplet rings, splash rings and drops when Mr
+    // Owl steps through one, and his reflection while he stands in it.
+
+    buildRain: function() {
+      var L = this.level;
+      this.puddles = [];                          // { spec, img, vis, fill, revealAt, settled, depth }
+      this.puddleByTile = new Array(L.tiles.length);
+      this.rings = [];                            // live rings: { img, t0, dur, from, to, alpha }
+      this.ringPool = [];
+      this.drops = [];                            // live splash droplets
+      this.dropPool = [];
+      this.rainStrength = 0;
+      this.rainStarted = false;
+      this.splashAt = -1e9;
+      this.rainZoom = 0;
+      this.rainEmitter = null;
+      this.owlPuddle = null;                      // the puddle Mr Owl stands in, if any
+      // his mirror image: the same sheet upside down, dim and blue, at his feet
+      var pl = this.player;
+      this.owlReflection = this.add.sprite(0, 0, pl.texture.key, pl.frame.name)
+        .setOrigin(pl.originX, 1 - pl.originY).setFlipY(true).setScale(pl.scaleX, pl.scaleY * 0.55)
+        .setAlpha(0).setTint(0x9fb6e0).setVisible(false);
+      this.world.floorLayer.add(this.owlReflection);
+      if (!REDUCED_MOTION) {
+        var v = CemRain.rainVelocity();
+        this.rainZone = new Phaser.Geom.Rectangle(0, -40, 100, 1);
+        this.rainEmitter = this.add.particles(0, 0, 'cem_rain_streak', {
+          speedX: v.vx, speedY: v.vy, rotate: v.rotation * 180 / Math.PI,
+          lifespan: CemRain.CFG.RAIN_LIFE_MS, frequency: 1000, quantity: 1,
+          alpha: { min: 0.3, max: 0.65 }, scaleY: { min: 0.7, max: 1.3 }, scaleX: 1,
+          maxAliveParticles: Math.round(CemRain.CFG.RAIN_ALIVE * 1.25),
+          emitZone: { type: 'random', source: this.rainZone },
+          emitting: false
+        }).setScrollFactor(0).setDepth(950000);
+        this.layoutRain();
+      }
+      this.owlTileIdx = -1;
+      this.layPuddlesAround(CemModel.owlPos(L));
+    },
+
+    /**
+     * The streaks spawn along a line above the top of the screen and fall
+     * for as long as the screen is tall. Screen-space objects still zoom
+     * with the camera, so the line and the fall stretch by 1/zoom.
+     */
+    layoutRain: function() {
+      if (!this.rainEmitter) return;
+      var cam = this.cameras.main;
+      var z = cam.zoom || 1;
+      this.rainZoom = z;
+      var w = cam.width / z, h = cam.height / z;
+      var v = CemRain.rainVelocity();
+      var lifeMs = (h + 120) / v.vy * 1000;
+      var drift = v.vx * lifeMs / 1000;
+      var left = cam.width / 2 - w / 2 - drift, top = cam.height / 2 - h / 2 - 60;
+      this.rainZone.setTo(left, top, w + drift, 1);
+      this.rainEmitter.lifespan = lifeMs;
+      this.rainLife = lifeMs;
+      this.setRainStrength(this.rainStrength, true);
+    },
+
+    setRainStrength: function(k, force) {
+      if (!this.rainEmitter) return;
+      if (k === this.rainStrength && !force) return;
+      this.rainStrength = k;
+      if (k <= 0) {
+        if (this.rainStarted) { this.rainEmitter.stop(); this.rainStarted = false; }
+        return;
+      }
+      var perSec = CemRain.rainRate(k, { RAIN_ALIVE: CemRain.CFG.RAIN_ALIVE, RAIN_LIFE_MS: this.rainLife || CemRain.CFG.RAIN_LIFE_MS });
+      this.rainEmitter.frequency = 1000 / Math.max(0.5, perSec);
+      if (!this.rainStarted) { this.rainEmitter.start(); this.rainStarted = true; }
+    },
+
+    /**
+     * Puddles on the seen lane tiles around Mr Owl (PUDDLE_REACH), each on
+     * the floor layer of its tile. Runs when he changes tile, so the ground
+     * he walks is the ground that gets wet. The lanterns reveal their
+     * surroundings from the start, so laying puddles on every seen tile
+     * would spend the cap far from him. Once the cap is reached, the puddle
+     * farthest away (and off screen) is moved to the new tile.
+     */
+    layPuddlesAround: function(o) {
+      if (!this.puddles) return;
+      var L = this.level;
+      var cfg = CemRain.CFG;
+      var around = CemRain.tilesAround(L, o.gx, o.gy, cfg.PUDDLE_REACH);
+      var fresh = [];
+      for (var i = 0; i < around.length; i++) if (!this.puddleByTile[around[i]]) fresh.push(around[i]);
+      var specs = CemRain.planPuddles(L, fresh, 0);
+      var view = this.cameras.main.worldView;
+      for (var s = 0; s < specs.length; s++) {
+        var spec = specs[s];
+        var pd;
+        if (this.puddles.length < cfg.MAX_PUDDLES) {
+          var img = this.add.image(0, 0, 'cem_puddle_0').setAlpha(0);
+          pd = { spec: null, img: img, vis: 0, fill: 0, revealAt: 0, settled: false, depth: 0, x: 0, y: 0 };
+          this.puddles.push(pd);
+          this.placePuddle(pd, spec, true);
+        } else {
+          var k = CemRain.farthestPuddle(this.puddles, o.gx, o.gy, cfg.RECYCLE_DIST);
+          if (k === -1) break;
+          pd = this.puddles[k];
+          if (pd.x > view.x - 80 && pd.x < view.right + 80 && pd.y > view.y - 60 && pd.y < view.bottom + 60) break;   // never while it is on screen
+          this.puddleByTile[pd.spec.index] = undefined;
+          this.placePuddle(pd, spec, false);
+        }
+        pd.revealAt = this.time.now;
+        this.showPuddle(pd, L.vis[spec.index], false);
+      }
+    },
+
+    /** Put a puddle record on its tile: picture, size, position, depth, cull cell */
+    placePuddle: function(pd, spec, isNew) {
+      var p = IsoModel.gridToIso(spec.gx, spec.gy);
+      var depth = SHADOW_BAND + IsoModel.depthKey(spec.gx, spec.gy, 0) - 1000;   // under the door spills
+      pd.img.setTexture('cem_puddle_' + spec.variant).setPosition(p.x + spec.dx, p.y + spec.dy)
+        .setScale(spec.scale).setFlipX(spec.flip).setAlpha(0).setDepth(depth);
+      if (isNew) this.world.addProp(pd.img, spec.gx, spec.gy, { ground: true });
+      else this.world.moveProp(pd.img, spec.gx, spec.gy);
+      pd.spec = spec; pd.depth = depth; pd.x = pd.img.x; pd.y = pd.img.y; pd.fill = 0; pd.settled = false;
+      this.puddleByTile[spec.index] = pd;
+    },
+
+    /** Fog state of one puddle: hidden, remembered (dim and blue) or lit */
+    showPuddle: function(pd, v, fresh) {
+      pd.vis = v;
+      pd.settled = false;
+      this.world.setPropShown(pd.img, v > 0);
+      if (v > 0) {
+        pd.img.setTint(v === 2 ? lerpTint(this.level.lightMap[pd.spec.index]) : SEEN_TINT);
+        if (fresh) pd.revealAt = this.time.now;
+      }
+    },
+
+    /** How full the puddle under Mr Owl is; 0 when he is not in one */
+    owlPuddleFill: function() {
+      return this.owlPuddle && this.owlPuddle.vis > 0 ? this.owlPuddle.fill : 0;
+    },
+
+    /** A pooled ring or droplet image */
+    poolTake: function(pool, key) {
+      var img = pool.pop();
+      if (!img) {
+        img = this.add.image(0, 0, key).setVisible(false);
+        img.cemPooled = true;
+      }
+      return img;
+    },
+
+    /**
+     * A ring spreading on the water at a world point; `size` is its full
+     * scale, `dur` its life. Rings lie on the floor layer with the puddles.
+     */
+    spawnRing: function(x, y, size, dur, alpha, depth) {
+      if (this.rings.length >= CemRain.CFG.RING_CAP) return null;
+      var img = this.poolTake(this.ringPool, 'cem_drop_ring');
+      if (!img.cemInFloor) { this.world.floorLayer.add(img); img.cemInFloor = true; }
+      img.setPosition(x, y).setScale(size * 0.15).setAlpha(alpha).setDepth(depth).setVisible(true);
+      var ring = { img: img, t0: this.time.now, dur: dur, from: size * 0.15, to: size, alpha: alpha };
+      this.rings.push(ring);
+      return ring;
+    },
+
+    /** Water flung up from a step: it rises, falls back and is gone */
+    spawnDrop: function(x, y, o) {
+      if (this.drops.length >= 24) return;
+      var img = this.poolTake(this.dropPool, 'cem_droplet');
+      this.world.placeDynamic(img, o.gx, o.gy);
+      img.setPosition(x, y).setScale(0.6 + Math.random() * 0.6).setAlpha(0.9).setDepth(this.player.depth + 1).setVisible(true);
+      this.drops.push({ img: img, x: x, y: y, vx: (Math.random() - 0.5) * 170, vy: -120 - Math.random() * 140, t0: this.time.now, dur: 380 + Math.random() * 160, floor: y });
+    },
+
+    /**
+     * Mr Owl's foot comes down in a puddle: bigger rings, a few drops and a
+     * wet step. Called from the step beat of syncOwl; returns true when it
+     * played, so the dry footstep stays quiet.
+     */
+    splashStep: function(o) {
+      var fill = this.owlPuddleFill();
+      if (fill < 0.2) return false;
+      if (!CemRain.splashDue(this.time.now, this.splashAt)) return true;
+      this.splashAt = this.time.now;
+      fx('splash', { volume: 0.35 + 0.35 * fill });
+      if (REDUCED_MOTION) return true;
+      var x = this.player.x, y = this.player.y;
+      var depth = this.owlPuddle.depth + 0.5;
+      this.spawnRing(x, y, 1.1, 620, 0.75 * fill, depth);
+      this.spawnRing(x + (Math.random() - 0.5) * 16, y + (Math.random() - 0.5) * 6, 0.7, 500, 0.6 * fill, depth);
+      var n = 3 + Math.floor(Math.random() * 3);
+      for (var i = 0; i < n; i++) this.spawnDrop(x + (Math.random() - 0.5) * 20, y - 2, o);
+      return true;
+    },
+
+    /** Everything wet, once a frame: the rain's strength, the puddles filling, rings and drops, the reflection */
+    updateRain: function(time, delta) {
+      if (!this.puddles) return;
+      var cfg = CemRain.CFG;
+      var now = this.time.now;
+      var elapsed = now - (this.rainT0 || now);
+      var dt = Math.min(delta || 16, 100);
+      var L = this.level;
+      var cam = this.cameras.main;
+      var i, pd;
+
+      // the rain itself
+      if (this.rainEmitter) {
+        if (cam.zoom !== this.rainZoom) this.layoutRain();
+        if (this.rainStrength < 1) this.setRainStrength(CemRain.rainStrength(elapsed), false);
+      }
+
+      // the puddles fill: only the ones still changing are touched
+      var visiblePuddles = 0;
+      var view = cam.worldView;
+      for (i = 0; i < this.puddles.length; i++) {
+        pd = this.puddles[i];
+        if (pd.vis === 0) continue;
+        if (pd.vis === 2 && pd.x > view.x - 80 && pd.x < view.right + 80 && pd.y > view.y - 60 && pd.y < view.bottom + 60) visiblePuddles++;
+        if (pd.settled) continue;
+        var fill = REDUCED_MOTION ? 1 : CemRain.puddleFill(pd.spec, elapsed);
+        var reveal = pd.revealAt ? Math.min(1, (now - pd.revealAt) / 900) : 1;
+        pd.fill = fill;
+        pd.img.setAlpha(fill * reveal * (pd.vis === 2 ? 1 : 0.6));
+        if (fill >= 1 && reveal >= 1) pd.settled = true;
+      }
+
+      // which puddle Mr Owl stands in; a new tile gets its surroundings wet
+      var o = CemModel.owlPos(L);
+      var oi = CemModel.index(L, o.gx, o.gy);
+      if (oi !== this.owlTileIdx) { this.owlTileIdx = oi; this.layPuddlesAround(o); }
+      this.owlPuddle = this.puddleByTile[oi] || null;
+      var ofill = this.owlPuddleFill();
+      if (ofill > 0.15 && this.player.visible) {
+        var r = this.owlReflection;
+        if (r.frame.name !== this.player.frame.name) r.setFrame(this.player.frame.name);
+        r.setPosition(this.player.x, this.player.y - 8).setFlipX(this.player.flipX)
+          .setAlpha(cfg.REFLECTION_ALPHA * ofill).setDepth(this.owlPuddle.depth + 0.6).setVisible(true);
+      } else if (this.owlReflection.visible) {
+        this.owlReflection.setVisible(false);
+      }
+      if (REDUCED_MOTION) return;
+
+      // now and then a drop lands on a puddle in view
+      if (this.rainStrength > 0 && CemRain.ringDue(Math.random(), dt, visiblePuddles)) {
+        pd = this.puddles[Math.floor(Math.random() * this.puddles.length)];
+        if (pd && pd.vis === 2 && pd.fill > 0.25 &&
+            pd.x > view.x && pd.x < view.right && pd.y > view.y && pd.y < view.bottom) {
+          var sc = pd.spec.scale;
+          var a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random());
+          this.spawnRing(pd.x + Math.cos(a) * rr * 34 * sc, pd.y + Math.sin(a) * rr * 15 * sc,
+            (0.25 + Math.random() * 0.3) * sc, cfg.RING_MS, 0.55 * pd.fill, pd.depth + 0.5);
+        }
+      }
+
+      // rings spread and fade
+      for (i = this.rings.length - 1; i >= 0; i--) {
+        var ring = this.rings[i];
+        var k = (now - ring.t0) / ring.dur;
+        if (k >= 1) {
+          ring.img.setVisible(false);
+          this.ringPool.push(ring.img);
+          this.rings[i] = this.rings[this.rings.length - 1];
+          this.rings.pop();
+          continue;
+        }
+        var e = 1 - (1 - k) * (1 - k);
+        ring.img.setScale(ring.from + (ring.to - ring.from) * e).setAlpha(ring.alpha * (1 - k));
+      }
+
+      // drops fly up and fall back
+      for (i = this.drops.length - 1; i >= 0; i--) {
+        var d = this.drops[i];
+        var kd = (now - d.t0) / d.dur;
+        if (kd >= 1) {
+          d.img.setVisible(false);
+          this.world.removeDynamic(d.img);
+          this.dropPool.push(d.img);
+          this.drops[i] = this.drops[this.drops.length - 1];
+          this.drops.pop();
+          continue;
+        }
+        var s = dt / 1000;
+        d.vy += 700 * s;
+        d.x += d.vx * s; d.y += d.vy * s;
+        if (d.y > d.floor) d.y = d.floor;
+        d.img.setPosition(d.x, d.y).setAlpha(0.9 * (1 - kd * kd));
+      }
+    },
+
+    /** For the perf overlay */
+    rainStats: function() {
+      return {
+        streaks: this.rainEmitter ? this.rainEmitter.getAliveParticleCount() : 0,
+        puddles: this.puddles ? this.puddles.length : 0,
+        rings: this.rings ? this.rings.length : 0,
+        drops: this.drops ? this.drops.length : 0,
+        strength: this.rainStrength
+      };
+    },
+
     // --- Owl ---------------------------------------------------------------------
 
     createPlayer: function() {
@@ -785,7 +1092,10 @@ var CemScenes = (function() {
         else if (this.playerHasWalk && !this.walking) this.player.play('owl_walk');
         if (!this.walking) { this.stopIdle(); this.walking = true; }
         this.stepAt = this.stepAt || 0;
-        if (this.time.now > this.stepAt) { fx('step', { volume: 0.5 }); this.stepAt = this.time.now + 330; }
+        if (this.time.now > this.stepAt) {
+          if (!this.splashStep(o)) fx('step', { volume: 0.5 });
+          this.stepAt = this.time.now + 330;
+        }
       } else if (this.walking) {
         this.walking = false;
         if (!this.owl3d && this.playerHasWalk) { this.player.stop(); this.player.setFrame('idle'); }
@@ -1288,6 +1598,7 @@ var CemScenes = (function() {
           var tint = v === 2 ? lerpTint(L.lightMap[i]) : SEEN_TINT;
           for (var p = 0; p < props.length; p++) props[p].setTint(tint);
         }
+        if (this.puddleByTile[i]) this.showPuddle(this.puddleByTile[i], v, fresh);
         this.lastVis[i] = v;
       }
       for (var id in this.tombObjs) {
@@ -1345,6 +1656,7 @@ var CemScenes = (function() {
       this.scale.on('resize', function(size) {
         cam.setSize(size.width, size.height);
         self.layoutAtmosphere(size.width, size.height);
+        self.layoutRain();
         self.followOffset = self.hudOffset();
         if (self.player && self.player.visible) self.focusOn(self.player.x, self.player.y - 12, true);
         self.world.update(true);
@@ -1441,6 +1753,9 @@ var CemScenes = (function() {
       this.updateOwlLighting();
       this.updateMonsters(time);
       this.updateFog();
+      var r0 = this.perf ? performance.now() : 0;
+      this.updateRain(time, delta);
+      if (this.perf) this.perf.markRain(performance.now() - r0);
       if (this.player && this.player.visible) {
         var tx = this.player.x + this.followOffset.x / cam.zoom;
         var ty = this.player.y + this.followOffset.y / cam.zoom;

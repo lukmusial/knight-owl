@@ -36,6 +36,8 @@ var CemPerf = (function() {
     var drawSum = 0;
     var logicMs = 0;
     var logicSum = 0;
+    var rainMs = 0;
+    var rainSum = 0;
 
     function countVisible() {
       var n = 0;
@@ -55,26 +57,32 @@ var CemPerf = (function() {
       /** Time spent in the game logic this frame */
       mark: function(ms) { logicMs = ms; },
 
+      /** Time spent on the rain, puddles, rings and drops this frame */
+      markRain: function(ms) { rainMs = ms; },
+
       frame: function() {
         frames++;
         drawSum += draws;
         logicSum += logicMs;
+        rainSum += rainMs;
         draws = 0;
         var now = scene.time.now;
         if (now < at) return;
         at = now + 500;
         var st = scene.world ? scene.world.stats() : {};
+        var rs = scene.rainStats ? scene.rainStats() : { streaks: 0, puddles: 0, rings: 0 };
         var fps = Math.round(scene.sys.game.loop.actualFps);
         text.setText([
           'fps ' + fps + '   logic ' + (logicSum / Math.max(1, frames)).toFixed(2) + ' ms',
           'draws ' + Math.round(drawSum / Math.max(1, frames)) + '   sprites ' + countVisible(),
           'chunks ' + st.chunks + '/' + st.pool + ' (' + st.bakes + ' bakes)',
           'cells ' + st.visibleCells + '/' + st.cells + '   bands ' + st.bands,
-          'grid ' + scene.level.W + 'x' + scene.level.H + '   gen ' + (scene.level.genMs || '?') + ' ms'
+          'grid ' + scene.level.W + 'x' + scene.level.H + '   gen ' + (scene.level.genMs || '?') + ' ms',
+          'rain ' + (rainSum / Math.max(1, frames)).toFixed(2) + ' ms   streaks ' + rs.streaks + '   puddles ' + rs.puddles + '   rings ' + rs.rings
         ].join('\n'));
         var view = scene.cameras.main.worldView;
         text.setPosition(8, 8);
-        frames = 0; drawSum = 0; logicSum = 0;
+        frames = 0; drawSum = 0; logicSum = 0; rainSum = 0;
         void view;
       }
     };

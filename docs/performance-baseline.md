@@ -4,6 +4,31 @@ Figures the game was last known good at, and how each was taken. Append a new
 dated section when re-baselining; never overwrite an old one, they are the
 history.
 
+## 2026-09-21 (rain) - cemetery rain and puddles experiment
+
+Same machine and Chrome as the baseline below, run from the experiment's
+worktree. The rain adds one particle emitter (screen space, one texture), up
+to 80 puddle images on the floor layer, a pool of up to 20 rings and 24
+drops, and Mr Owl's reflection. Measured with `npm run test:cem:rain`
+(rain clock wound on so every puddle is full and the streaks are at full
+strength; single runs, headless SwiftShader) and `npm run test:cem:perf`.
+
+| figure | with rain | baseline |
+|---|---|---|
+| `updateRain` per frame (puddles, rings, drops, reflection) | 0.03-0.06 ms | - |
+| emitter `preUpdate` per frame (130-220 streaks alive) | 0.15 ms | - |
+| logic ms/frame (`tickMsPerFrame`) | 0.027 | 0.029 |
+| draw calls | 35 | 31 (27-33) |
+| visible sprites (streaks not counted: the emitter is one object) | 164 | 160 |
+| top-level objects | 45 | 44 |
+| props in depth bands | 644 | 644 |
+| unit suite | 446/446 | 433/433 |
+
+The extra draw calls are the streak batch and the puddle textures (four
+canvases, so puddles of different shapes break the batch between them);
+packing the four shapes and the ring into one atlas would bring most of
+that back.
+
 ## 2026-09-21 (later) - after the card and asset optimisation pass (BASELINE going forward)
 
 Same machine and Chrome as the section below. Changes in this pass: the card
