@@ -16,21 +16,15 @@
  *    what he remembers: a prop's alpha and the alpha its ground is drawn
  *    with. Ground he only half approached stays half remembered.
  *
- * A tile also comes up the moment any part of it is inside the camera's
- * view, whatever its distance from him: `enterView` starts a fade that
- * lifts its peak from 0 to `VIEW_PEAK` (the remembered look: solid, blue)
- * over `VIEW_FADE_MS` (`advanceView`), and the distance curve lifts it on
- * toward full. So nothing inside the view is ever a hole, and a pan or a
- * zoom out shows new ground fading in rather than appearing.
- *
- * Lantern-lit tiles (within VIS_LANTERN of a lamp post) are at 1 from the
+ * The camera plays no part: a pan or a zoom out shows nothing he has not
+ * walked near, and ground beyond OUTER that he has never approached stays
+ * dark. Lantern-lit tiles (within VIS_LANTERN of a lamp post) are at 1 from the
  * start, as are tiles a save says he has seen. For things that move between
  * tiles (the monsters) `pointFactor` gives the same curve from a float
  * position, with the lantern light falling off continuously past its disc.
  *
  * `update` only looks at a (2 * half + 1)^2 window around him plus the tiles
- * that were lit last frame; the view fade only touches the tiles that are
- * still fading. Neither walks the whole grid. Pure: no Phaser, no DOM,
+ * that were lit last frame, never the whole grid. Pure: no Phaser, no DOM,
  * node-tested.
  */
 
@@ -41,8 +35,6 @@ var CemReveal = (function() {
     ALPHA_FULL_AT: 0.6,  // the factor at which a prop is fully opaque; the tint keeps warming past it
     LIT_FROM: 0.25,      // the factor from which a prop's tint warms from the remembered blue to lantern light
     LAMP_FADE: 2,        // tiles past VIS_LANTERN over which a lantern's light fades for things that move through it
-    VIEW_FADE_MS: 1800,  // how long a tile takes to come up once it is inside the camera's view
-    VIEW_PEAK: 0.6,      // the peak the view fade reaches: ALPHA_FULL_AT, so the tile is solid but still the remembered blue
     EPS: 1 / 128         // a change of the live factor smaller than this is not applied to sprites
   };
 
@@ -101,9 +93,6 @@ var CemReveal = (function() {
       peak: new Float32Array(n),              // the highest factor a tile has reached (1 where lit or remembered from a save)
       stamp: new Int32Array(n),               // frame a tile was last inside the window
       active: [],                             // tiles with a live factor last frame
-      viewed: new Uint8Array(n),              // 1 once a tile has been inside the camera's view
-      viewT: new Float32Array(n),             // progress of its view fade, 0..1
-      fading: [],                             // tiles whose view fade is still running
       frame: 0
     };
     var lr = st.lampRadius;
@@ -181,44 +170,6 @@ var CemReveal = (function() {
     return out;
   }
 
-  /**
-   * A tile has come into the camera's view: start its fade, once. Returns
-   * true the first time.
-   */
-  function enterView(st, idx) {
-    if (st.viewed[idx]) return false;
-    st.viewed[idx] = 1;
-    st.viewT[idx] = 0;
-    st.fading.push(idx);
-    return true;
-  }
-
-  /**
-   * Advance every running view fade by dtMs: a tile's peak rises toward
-   * VIEW_PEAK along a smoothstep of its progress, and the tile is reported in
-   * out.changed. Finished fades leave the list.
-   */
-  function advanceView(st, dtMs, out) {
-    var list = st.fading;
-    if (!list.length) return out;
-    var cfg = st.cfg;
-    var step = st.instant ? 1 : dtMs / cfg.VIEW_FADE_MS;
-    var keep = 0;
-    for (var i = 0; i < list.length; i++) {
-      var idx = list[i];
-      var t = Math.min(1, st.viewT[idx] + step);
-      st.viewT[idx] = t;
-      var fv = smoothstep(t) * cfg.VIEW_PEAK;
-      if (fv > st.peak[idx]) {
-        st.peak[idx] = fv;
-        out.changed.push(idx);
-      }
-      if (t < 1) list[keep++] = idx;
-    }
-    list.length = keep;
-    return out;
-  }
-
   /** Live factor of a tile: 1 under a lantern, else Mr Owl's */
   function factor(st, idx) {
     return st.lamp[idx] ? 1 : st.f[idx];
@@ -276,8 +227,6 @@ var CemReveal = (function() {
     litOf: litOf,
     create: create,
     update: update,
-    enterView: enterView,
-    advanceView: advanceView,
     factor: factor,
     alphaAt: alphaAt,
     litAt: litAt,

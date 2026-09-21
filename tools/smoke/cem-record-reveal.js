@@ -4,14 +4,11 @@
  * along the lanes toward a crypt, then a lantern, then a wandering monster,
  * each of which comes out of the dark a little more with every step he takes
  * toward it, with a pause before each so the eye can settle on the edge of
- * what he can see. On the way there is a pinch (the zoom eases out to 0.5
- * and back, so the ground at the far edge of the view comes up on camera)
- * and a tap-to-walk leg (the camera pans after him and new ground fades in
- * as it scrolls into view).
+ * what he can see.
  *
  *   node tools/smoke/cem-record-reveal.js [--out docs/videos/cemetery-reveal.mp4]
  *                                         [--port 8095] [--width 1000] [--height 700]
- *                                         [--seconds 50] [--pace 0.4]
+ *                                         [--seconds 45] [--pace 0.4]
  *
  * He is steered with the stick at `--pace` of full speed (the model scales
  * his speed with the stick), so the reveal has time to read. Same capture as
@@ -33,7 +30,7 @@ function opt(name, def) { const i = args.indexOf(name); return i === -1 ? def : 
 const PORT = Number(opt('--port', 8095));
 const WIDTH = Number(opt('--width', 1000));
 const HEIGHT = Number(opt('--height', 700));
-const SECONDS = Number(opt('--seconds', 50));
+const SECONDS = Number(opt('--seconds', 45));
 const PACE = Number(opt('--pace', 0.4));
 const OUT = path.resolve(ROOT, opt('--out', 'docs/videos/cemetery-reveal.mp4'));
 const KEEP = args.indexOf('--keep-frames') !== -1;
@@ -158,25 +155,13 @@ async function main() {
     // 1. the nearest crypt, slowly: it stands up out of the dark ahead of him
     if (plan.tomb) {
       log('  toward tomb ' + plan.tomb + ' (' + plan.steps + ' steps)');
-      await walkToward(page, { tomb: plan.tomb }, 4.8, Math.min(16000, left() - 30000));
+      await walkToward(page, { tomb: plan.tomb }, 4.8, Math.min(22000, left() - 20000));
       await wait(1500);                                    // a pause: the crypt half out of the dark
-      await walkToward(page, { tomb: plan.tomb }, 0.8, Math.min(6000, left() - 26000));
-      await wait(1000);
+      await walkToward(page, { tomb: plan.tomb }, 0.8, Math.min(7000, left() - 17000));
+      await wait(1500);
     }
 
-    // 2. a pinch: the zoom eases out to 0.5, holds, and back; the ground at
-    //    the far edge of the view comes up while it is out
-    log('  pinch out and back');
-    await page.evaluate(async () => {
-      const wait = ms => new Promise(r => setTimeout(r, ms));
-      const S = ProtoCem.getScene(), cam = S.cameras.main, z0 = cam.zoom;
-      S.tweens.add({ targets: cam, zoom: 0.5, duration: 1400, ease: 'Sine.easeInOut' });
-      await wait(3600);
-      S.tweens.add({ targets: cam, zoom: z0, duration: 1200, ease: 'Sine.easeInOut' });
-      await wait(1400);
-    });
-
-    // 3. a lantern he has not been near: its lit disc is there from the start,
+    // 2. a lantern he has not been near: its lit disc is there from the start,
     //    the dark ground and graves between him and it come up as he walks
     const lantern = await page.evaluate(() => {
       const L = ProtoCem.getLevel();
@@ -201,14 +186,12 @@ async function main() {
     });
     if (lantern) {
       log('  toward a lantern (' + lantern.steps + ' steps)');
-      await walkToward(page, { tile: lantern.tile }, 1.2, Math.min(8000, left() - 14000));
-      await wait(1000);
+      await walkToward(page, { tile: lantern.tile }, 1.2, Math.min(9000, left() - 11000));
+      await wait(1200);
     }
 
-    // 4. tap-to-walk toward the nearest wanderer: the camera pans after him
-    //    at full speed and the ground at the leading edge fades in as it
-    //    scrolls into view; then stop while the monster is still half in the
-    //    dark, and step in slowly
+    // 3. the nearest wanderer, slowly: stop while it is still half in the
+    //    dark, then step in
     const monster = await page.evaluate(() => {
       const L = ProtoCem.getLevel();
       const from = CemModel.owlTile(L);
@@ -221,28 +204,7 @@ async function main() {
       return best;
     });
     if (monster) {
-      log('  tap-to-walk toward the ' + monster.id + ' (' + monster.steps + ' steps)');
-      const tap = await page.evaluate(uid => {
-        const L = ProtoCem.getLevel();
-        const m = L.monstersByUid[uid];
-        const route = CemModel.pathTo(L, CemModel.owlTile(L), { gx: m.gx, gy: m.gy });
-        let pick = null;
-        for (const st of route) {
-          const d = Math.abs(st.gx - m.gx) + Math.abs(st.gy - m.gy);
-          if (CemModel.visibilityAt(L, st.gx, st.gy) > 0 && d >= 6) pick = st;
-        }
-        if (pick) ProtoCem.onTileTap(pick.gx, pick.gy);
-        return pick;
-      }, monster.uid);
-      if (tap) {
-        const until = Date.now() + 7000;
-        while (Date.now() < until) {
-          await wait(150);
-          const walking = await page.evaluate(() => { const L = ProtoCem.getLevel(); return !!(L.owl.path && L.owl.path.length); });
-          if (!walking) break;
-        }
-        await wait(600);
-      }
+      log('  toward the ' + monster.id + ' (' + monster.steps + ' steps)');
       const how = await walkToward(page, { monster: monster.uid }, 5.2, Math.max(3000, left() - 5500));
       log('    ' + how + ', pausing at the edge of the dark');
       await wait(1500);
