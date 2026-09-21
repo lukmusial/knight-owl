@@ -7,12 +7,24 @@
 TestRunner.suite('SFX Module', () => {
   var REQUIRED = ['tap', 'hit', 'wrong', 'correct', 'streak', 'defeat-monster', 'coin', 'coins',
     'attack', 'dragon-roar', 'victory', 'defeat-sting', 'step', 'turn', 'door', 'reveal',
-    'bump', 'knockback', 'pushback', 'torch-ignite', 'door-creak', 'drip', 'lava-bubble'];
+    'bump', 'knockback', 'pushback', 'torch-ignite', 'door-creak', 'drip', 'lava-bubble', 'thunder'];
 
   TestRunner.test('all required recipes exist', () => {
     REQUIRED.forEach(function(name) {
       TestRunner.assertTruthy(SFX.RECIPES[name], 'missing recipe ' + name);
     });
+  });
+
+  TestRunner.test('thunder is a crack followed by a long rumble with a falling filter', () => {
+    var r = SFX.RECIPES['thunder'];
+    var crack = r.steps.filter(function(s) { return s.at === 0 && s.d <= 0.1; });
+    TestRunner.assert(crack.length >= 1, 'a short step at the start');
+    var rumbles = r.steps.filter(function(s) { return s.kind === 'noise' && s.d >= 1.5 && s.filter === 'lowpass'; });
+    TestRunner.assert(rumbles.length >= 2, 'at least two overlapping long lowpass noises');
+    rumbles.forEach(function(s) {
+      TestRunner.assert(s.filterEnd && s.filterEnd < s.filterFreq, 'the rumble filter falls as it decays');
+    });
+    TestRunner.assert(r.dur >= 1.5 && r.dur <= 3, 'a 1.5-3 s roll');
   });
 
   TestRunner.test('recipes are well formed and short', () => {

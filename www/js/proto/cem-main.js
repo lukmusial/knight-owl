@@ -567,7 +567,8 @@ var ProtoCem = (function() {
         '<div class="cem-map-view"><canvas class="cem-map-canvas" width="1400" height="800"></canvas></div>' +
         '<div class="cem-map-legend">' +
           '<span><i class="cem-map-dot you"></i><span class="label-en">Mr Owl</span><span class="label-pl">Pan Sowa</span></span>' +
-          '<span><i class="cem-map-dot tomb"></i><span class="label-en">tomb you have seen</span><span class="label-pl">widziany grobowiec</span></span>' +
+          '<span><i class="cem-map-dot tomb"></i><span class="label-en">tomb still to visit</span><span class="label-pl">grobowiec do odwiedzenia</span></span>' +
+          '<span><i class="cem-map-dot visited"></i><span class="label-en">tomb visited</span><span class="label-pl">odwiedzony grobowiec</span></span>' +
           '<span><i class="cem-map-dot great"></i><span class="label-en">the great tomb</span><span class="label-pl">wielki grobowiec</span></span>' +
           '<span><i class="cem-map-dot monster"></i><span class="label-en">monster in sight</span><span class="label-pl">potw\u00f3r w zasi\u0119gu wzroku</span></span>' +
           '<span class="cem-map-hint"><span class="label-en">Tap a lane to walk there.</span><span class="label-pl">Dotknij \u015bcie\u017cki, by tam p\u00f3j\u015b\u0107.</span></span>' +

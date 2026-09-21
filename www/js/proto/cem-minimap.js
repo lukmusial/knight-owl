@@ -8,6 +8,36 @@
 var CemMinimap = (function() {
   var S = 7;          // half tile width in map pixels
   var PAD = 8;
+  // tomb colours: still to visit (its light burns gold), visited (blue, like its door), the great tomb
+  var TOMB = {
+    todoFill: '#3a3f4c', todoStroke: '#ffd08a',
+    doneFill: '#2c5a70', doneStroke: '#7fd8ff',
+    greatFill: '#3b2d4f', greatLocked: '#8a5cc7', greatOpen: '#ffd166'
+  };
+
+  /**
+   * Has Mr Owl finished with this tomb: its key part taken, or the Reaper beaten
+   * @returns {boolean}
+   */
+  function tombVisited(level, tomb) {
+    if (tomb.size === 'large') return !!(level.monstersByUid.boss && level.monstersByUid.boss.defeated);
+    return CemModel.isGuardianDefeated(level, tomb);
+  }
+
+  /** Fill and stroke for a tomb on the map */
+  function tombStyle(level, tomb) {
+    var done = tombVisited(level, tomb);
+    if (tomb.size === 'large') {
+      var unlocked = level.keyParts.every(function(k) { return k; });
+      return { fill: done ? TOMB.doneFill : TOMB.greatFill, stroke: done ? TOMB.doneStroke : (unlocked ? TOMB.greatOpen : TOMB.greatLocked), done: done };
+    }
+    return { fill: done ? TOMB.doneFill : TOMB.todoFill, stroke: done ? TOMB.doneStroke : TOMB.todoStroke, done: done };
+  }
+
+  /** The tick drawn over a visited tomb, in map px, from its footprint centre */
+  function tickPoints(cx, cy) {
+    return [[cx - 3.2, cy - 0.2], [cx - 0.8, cy + 2.2], [cx + 3.6, cy - 3]];
+  }
 
   function px(gx, gy) {
     return { x: (gx - gy) * S, y: (gx + gy) * S / 2 };
@@ -52,10 +82,15 @@ var CemMinimap = (function() {
           if (tomb) {
             var a = px(tomb.x0, tomb.y0), b = px(tomb.x0 + tomb.w, tomb.y0), c = px(tomb.x0 + tomb.w, tomb.y0 + tomb.h), d = px(tomb.x0, tomb.y0 + tomb.h);
             var isLarge = tomb.size === 'large';
-            var unlocked = isLarge && level.keyParts.every(function(k) { return k; });
-            tombsSvg += '<polygon class="cem-map-tomb' + (isLarge ? ' large' : '') + '" points="' +
+            var style = tombStyle(level, tomb);
+            tombsSvg += '<polygon class="cem-map-tomb' + (isLarge ? ' large' : '') + (style.done ? ' visited' : '') + '" points="' +
               (a.x) + ',' + (a.y - S / 2) + ' ' + (b.x) + ',' + (b.y - S / 2) + ' ' + (c.x) + ',' + (c.y - S / 2) + ' ' + (d.x) + ',' + (d.y - S / 2) +
-              '" fill="' + (isLarge ? '#3b2d4f' : '#3a3f4c') + '" stroke="' + (unlocked ? '#ffd166' : (isLarge ? '#8a5cc7' : '#6b7280')) + '" stroke-width="1.5"' + dim + '/>';
+              '" fill="' + style.fill + '" stroke="' + style.stroke + '" stroke-width="1.5"' + dim + '/>';
+            if (style.done) {
+              var tc = px(tomb.x0 + tomb.w / 2, tomb.y0 + tomb.h / 2);
+              tombsSvg += '<polyline class="cem-map-tick" points="' + tickPoints(tc.x, tc.y - S / 2).map(function(p) { return p[0] + ',' + p[1]; }).join(' ') +
+                '" fill="none" stroke="' + TOMB.doneStroke + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+            }
           }
         }
         continue;
@@ -197,8 +232,7 @@ var CemMinimap = (function() {
       }
       if (!seen || tombsDrawn[tomb.id]) continue;
       tombsDrawn[tomb.id] = true;
-      var isLarge = tomb.size === 'large';
-      var unlocked = isLarge && level.keyParts.every(function(k) { return k; });
+      var style = tombStyle(level, tomb);
       var a = px(tomb.x0, tomb.y0), b = px(tomb.x0 + tomb.w, tomb.y0);
       var c2 = px(tomb.x0 + tomb.w, tomb.y0 + tomb.h), d = px(tomb.x0, tomb.y0 + tomb.h);
       ctx.globalAlpha = 1;
@@ -208,11 +242,20 @@ var CemMinimap = (function() {
       ctx.lineTo(c2.x, c2.y - S / 2);
       ctx.lineTo(d.x, d.y - S / 2);
       ctx.closePath();
-      ctx.fillStyle = isLarge ? '#3b2d4f' : '#3a3f4c';
+      ctx.fillStyle = style.fill;
       ctx.fill();
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = unlocked ? '#ffd166' : (isLarge ? '#8a5cc7' : '#6b7280');
+      ctx.strokeStyle = style.stroke;
       ctx.stroke();
+      if (style.done) {
+        var tc = px(tomb.x0 + tomb.w / 2, tomb.y0 + tomb.h / 2);
+        var tp = tickPoints(tc.x, tc.y - S / 2);
+        ctx.lineWidth = 1.6 * mk;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(tp[0][0], tp[0][1]); ctx.lineTo(tp[1][0], tp[1][1]); ctx.lineTo(tp[2][0], tp[2][1]);
+        ctx.stroke();
+      }
     }
     if (opts.showMonsters !== false) {
       ctx.fillStyle = '#e14b4b';
@@ -256,7 +299,9 @@ var CemMinimap = (function() {
       if (level.vis[m.gy * level.W + m.gx] !== 2) continue;
       mons += m.gx + ',' + m.gy + ';';
     }
-    return level.seenVersion + '|' + level.owl.gx + ',' + level.owl.gy + '|' + CemModelKeyParts(level) + '|' + mons;
+    var done = '';
+    for (var t = 0; t < level.tombs.length; t++) done += tombVisited(level, level.tombs[t]) ? '1' : '0';
+    return level.seenVersion + '|' + level.owl.gx + ',' + level.owl.gy + '|' + CemModelKeyParts(level) + '|' + done + '|' + mons;
   }
 
   function CemModelKeyParts(level) {
@@ -265,7 +310,7 @@ var CemMinimap = (function() {
     return n;
   }
 
-  return { render: render, draw: draw, fit: fit, gridAt: gridAt, stateKey: stateKey, project: px };
+  return { render: render, draw: draw, fit: fit, gridAt: gridAt, stateKey: stateKey, project: px, tombVisited: tombVisited };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

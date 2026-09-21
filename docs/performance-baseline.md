@@ -48,7 +48,34 @@ Not done, still worth it on a phone: the six big kinds' sheets are still
 6-10 MB each (120 frames at 100x135); Phaser's 1.45 MB parse (1.3 s at 4x
 throttle); the music buffer (117 s mono decoded = 20.6 MB).
 
-## 2026-09-21 (later) - after the card and asset optimisation pass (superseded by the section above)
+## 2026-09-21 (rain) - cemetery rain, puddles and reflections experiment (measured against the card pass below, before the cemetery pass above)
+
+Same machine and Chrome as the baseline below, run from the experiment's
+worktree. The rain adds one particle emitter (screen space, one texture), up
+to 80 puddle images on the floor layer, each with its own 112x56 canvas
+texture holding the CPU-composited reflection of what stands around it,
+plus a pool of up to 20 rings and 24 drops. Measured with
+`npm run test:cem:rain` (an endless shower so every puddle is full and the
+streaks are at full strength; single runs, headless SwiftShader, which runs
+at 5-8 fps so every frame is a live-reflection tick) and `npm run test:cem:perf`.
+
+| figure | with rain | baseline |
+|---|---|---|
+| one reflection bake (props + movers, clip, tint, compose, upload) | 0.29-0.34 ms | - |
+| `updateRain` per frame, walking through puddles, bakes included | 0.64 ms (headless: every frame is a live tick; at 60 fps the same bakes spread over 5 frames, about 0.15 ms) | - |
+| emitter `preUpdate` per frame (130-220 streaks alive) | 0.09-0.15 ms | - |
+| logic ms/frame (`tickMsPerFrame`) | 0.027 | 0.029 |
+| draw calls | 35-41 (each puddle in view is its own texture) | 31 (27-33) |
+| visible sprites (streaks not counted: the emitter is one object) | 164 | 160 |
+| top-level objects | 45 | 44 |
+| props in depth bands | 644 | 644 |
+| unit suite | 450/450 | 433/433 |
+
+The extra draw calls are the streak batch and the per-puddle textures: a
+puddle in view breaks the sprite batch once. An atlas of puddle slots would
+recover them at the price of uploading the whole atlas on every live bake.
+
+## 2026-09-21 (later) - after the card and asset optimisation pass (superseded by the cemetery pass above)
 
 Same machine and Chrome as the section below. Changes in this pass: the card
 animation loop is stopped when a card is put away (`MonsterStage.release`);

@@ -23,6 +23,10 @@ var CemWorld = (function() {
   var PAD = 320;                  // world px of camera padding before culling
   var GROUND_DEPTH = -100000;
   var CULL_MS = 200;
+  var BAKE_MIN_MS = 250;          // a chunk whose ground keeps brightening is repainted at most this often; tile sprites bridge the gap
+  var ACQUIRE_BUDGET = 8;         // chunks the camera may reach per frame (a chunk of unseen ground bakes as nothing)
+  var REBAKE_BUDGET = 2;          // live chunks repainted per frame, so walking never stutters
+  var SHADOW_PAD = 2;             // tiles past a chunk's edge whose prop shadows are baked into it (see bakeChunk)
 
   function bandOf(gx, gy) {
     return Math.floor((gx + gy) / BAND_TILES);
@@ -69,6 +73,7 @@ var CemWorld = (function() {
     var dirty = {};                // chunk index -> true
     var frameCounter = 0;
     var bakes = 0;
+    var bakeCursor = 0;            // where the dirty scan starts, so no chunk starves when many are dirty at once
     var bakeFn = null;             // set by the scene: bakeFn(rt, chunkIndex, rect)
 
     function chunkIndexOf(gx, gy) {
@@ -81,6 +86,7 @@ var CemWorld = (function() {
       slot.rt.clear();
       bakeFn(slot.rt, slot.chunk, r);
       bakes++;
+      slot.bakedAt = scene.time.now;
       delete dirty[slot.chunk];
     }
 
@@ -136,15 +142,16 @@ var CemWorld = (function() {
     }
 
     /**
-     * Tiles just revealed: repaint the chunk they sit in, plus the ones above
-     * and to the left, where a tall prop's shadow reaches in.
+     * Tiles whose ground just brightened: repaint the chunk they sit in, plus
+     * the one above or to the left when the tile is close enough to that edge
+     * for a prop's shadow to reach in.
      */
     function markSeen(indices) {
       for (var i = 0; i < indices.length; i++) {
         var t = level.tiles[indices[i]];
         dirty[chunkIndexOf(t.gx, t.gy)] = true;
-        if (t.gx >= CHUNK) dirty[chunkIndexOf(t.gx - CHUNK, t.gy)] = true;
-        if (t.gy >= CHUNK) dirty[chunkIndexOf(t.gx, t.gy - CHUNK)] = true;
+        if (t.gx >= CHUNK && t.gx % CHUNK < SHADOW_PAD) dirty[chunkIndexOf(t.gx - CHUNK, t.gy)] = true;
+        if (t.gy >= CHUNK && t.gy % CHUNK < SHADOW_PAD) dirty[chunkIndexOf(t.gx, t.gy - CHUNK)] = true;
       }
     }
 
@@ -204,6 +211,26 @@ var CemWorld = (function() {
       return obj;
     }
 
+    /** A prop laid somewhere else: it leaves its cull cell for the new tile's (same layer) */
+    function moveProp(obj, gx, gy) {
+      var old = obj.cemCell;
+      if (old) {
+        var k = old.objs.indexOf(obj);
+        if (k !== -1) old.objs.splice(k, 1);
+      }
+      var c = cellFor(gx, gy);
+      c.objs.push(obj);
+      var hw = (obj.displayWidth || TILE_W) / 2 + 32;
+      var hh = (obj.displayHeight || TILE_H) + 32;
+      c.minX = Math.min(c.minX, obj.x - hw);
+      c.maxX = Math.max(c.maxX, obj.x + hw);
+      c.minY = Math.min(c.minY, obj.y - hh);
+      c.maxY = Math.max(c.maxY, obj.y + 32);
+      obj.cemCell = c;
+      obj.visible = obj.cemShown !== false && c.shown;
+      return obj;
+    }
+
     /** Owl and monsters hop between bands as they walk */
     function placeDynamic(obj, gx, gy) {
       var b = Math.min(bands.length - 1, Math.max(0, bandOf(gx, gy)));
@@ -222,32 +249,56 @@ var CemWorld = (function() {
     var cullAt = 0;
     var visibleCells = 0;
 
+    /**
+     * The world rectangle the camera shows, from its scroll and zoom rather
+     * than `worldView`, which is only refreshed when it renders: the scene
+     * moves the camera before calling this and needs the chunks under the
+     * new view live this frame, not the next.
+     */
+    function viewRect(margin) {
+      var cam = scene.cameras.main;
+      var cx = cam.scrollX + cam.width / 2, cy = cam.scrollY + cam.height / 2;
+      var hw = cam.width / cam.zoom / 2, hh = cam.height / cam.zoom / 2;
+      margin = margin || 0;
+      return { left: cx - hw - margin, right: cx + hw + margin, top: cy - hh - margin, bottom: cy + hh + margin };
+    }
+
     function update(force) {
       frameCounter++;
-      var budget = force ? 99 : 2;   // chunks repainted per frame, so walking never stutters
-      var cam = scene.cameras.main;
-      var view = cam.worldView;
-      var left = view.x - PAD, right = view.right + PAD, top = view.y - PAD, bottom = view.bottom + PAD;
+      var acquires = force ? 99 : ACQUIRE_BUDGET;
+      var budget = force ? 99 : REBAKE_BUDGET;
+      var v = viewRect(PAD);
+      var left = v.left, right = v.right, top = v.top, bottom = v.bottom;
+      var now = scene.time.now;
 
-      // chunks: acquire what the camera can see, release what it left behind
-      for (var ci = 0; ci < chunkRect.length; ci++) {
+      // chunks: acquire what the camera can see, release what it left behind.
+      // The scan starts where the last one stopped baking, round robin: with
+      // the first chunks always first, the last ones would never get their
+      // turn while walking keeps dirtying the first
+      var n = chunkRect.length;
+      var lastBaked = -1;
+      for (var k = 0; k < n; k++) {
+        var ci = (bakeCursor + k) % n;
         var r = chunkRect[ci];
         var near = r.left < right && r.left + r.w > left && r.top < bottom && r.top + r.h > top;
         var slot = byChunk[ci] !== undefined ? pool[byChunk[ci]] : null;
         if (near) {
           if (!slot) {
-            if (budget <= 0) continue;
+            if (acquires <= 0) continue;
             slot = acquire(ci);
-            budget--;
+            acquires--;
           }
           slot.used = frameCounter;
-          if (dirty[ci] && budget > 0) { bake(slot); budget--; }
+          // the reveal brightens ground every frame while he walks; the dirty
+          // flag waits, so a chunk is repainted at most every bakeMinMs
+          if (dirty[ci] && budget > 0 && (force || now - (slot.bakedAt || 0) >= api.bakeMinMs)) { bake(slot); budget--; lastBaked = ci; }
         } else if (slot && frameCounter - slot.used > 600) {
           slot.rt.setVisible(false);
           slot.chunk = -1;
           delete byChunk[ci];
         }
       }
+      if (lastBaked !== -1) bakeCursor = (lastBaked + 1) % n;
 
       if (!force && scene.time.now < cullAt) return;
       cullAt = scene.time.now + CULL_MS;
@@ -282,14 +333,21 @@ var CemWorld = (function() {
       for (var i = 0; i < pool.length; i++) if (pool[i].chunk !== -1) dirty[pool[i].chunk] = true;
     }
 
+    /** Is this chunk painted right now (a tile sprite is only needed over a live chunk) */
+    function isLive(chunk) {
+      return byChunk[chunk] !== undefined;
+    }
+
     function stats() {
       var live = 0;
       for (var i = 0; i < pool.length; i++) if (pool[i].chunk !== -1) live++;
       return { chunks: live, pool: pool.length, bakes: bakes, cells: Object.keys(cells).length, visibleCells: visibleCells, bands: bands.length };
     }
 
-    return {
+    var api = {
       CHUNK: CHUNK,
+      SHADOW_PAD: SHADOW_PAD,
+      bakeMinMs: BAKE_MIN_MS,      // settable: the reveal check raises it to stress the tile-sprite handoff
       groundLayer: groundLayer,
       floorLayer: floorLayer,
       lightsLayer: lightsLayer,
@@ -299,18 +357,22 @@ var CemWorld = (function() {
       chunkTiles: chunkTiles,
       chunkIndexOf: chunkIndexOf,
       addProp: addProp,
+      moveProp: moveProp,
       placeDynamic: placeDynamic,
       removeDynamic: removeDynamic,
       setPropShown: setPropShown,
       setActive: setActive,
       markSeen: markSeen,
+      isLive: isLive,
+      viewRect: viewRect,
       rebakeAll: rebakeAll,
       update: update,
       stats: stats
     };
+    return api;
   }
 
-  return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK, CHUNK_POOL_MAX: CHUNK_POOL_MAX };
+  return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK, CHUNK_POOL_MAX: CHUNK_POOL_MAX, SHADOW_PAD: SHADOW_PAD, BAKE_MIN_MS: BAKE_MIN_MS, PAD: PAD };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
