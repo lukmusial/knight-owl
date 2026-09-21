@@ -25,6 +25,7 @@ Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game wher
 - Cemetery night-reveal check (headless Chrome; walks Mr Owl with a tap-to-walk leg and a pinch, and fails if anything on screen pops from dark to lit within 3 frames, shows in the dark, or if a ground tile's baked-plus-sprite composite drifts from its peak; `--zoom 0.8` / `--zoom 0.5` for the phone and pinched views): `npm run test:cem:reveal`
 - Cemetery night-reveal clip (a 45 s slow walk toward a crypt, a lantern and a wanderer, encounters off): `npm run record:cem:reveal`
 - Cemetery rain video (the rain coming in, puddles forming, Mr Owl splashing through them; the tunables are wound up for the camera): `npm run record:cem:rain`
+- Cemetery weather video, all of it in one 40 s take (the night reveal while Mr Owl walks, the storm announcing the rain, the rain arriving with puddles filling and drops hitting them, lightning over the wet ground): `npm run record:cem:weather`
 - Dungeon playthrough videos in the classic page and the isometric view (shortest way to the dragon, fighting on the way, beating it): `npm run record:classic`, `npm run record:iso`
 - E2E tests: `npm run test:e2e` (requires Maestro and running emulator)
 
