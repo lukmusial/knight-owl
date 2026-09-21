@@ -33,7 +33,7 @@ TestRunner.suite('CemStorm', () => {
     var c = CemStorm.create({ rng: CemModel.makeRng(9), firstDelayMs: 100, minGapMs: 200, maxGapMs: 200 });
     TestRunner.assertEqual(c.next(), 100, 'override first delay');
     TestRunner.assertEqual(c.next(), 200, 'override gap');
-    TestRunner.assertEqual(c.cfg.boltMs, D.boltMs, 'untouched settings keep their defaults');
+    TestRunner.assertEqual(c.cfg.totalMinMs, D.totalMinMs, 'untouched settings keep their defaults');
     TestRunner.assertEqual(CemStorm.config().flashPeak, D.flashPeak, 'config with nothing is the defaults');
   });
 
@@ -138,41 +138,113 @@ TestRunner.suite('CemStorm', () => {
     TestRunner.assert(JSON.stringify(a) !== JSON.stringify(c), 'seed matters');
   });
 
-  TestRunner.test('the bolt flickers in three pulses and is gone at boltMs', () => {
-    TestRunner.assertEqual(CemStorm.boltAlpha(-1, 150), 0, 'nothing before the strike');
-    TestRunner.assertEqual(CemStorm.boltAlpha(0, 150), 1, 'full at the strike');
-    TestRunner.assertEqual(CemStorm.boltAlpha(150, 150), 0, 'gone at boltMs');
-    TestRunner.assertEqual(CemStorm.boltAlpha(1000, 150), 0, 'and after');
-    var peaks = 0, prev = null, rising = false;
-    for (var t = 0; t < 150; t += 1) {
-      var a = CemStorm.boltAlpha(t, 150);
-      TestRunner.assert(a > 0 && a <= 1, 'lit the whole time');
-      if (prev !== null) {
-        if (a > prev) rising = true;
-        if (a < prev && rising) { peaks++; rising = false; }
+  function sampled(fn, seq, step) {
+    var vals = [];
+    for (var t = 0; t < seq.endMs + 50; t += step || 2) vals.push(fn(seq, t));
+    return vals;
+  }
+  function localMaxima(vals) {
+    var n = 0;
+    for (var i = 1; i < vals.length - 1; i++) if (vals[i] > vals[i - 1] && vals[i] >= vals[i + 1] && vals[i] > 0) n++;
+    return n;
+  }
+
+  TestRunner.test('a strike is a leader, a main stroke and two to four weaker re-strikes, 0.8-1.5 s in all', () => {
+    for (var seed = 1; seed <= 40; seed++) {
+      var seq = CemStorm.sequence(CemModel.makeRng(seed));
+      var st = seq.strokes;
+      TestRunner.assertEqual(st[0].kind, 'leader', 'starts with the leader');
+      TestRunner.assertEqual(st[0].at, 0, 'the leader starts the strike');
+      TestRunner.assert(st[0].peak < 0.5, 'the leader is dim');
+      TestRunner.assertEqual(st[1].kind, 'main', 'then the main stroke');
+      TestRunner.assertEqual(st[1].at, st[0].ms, 'straight after the leader');
+      TestRunner.assertEqual(st[1].peak, 1, 'the main stroke is full brightness');
+      TestRunner.assertEqual(seq.mainAt, st[1].at, 'mainAt is the main stroke (thunder counts from it)');
+      var re = st.slice(2);
+      TestRunner.assert(re.length >= D.restrikes[0] && re.length <= D.restrikes[1], re.length + ' re-strikes');
+      for (var i = 0; i < re.length; i++) {
+        TestRunner.assertEqual(re[i].kind, 'restrike', 'a re-strike');
+        var prevEnd = st[i + 1].at + st[i + 1].ms;
+        TestRunner.assert(re[i].at >= prevEnd, 're-strike ' + i + ' waits for a dark gap');
+        TestRunner.assert(re[i].peak < 1, 'weaker than the main stroke');
+        if (i) TestRunner.assert(re[i].peak < re[i - 1].peak, 'and weaker than the one before');
+        TestRunner.assert(re[i].ms > 20, 'long enough to see: ' + re[i].ms);
       }
-      prev = a;
+      TestRunner.assert(seq.totalMs >= D.totalMinMs && seq.totalMs <= D.totalMaxMs, 'total ' + seq.totalMs + ' ms in range');
+      TestRunner.assert(seq.endMs - seq.totalMs === D.glowLingerMs, 'the glow lingers after the last stroke');
+      TestRunner.assert(seq.noise.length * D.noiseStepMs >= seq.endMs, 'noise covers the whole strike');
     }
-    // the first pulse starts at full, so two more show as rises that fall again
-    TestRunner.assertEqual(peaks, 2, 'two pulses after the first: ' + peaks);
   });
 
-  TestRunner.test('the flash peaks at the strike, decays, pulses once more and ends at flashMs', () => {
-    TestRunner.assertEqual(CemStorm.flashAlpha(0, 350, 0.7), 0.7, 'peak at once');
-    TestRunner.assertEqual(CemStorm.flashAlpha(350, 350, 0.7), 0, 'gone at flashMs');
-    TestRunner.assertEqual(CemStorm.flashAlpha(-5, 350, 0.7), 0, 'nothing before');
-    var vals = [];
-    for (var t = 0; t <= 350; t += 5) vals.push(CemStorm.flashAlpha(t, 350, 0.7));
-    var firstQuarter = vals[Math.round(80 / 5)];
-    TestRunner.assert(firstQuarter < 0.7 * 0.35, 'well down by 80 ms: ' + firstQuarter);
-    var second = -1, at = 0;
-    for (var i = 20; i < vals.length - 1; i++) {
-      if (vals[i] > vals[i - 1] && vals[i] >= vals[i + 1] && vals[i] > second) { second = vals[i]; at = i * 5; }
+  TestRunner.test('the sequence is deterministic for a seed and takes overrides', () => {
+    var a = CemStorm.sequence(CemModel.makeRng(8)), b = CemStorm.sequence(CemModel.makeRng(8));
+    TestRunner.assertEqual(JSON.stringify(a), JSON.stringify(b), 'replayable');
+    var c = CemStorm.sequence(CemModel.makeRng(9));
+    TestRunner.assert(JSON.stringify(a) !== JSON.stringify(c), 'seed matters');
+    var cfg = CemStorm.config({ totalMinMs: 1000, totalMaxMs: 1000, restrikes: [3, 3] });
+    var d = CemStorm.sequence(CemModel.makeRng(8), cfg);
+    TestRunner.assertEqual(d.totalMs, 1000, 'override total');
+    TestRunner.assertEqual(d.strokes.length, 5, 'override re-strike count');
+  });
+
+  TestRunner.test('the core flutters: never negative, never over one, many local maxima, no smooth fade', () => {
+    for (var seed = 1; seed <= 20; seed++) {
+      var seq = CemStorm.sequence(CemModel.makeRng(seed));
+      var core = sampled(CemStorm.coreAlpha, seq);
+      core.forEach(function(v) { TestRunner.assert(v >= 0 && v <= 1, 'core in [0,1]: ' + v); });
+      TestRunner.assertEqual(CemStorm.coreAlpha(seq, -1), 0, 'nothing before the strike');
+      TestRunner.assertEqual(CemStorm.coreAlpha(seq, seq.totalMs), 0, 'gone at totalMs');
+      TestRunner.assert(localMaxima(core) >= 8, 'flutters: ' + localMaxima(core) + ' local maxima');
+      // the main stroke's plateau is not flat: it jitters between the floor and full
+      var main = seq.strokes[1];
+      var hi = 0, lo = 1, fhi = 0, flo = 1;
+      for (var t = main.at; t < main.at + main.ms; t += 2) {
+        var f = CemStorm.flutter(seq, t); fhi = Math.max(fhi, f); flo = Math.min(flo, f);
+        if (t < main.at + main.ms * 0.3) { var v = CemStorm.coreAlpha(seq, t); hi = Math.max(hi, v); lo = Math.min(lo, v); }
+      }
+      TestRunner.assert(fhi - flo > 0.15, 'the main stroke flutters (' + flo.toFixed(2) + '..' + fhi.toFixed(2) + ')');
+      TestRunner.assert(hi > 0.95, 'and opens at full: ' + hi);
+      TestRunner.assert(lo >= D.flutterFloor - 1e-9 && flo >= D.flutterFloor - 1e-9, 'never below the flutter floor');
+      // the leader is dimmer than the main stroke, and each re-strike is weaker
+      var peakOf = function(s) { var m = 0; for (var t = s.at; t < s.at + s.ms; t += 2) m = Math.max(m, CemStorm.coreAlpha(seq, t)); return m; };
+      TestRunner.assert(peakOf(seq.strokes[0]) < peakOf(main), 'leader dimmer than the main stroke');
+      var last = seq.strokes[seq.strokes.length - 1], first = seq.strokes[2];
+      TestRunner.assert(peakOf(last) < peakOf(first), 'the last re-strike is the weakest');
+      // dark gaps between strokes
+      var gapT = seq.strokes[2].at - 1;
+      TestRunner.assertEqual(CemStorm.coreAlpha(seq, gapT), 0, 'dark just before the first re-strike');
     }
-    TestRunner.assert(second > 0.15 && second < 0.7 * 0.6, 'a weaker second pulse: ' + second);
-    TestRunner.assert(at > 100 && at < 250, 'part way through: ' + at + ' ms');
-    TestRunner.assert(vals[vals.length - 2] < 0.05, 'nearly dark before the end');
-    vals.forEach(function(v) { TestRunner.assert(v >= 0 && v <= 0.7, 'within the peak'); });
+  });
+
+  TestRunner.test('the glow follows the core, lingers after it and is gone at endMs', () => {
+    var seq = CemStorm.sequence(CemModel.makeRng(4));
+    for (var t = 0; t < seq.endMs; t += 3) {
+      var c = CemStorm.coreAlpha(seq, t), g = CemStorm.glowAlpha(seq, t);
+      TestRunner.assert(g >= 0 && g <= 1, 'glow in [0,1]');
+      if (c > 0) TestRunner.assert(g > 0, 'glow wherever the core is lit');
+    }
+    var afterCore = seq.totalMs + 20;
+    TestRunner.assertEqual(CemStorm.coreAlpha(seq, afterCore), 0, 'core gone after the last stroke');
+    TestRunner.assert(CemStorm.glowAlpha(seq, afterCore) > 0, 'the glow lingers');
+    TestRunner.assert(CemStorm.glowAlpha(seq, afterCore) < 0.5, 'but faintly');
+    TestRunner.assertEqual(CemStorm.glowAlpha(seq, seq.endMs), 0, 'and is gone at endMs');
+    TestRunner.assertEqual(CemStorm.glowAlpha(seq, -1), 0, 'nothing before');
+  });
+
+  TestRunner.test('the view flash is the same flutter scaled to flashPeak, and brightest finds the main stroke', () => {
+    var seq = CemStorm.sequence(CemModel.makeRng(6));
+    var peak = 0;
+    for (var t = 0; t < seq.endMs; t += 2) {
+      var f = CemStorm.flashAlpha(seq, t), c = CemStorm.coreAlpha(seq, t);
+      TestRunner.assert(Math.abs(f - D.flashPeak * c) < 1e-12, 'flash = flashPeak * core');
+      peak = Math.max(peak, f);
+    }
+    TestRunner.assert(peak <= D.flashPeak && peak > D.flashPeak * 0.8, 'peaks near flashPeak: ' + peak);
+    TestRunner.assert(D.flashPeak >= 0.4 && D.flashPeak <= 0.5, 'a flash of 0.4-0.5, not a grey wash');
+    var b = CemStorm.brightest(seq);
+    var main = seq.strokes[1];
+    TestRunner.assert(b.t >= main.at && b.t < main.at + main.ms, 'the brightest moment is in the main stroke: ' + b.t);
+    TestRunner.assert(b.alpha > 0.8, 'and nearly full: ' + b.alpha);
   });
 
   TestRunner.test('thunder trails a far strike longer and sounds quieter', () => {

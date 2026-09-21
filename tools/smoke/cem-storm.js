@@ -23,6 +23,7 @@ const PORT = Number(opt('--port', 8097));
 const SHOT = opt('--shot', path.join('docs', 'screenshots', 'cem-05-lightning.png'));
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
+const Phaser_ADD = 1;      // Phaser.BlendModes.ADD
 let failures = 0;
 function check(cond, msg) {
   console.log((cond ? '  ok   ' : '  FAIL ') + msg);
@@ -103,21 +104,31 @@ async function main() {
     });
     check(armed.has && armed.delay === CemStormDefault('firstDelayMs') && armed.count === 1, 'first strike scheduled ' + armed.delay + ' ms after boot');
 
-    // 2. a strike: bolt drawn, flash up, props brightened; the game is held on
-    // the first frame of the strike for the screenshot, then let go
+    // 2. a strike: bolt drawn, the leader lit, props brightened; the game is
+    // held on the strike's brightest moment (the main stroke) for the
+    // screenshot, then let go
     const strike = await page.evaluate(() => new Promise(resolve => {
       const S = ProtoCem.getScene();
       const g = S.sys.game;
       const s = S.strikeLightning();
       if (!s) { resolve(null); return; }
-      // read at the moment of the strike, before the first tick starts the decay
+      // read at the moment of the strike, before the first tick moves it on
       const flash = S.stormFlash.visible && S.stormFlash.alpha, bolt = S.boltCore.visible && S.boltCore.alpha;
+      const lit = S.litProps.length;
+      const bright = CemStorm.brightest(s.seq);
+      const tick = S.tickStorm;
+      S.tickStorm = function() { S.applyStorm(bright.t); };
       g.events.once('postrender', () => {
         g.pause();
+        S.tickStorm = tick;
+        s.t = bright.t;
         resolve({
-          target: s.target, thunderAt: s.thunderAt, points: s.bolt.main.length, branches: s.bolt.branches.length,
-          fromAboveView: s.from.y < S.cameras.main.worldView.y, flash, bolt,
-          lit: S.litProps.length, shaking: S.cameras.main.shakeEffect.isRunning
+          target: s.target, thunderAt: s.thunderAt, mainAt: s.seq.mainAt, totalMs: s.seq.totalMs, endMs: s.seq.endMs,
+          strokes: s.seq.strokes.length, points: s.bolt.main.length, branches: s.bolt.branches.length,
+          fromAboveView: s.from.y < S.cameras.main.worldView.y,
+          clearOfTop: IsoModel.gridToIso(s.target.gx, s.target.gy).y - S.cameras.main.worldView.y,
+          flash, bolt, lit, bright,
+          shownBolt: S.boltCore.alpha, shownFlash: S.stormFlash.alpha, flashBlend: S.stormFlash.blendMode
         });
       });
     }));
@@ -125,25 +136,35 @@ async function main() {
     if (strike) {
       check(strike.target.dist >= 2, 'the tile is ' + strike.target.dist.toFixed(2) + ' tiles from Mr Owl');
       check(strike.fromAboveView, 'the bolt starts above the top of the view');
+      check(strike.clearOfTop > 150, 'the struck tile is ' + Math.round(strike.clearOfTop) + ' px below the top of the view');
       check(strike.points === 33 && strike.branches >= 2, 'the bolt has ' + strike.points + ' points and ' + strike.branches + ' branches');
-      check(strike.flash === 0.7 && strike.bolt === 1, 'flash at 0.7 and the bolt at full at the moment of the strike');
+      check(strike.strokes >= 4 && strike.strokes <= 6 && strike.totalMs >= 800 && strike.totalMs <= 1500,
+        'a sequence of ' + strike.strokes + ' strokes over ' + strike.totalMs + ' ms, glow gone at ' + strike.endMs);
+      check(strike.bolt > 0 && strike.bolt <= 0.4 && strike.flash > 0, 'the dim leader opens it (bolt ' + strike.bolt.toFixed(2) + ', flash ' + strike.flash.toFixed(2) + ')');
+      check(strike.shownBolt > 0.8 && strike.shownFlash > 0.35 && strike.shownFlash <= 0.45,
+        'the main stroke at ' + strike.bright.t + ' ms: bolt ' + strike.shownBolt.toFixed(2) + ', flash ' + strike.shownFlash.toFixed(2));
+      check(strike.flashBlend === Phaser_ADD, 'the view flash is additive');
       check(strike.lit > 0, strike.lit + ' props near the strike caught its light');
-      check(strike.shaking, 'the camera shakes');
-      check(strike.thunderAt >= 300 && strike.thunderAt <= 1200, 'thunder follows in ' + strike.thunderAt + ' ms');
+      check(strike.thunderAt - strike.mainAt >= 300 && strike.thunderAt - strike.mainAt <= 1200,
+        'thunder follows the main stroke (at ' + strike.mainAt + ' ms) by ' + (strike.thunderAt - strike.mainAt) + ' ms');
     }
     fs.mkdirSync(path.dirname(path.resolve(ROOT, SHOT)), { recursive: true });
     await page.screenshot({ path: path.resolve(ROOT, SHOT) });
-    const mid = await page.evaluate(() => {
+    console.log('  shot ' + SHOT + ' at the main stroke');
+    const shook = await page.evaluate(async () => {
       const S = ProtoCem.getScene();
-      const r = { t: S.stormStrike ? S.stormStrike.t : -1, bolt: S.boltCore.alpha, flash: S.stormFlash.alpha };
-      S.sys.game.resume();
-      return r;
+      const g = S.sys.game;
+      g.resume();
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      // the shake is set off by a timer at mainAt; the strike clock was moved past it, so wait a few frames
+      for (let i = 0; i < 40 && !S.cameras.main.shakeEffect.isRunning; i++) await wait(50);
+      return S.cameras.main.shakeEffect.isRunning;
     });
-    console.log('  shot ' + SHOT + ' at ' + Math.round(mid.t) + ' ms into the strike (bolt ' + mid.bolt.toFixed(2) + ', flash ' + mid.flash.toFixed(2) + ')');
+    check(shook, 'the camera shakes on the main stroke');
 
     // 3. it is all put away when the strike ends (the strike clock is the game's
-    // capped frame delta, so under SwiftShader's slow frames it outlasts 350 ms of wall time)
-    await page.waitForFunction(() => !ProtoCem.getScene().stormStrike, { timeout: 8000 });
+    // frame delta, so under SwiftShader's slow frames it outlasts wall time)
+    await page.waitForFunction(() => !ProtoCem.getScene().stormStrike, { timeout: 30000 });
     const after = await page.evaluate(() => {
       const S = ProtoCem.getScene();
       const L = ProtoCem.getLevel();
@@ -160,13 +181,13 @@ async function main() {
     // 4. cost: frames with strikes running back to back against idle frames
     // right after them (the boot rebakes and the perf overlay's own redraws
     // make the first seconds after load a poor idle baseline)
-    const busy = await page.evaluate(sample, 60, true);
-    await page.waitForFunction(() => !ProtoCem.getScene().stormStrike, { timeout: 8000 });
-    const idle = await page.evaluate(sample, 60, false);
+    const busy = await page.evaluate(sample, 120, true);
+    await page.waitForFunction(() => !ProtoCem.getScene().stormStrike, { timeout: 30000 });
+    const idle = await page.evaluate(sample, 120, false);
     const line = r => 'update ' + r.updateMs.toFixed(2) + ' ms, render ' + r.renderMs.toFixed(2) + ' ms, draws ' + r.draws.toFixed(1) + ' per frame (' + r.frames + ' frames';
     console.log('  idle   ' + line(idle) + ')');
     console.log('  strike ' + line(busy) + ', ' + busy.strikes + ' strikes)');
-    check(busy.strikes >= 2, 'strikes chained back to back');
+    check(busy.strikes >= 1, 'strikes ran through the sample (' + busy.strikes + ')');
     // draw calls, like for like: the same frame with the strike's objects shown and hidden
     const drawsDelta = await page.evaluate(async () => {
       const S = ProtoCem.getScene();
@@ -178,9 +199,11 @@ async function main() {
       const frame = () => new Promise(r => g.events.once('postrender', () => r()));
       const count = async () => { let sum = 0; for (let i = 0; i < 8; i++) { draws = 0; await frame(); sum += draws; } return sum / 8; };
       const tick = S.tickStorm;
-      S.tickStorm = function() {};                       // hold the strike on its first frame
-      S.strikeLightning();
-      S.cameras.main.shakeEffect.reset();                 // and the camera still
+      const s = S.strikeLightning();
+      const bright = CemStorm.brightest(s.seq);
+      S.tickStorm = function() { S.applyStorm(bright.t); };   // hold the strike on its main stroke
+      await frame();
+      S.cameras.main.shakeEffect.reset();                     // and the camera still
       await frame();
       const shown = await count();
       S.tickStorm = tick;

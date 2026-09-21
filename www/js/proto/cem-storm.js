@@ -16,10 +16,19 @@ var CemStorm = (function() {
     retryMs: 4000,          // a strike skipped (card up, input off) is tried again this soon
     minDist: 2,             // tiles between Mr Owl and the struck tile, at least
     maxDist: 8,             // and at most: his own sight plus a lantern's, so the strike is on screen; the thunder lags longest at this range
-    boltMs: 150,            // how long the bolt shows
-    flashMs: 350,           // how long the whole view stays lit
-    flashPeak: 0.7,         // alpha of the flash overlay at the moment of the strike
-    thunderMinMs: 300,      // thunder lag for a strike at minDist
+    totalMinMs: 800,        // a strike, leader to last re-strike, lasts this long
+    totalMaxMs: 1500,
+    leaderMs: [80, 140],    // the dim leader flicker before the return stroke
+    leaderPeak: 0.4,
+    mainMs: [110, 160],     // the main return stroke, at full brightness
+    restrikes: [2, 4],      // re-strikes down the same channel after it
+    restrikeShare: [0.3, 0.5],  // how much of a re-strike's slot is lit, the rest is a dark gap
+    restrikePeak: [0.8, 0.35],  // first to last re-strike
+    glowLingerMs: 160,      // the glow stays this long after a stroke's core has gone
+    noiseStepMs: 14,        // one flutter sample every so many ms
+    flutterFloor: 0.5,      // the flutter never dims a stroke below this share
+    flashPeak: 0.45,        // alpha of the additive view flash at full brightness
+    thunderMinMs: 300,      // thunder lag for a strike at minDist, counted from the main stroke
     thunderMaxMs: 1200,     // and at maxDist
     shakeMs: 180,
     shakeStrength: 0.004,
@@ -80,10 +89,12 @@ var CemStorm = (function() {
    * A lit tile (vis === 2) between `minDist` and `maxDist` tiles from Mr Owl,
    * drawn at random from every such tile; null when nothing in sight
    * qualifies. Lantern light marks tiles lit all over the grounds, so the
-   * range cap is what keeps the strike in view.
+   * range cap is what keeps the strike in view. `accept(gx, gy)`, when
+   * given, can turn a tile down (the scene keeps the bolt clear of the top
+   * of the view so it is never short).
    * @returns {{gx:number, gy:number, dist:number}|null}
    */
-  function pickTarget(level, rng, cfg) {
+  function pickTarget(level, rng, cfg, accept) {
     cfg = cfg || DEFAULTS;
     var o = level.owl;
     var ox = typeof o.x === 'number' ? o.x : o.gx;
@@ -96,6 +107,7 @@ var CemStorm = (function() {
       var dx = gx - ox, dy = gy - oy;
       var d2 = dx * dx + dy * dy;
       if (d2 < minD2 || d2 > maxD2) continue;
+      if (accept && !accept(gx, gy)) continue;
       picks.push(i);
     }
     if (!picks.length) return null;
@@ -171,34 +183,117 @@ var CemStorm = (function() {
   // ---------------------------------------------------------------------------
 
   /**
-   * Brightness of the bolt `t` ms into the strike: three pulses, then it is
-   * gone. 0 before the strike and from `boltMs` on.
+   * The strokes of one strike, in ms from its start: a dim leader flicker,
+   * the main return stroke at full brightness, then two to four re-strikes
+   * down the same channel, each weaker than the last, the whole thing lasting
+   * `totalMs` in [totalMinMs, totalMaxMs] before the glow lingers out. The
+   * seeded noise samples (`noise`, one per `noiseStepMs`) are what make the
+   * brightness flutter, shared by the bolt and the view flash.
+   * @returns {{ strokes: Array<{at:number, ms:number, peak:number, kind:string}>,
+   *             leaderMs:number, mainAt:number, totalMs:number, endMs:number, noise:number[] }}
    */
-  function boltAlpha(t, boltMs) {
-    boltMs = boltMs || DEFAULTS.boltMs;
-    if (t < 0 || t >= boltMs) return 0;
-    var u = t / boltMs;
-    if (u < 0.22) return 1;
-    if (u < 0.34) return 0.3;
-    if (u < 0.56) return 0.9;
-    if (u < 0.68) return 0.35;
-    return 0.75 * (1 - (u - 0.68) / 0.32);
+  function sequence(rng, cfg) {
+    cfg = cfg || DEFAULTS;
+    var totalMs = Math.round(cfg.totalMinMs + rng() * (cfg.totalMaxMs - cfg.totalMinMs));
+    var leaderMs = Math.round(cfg.leaderMs[0] + rng() * (cfg.leaderMs[1] - cfg.leaderMs[0]));
+    var mainMs = Math.round(cfg.mainMs[0] + rng() * (cfg.mainMs[1] - cfg.mainMs[0]));
+    var n = cfg.restrikes[0] + Math.floor(rng() * (cfg.restrikes[1] - cfg.restrikes[0] + 1));
+    var strokes = [{ at: 0, ms: leaderMs, peak: cfg.leaderPeak, kind: 'leader' },
+                   { at: leaderMs, ms: mainMs, peak: 1, kind: 'main' }];
+    // the re-strikes share what is left of the time, each in its own slot
+    // after a dark gap, so the total always lands in range
+    var start = leaderMs + mainMs;
+    var left = totalMs - start;
+    for (var i = 0; i < n; i++) {
+      var slotEnd = start + Math.round((i + 1) * left / n);     // the last slot ends exactly at totalMs
+      var slotLen = slotEnd - (start + Math.round(i * left / n));
+      var ms = Math.round(slotLen * (cfg.restrikeShare[0] + rng() * (cfg.restrikeShare[1] - cfg.restrikeShare[0])));
+      var k = n === 1 ? 1 : i / (n - 1);
+      var peak = cfg.restrikePeak[0] + (cfg.restrikePeak[1] - cfg.restrikePeak[0]) * k;
+      strokes.push({ at: slotEnd - ms, ms: ms, peak: peak, kind: 'restrike' });
+    }
+    var noise = [];
+    var samples = Math.ceil((totalMs + cfg.glowLingerMs) / cfg.noiseStepMs) + 2;
+    for (var s = 0; s < samples; s++) noise.push(rng());
+    // the return stroke opens at full: the flutter does not get to dim that instant
+    var m = Math.floor(leaderMs / cfg.noiseStepMs);
+    noise[m] = 1; noise[m + 1] = 1;
+    return { strokes: strokes, leaderMs: leaderMs, mainAt: leaderMs, totalMs: totalMs, endMs: totalMs + cfg.glowLingerMs, noise: noise };
   }
 
   /**
-   * Alpha of the whole-view flash `t` ms into the strike: `peak` at once,
-   * falling away over `flashMs` with a second, weaker pulse part way through.
+   * The flutter at `t`: the seeded noise read between samples, so brightness
+   * jitters every few frames and never fades smoothly. In [flutterFloor, 1].
    */
-  function flashAlpha(t, flashMs, peak) {
-    flashMs = flashMs || DEFAULTS.flashMs;
-    peak = typeof peak === 'number' ? peak : DEFAULTS.flashPeak;
-    if (t < 0 || t >= flashMs) return 0;
-    var u = t / flashMs;
-    var first = peak * Math.exp(-u * 7);
-    var d = (u - 0.42) / 0.09;
-    var second = 0.45 * peak * Math.exp(-d * d);
-    var tail = 1 - u;                          // both pulses reach zero at flashMs
-    return Math.min(peak, (first + second) * Math.min(1, tail * 4));
+  function flutter(seq, t, cfg) {
+    cfg = cfg || DEFAULTS;
+    var u = t / cfg.noiseStepMs;
+    var i = Math.floor(u);
+    var n = seq.noise;
+    if (i < 0) i = 0;
+    if (i >= n.length - 1) i = n.length - 2;
+    var f = u - i;
+    var v = n[i] * (1 - f) + n[i + 1] * f;
+    return cfg.flutterFloor + (1 - cfg.flutterFloor) * v;
+  }
+
+  /** One stroke's own shape: full for the first part, then falling away to a tail */
+  function strokeShape(u) {
+    if (u < 0 || u >= 1) return 0;
+    if (u < 0.3) return 1;
+    return 1 - 0.85 * (u - 0.3) / 0.7;
+  }
+
+  /** Brightness of the bolt's core `t` ms into the strike: the strokes, fluttering. 0..1 */
+  function coreAlpha(seq, t, cfg) {
+    cfg = cfg || DEFAULTS;
+    if (t < 0 || t >= seq.totalMs) return 0;
+    var best = 0;
+    for (var i = 0; i < seq.strokes.length; i++) {
+      var s = seq.strokes[i];
+      var a = s.peak * strokeShape((t - s.at) / s.ms);
+      if (a > best) best = a;
+    }
+    return best * flutter(seq, t, cfg);
+  }
+
+  /**
+   * Brightness of the glow around the bolt: the core's, but each stroke's
+   * light lingers `glowLingerMs` after the stroke, so the channel is still
+   * faintly there when the core has gone. 0..1
+   */
+  function glowAlpha(seq, t, cfg) {
+    cfg = cfg || DEFAULTS;
+    if (t < 0 || t >= seq.endMs) return 0;
+    var best = 0;
+    for (var i = 0; i < seq.strokes.length; i++) {
+      var s = seq.strokes[i];
+      var u = (t - s.at) / s.ms;
+      var a = s.peak * strokeShape(u);
+      if (u >= 1) {
+        var after = t - (s.at + s.ms);
+        if (after < cfg.glowLingerMs) a = s.peak * 0.4 * (1 - after / cfg.glowLingerMs);
+      }
+      if (a > best) best = a;
+    }
+    return best * (0.7 + 0.3 * flutter(seq, t, cfg));
+  }
+
+  /** Alpha of the whole-view flash: the core's flutter scaled to `flashPeak` */
+  function flashAlpha(seq, t, cfg) {
+    cfg = cfg || DEFAULTS;
+    return cfg.flashPeak * coreAlpha(seq, t, cfg);
+  }
+
+  /** The brightest moment of the strike, for a screenshot: { t, alpha } */
+  function brightest(seq, cfg) {
+    cfg = cfg || DEFAULTS;
+    var best = { t: 0, alpha: 0 };
+    for (var t = 0; t < seq.totalMs; t += 2) {
+      var a = coreAlpha(seq, t, cfg);
+      if (a > best.alpha) best = { t: t, alpha: a };
+    }
+    return best;
   }
 
   /** How far along the strike range a strike `dist` tiles away is, 0 (nearest) .. 1 (farthest) */
@@ -241,8 +336,12 @@ var CemStorm = (function() {
     pickTarget: pickTarget,
     origin: origin,
     bolt: bolt,
-    boltAlpha: boltAlpha,
+    sequence: sequence,
+    flutter: flutter,
+    coreAlpha: coreAlpha,
+    glowAlpha: glowAlpha,
     flashAlpha: flashAlpha,
+    brightest: brightest,
     thunderDelay: thunderDelay,
     thunderVolume: thunderVolume,
     litTiles: litTiles
