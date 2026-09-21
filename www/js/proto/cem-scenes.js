@@ -760,7 +760,8 @@ var CemScenes = (function() {
       var next = this.stormNext;
       if (!next || t < next.at) return;
       if (this.stormBlocked()) { this.stormNext = CemStorm.afterBlocked(this.storm, next, t); return; }
-      var struck = this.strikeLightning(next.kind === 'announce' ? { range: { minDist: 5 } } : null);
+      // an announcing strike is far off when anything far off is in view, else wherever it can land
+      var struck = (next.kind === 'announce' ? this.strikeLightning({ range: { minDist: 5 } }) : null) || this.strikeLightning();
       if (struck) { this.storm.fired++; struck.kind = next.kind; }
       this.stormNext = CemStorm.nextStrike(this.storm, t);
     },
