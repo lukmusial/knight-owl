@@ -193,7 +193,7 @@ async function main() {
     log('the storm strikes while it rains');
     await watch(page, 30000 - (Date.now() - t0) + 12000, t0);            // through the episode and its fade (ends at 35 s)
     log('the rain has gone; no more strikes');
-    await watch(page, 5000, t0);
+    await watch(page, 2500, t0);
 
     await client.send('Page.stopScreencast');
     await wait(400);
