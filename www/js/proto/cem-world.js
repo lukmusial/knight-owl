@@ -23,6 +23,8 @@ var CemWorld = (function() {
   var PAD = 320;                  // world px of camera padding before culling
   var GROUND_DEPTH = -100000;
   var CULL_MS = 200;
+  var BAKE_MIN_MS = 150;          // a chunk whose ground keeps brightening is repainted at most this often
+  var SHADOW_PAD = 2;             // tiles past a chunk's edge whose prop shadows are baked into it (see bakeChunk)
 
   function bandOf(gx, gy) {
     return Math.floor((gx + gy) / BAND_TILES);
@@ -81,6 +83,7 @@ var CemWorld = (function() {
       slot.rt.clear();
       bakeFn(slot.rt, slot.chunk, r);
       bakes++;
+      slot.bakedAt = scene.time.now;
       delete dirty[slot.chunk];
     }
 
@@ -136,15 +139,16 @@ var CemWorld = (function() {
     }
 
     /**
-     * Tiles just revealed: repaint the chunk they sit in, plus the ones above
-     * and to the left, where a tall prop's shadow reaches in.
+     * Tiles whose ground just brightened: repaint the chunk they sit in, plus
+     * the one above or to the left when the tile is close enough to that edge
+     * for a prop's shadow to reach in.
      */
     function markSeen(indices) {
       for (var i = 0; i < indices.length; i++) {
         var t = level.tiles[indices[i]];
         dirty[chunkIndexOf(t.gx, t.gy)] = true;
-        if (t.gx >= CHUNK) dirty[chunkIndexOf(t.gx - CHUNK, t.gy)] = true;
-        if (t.gy >= CHUNK) dirty[chunkIndexOf(t.gx, t.gy - CHUNK)] = true;
+        if (t.gx >= CHUNK && t.gx % CHUNK < SHADOW_PAD) dirty[chunkIndexOf(t.gx - CHUNK, t.gy)] = true;
+        if (t.gy >= CHUNK && t.gy % CHUNK < SHADOW_PAD) dirty[chunkIndexOf(t.gx, t.gy - CHUNK)] = true;
       }
     }
 
@@ -209,6 +213,7 @@ var CemWorld = (function() {
       var cam = scene.cameras.main;
       var view = cam.worldView;
       var left = view.x - PAD, right = view.right + PAD, top = view.y - PAD, bottom = view.bottom + PAD;
+      var now = scene.time.now;
 
       // chunks: acquire what the camera can see, release what it left behind
       for (var ci = 0; ci < chunkRect.length; ci++) {
@@ -222,7 +227,9 @@ var CemWorld = (function() {
             budget--;
           }
           slot.used = frameCounter;
-          if (dirty[ci] && budget > 0) { bake(slot); budget--; }
+          // the reveal brightens ground every frame while he walks; the dirty
+          // flag waits, so a chunk is repainted at most every BAKE_MIN_MS
+          if (dirty[ci] && budget > 0 && (force || now - (slot.bakedAt || 0) >= BAKE_MIN_MS)) { bake(slot); budget--; }
         } else if (slot && frameCounter - slot.used > 600) {
           slot.rt.setVisible(false);
           slot.chunk = -1;
@@ -271,6 +278,7 @@ var CemWorld = (function() {
 
     return {
       CHUNK: CHUNK,
+      SHADOW_PAD: SHADOW_PAD,
       groundLayer: groundLayer,
       floorLayer: floorLayer,
       lightsLayer: lightsLayer,
@@ -290,7 +298,7 @@ var CemWorld = (function() {
     };
   }
 
-  return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK };
+  return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK, SHADOW_PAD: SHADOW_PAD, BAKE_MIN_MS: BAKE_MIN_MS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
