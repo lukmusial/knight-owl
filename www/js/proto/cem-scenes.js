@@ -1384,13 +1384,14 @@ var CemScenes = (function() {
       return ring;
     },
 
-    /** The bright dot where a drop hit: pops and is gone in PLIP_MS */
-    spawnPlip: function(x, y, depth) {
+    /** The bright dot where a drop hit: pops and is gone in PLIP_MS, as bright as the water it hit (a dim puddle on remembered ground gets a dim plip) */
+    spawnPlip: function(x, y, depth, alpha) {
       if (this.rings.length >= CemRain.CFG.RING_CAP) return null;
+      if (alpha === undefined) alpha = 1;
       var img = this.poolTake(this.ringPool, 'cem_droplet');
       if (!img.cemInFloor) { this.world.floorLayer.add(img); img.cemInFloor = true; }
-      img.setTexture('cem_droplet').setPosition(x, y - 1).setScale(0.25).setAlpha(1).setDepth(depth + 0.01).setVisible(true);
-      var plip = { img: img, t0: this.time.now, dur: CemRain.CFG.PLIP_MS, from: 0.25, to: 0.5, alpha: 1 };
+      img.setTexture('cem_droplet').setPosition(x, y - 1).setScale(0.25).setAlpha(alpha).setDepth(depth + 0.01).setVisible(true);
+      var plip = { img: img, t0: this.time.now, dur: CemRain.CFG.PLIP_MS, from: 0.25, to: 0.5, alpha: alpha };
       this.rings.push(plip);
       return plip;
     },
@@ -1407,7 +1408,7 @@ var CemScenes = (function() {
         var x = pd.x + Math.cos(a) * rr * 36 * sc, y = pd.y + Math.sin(a) * rr * 16 * sc;
         // the small native ring (16 px wide) grows to 12-19 px
         this.spawnRing(x, y, (0.75 + Math.random() * 0.45), cfg.RING_MS, 0.85 * pd.img.alpha, pd.depth + 0.5, 'cem_plip_ring');
-        this.spawnPlip(x, y, pd.depth + 0.5);
+        this.spawnPlip(x, y, pd.depth + 0.5, pd.img.alpha);
       }
       pd.wobbleUntil = now + cfg.RING_MS;
     },
