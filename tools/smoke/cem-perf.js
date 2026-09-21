@@ -2,11 +2,13 @@
 /**
  * Headless performance capture for the Halloween cemetery.
  *
- *   node tools/smoke/cem-perf.js [--port 8093] [--seconds 7]
+ *   node tools/smoke/cem-perf.js [--port 8093] [--seconds 7] [--shot out.png]
  *
  * Boots the isometric page on the cemetery with `?perf=1`, walks Mr Owl a
  * long winding route so chunks are baked and released along the way, then
  * prints what the overlay shows plus the display-list shape behind it.
+ * `--shot` saves a screenshot at the end of the walk (the night reveal
+ * around Mr Owl, half-lit ground and props at its edge).
  *
  * Note on frame rate: headless Chrome renders through SwiftShader and
  * throttles the loop, so the `fps` line says nothing about a real device.
@@ -81,11 +83,23 @@ async function main() {
         logic += performance.now() - t0; frames++;
         return r;
       };
+      // the night reveal (CemeteryScene.updateReveal): per-frame cost while walking
+      let reveal = 0, revealMax = 0, revealFrames = 0;
+      const upd = S.updateReveal;
+      S.updateReveal = function() {
+        const t0 = performance.now();
+        upd.call(S);
+        const ms = performance.now() - t0;
+        reveal += ms; revealFrames++; if (ms > revealMax) revealMax = ms;
+      };
+      const bakesBefore = S.world.stats().bakes;
       const legs = [[0, -1], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 0]];
       for (const d of legs) { ProtoCem.setSteer(d[0], d[1]); await wait(legMs); }
       ProtoCem.setSteer(0, 0);
       CemModel.tickOwl = tick;
+      S.updateReveal = upd;
       await wait(600);
+      const bakesWalk = S.world.stats().bakes - bakesBefore;
 
       const overlay = S.children.list.find(o => o.type === 'Text' && o.depth === 1e7);
       let inBands = 0;
@@ -105,6 +119,9 @@ async function main() {
         topLevelObjects: S.children.list.length,
         propsInBands: inBands,
         tickMsPerFrame: Number((logic / Math.max(1, frames)).toFixed(3)),
+        revealMsPerFrame: Number((reveal / Math.max(1, revealFrames)).toFixed(3)),
+        revealMsMax: Number(revealMax.toFixed(3)),
+        bakesDuringWalk: bakesWalk,
         grid: L.W + 'x' + L.H,
         generationMs: L.genMs,
         monsters: L.monsters.length,
@@ -120,11 +137,14 @@ async function main() {
     console.log('');
     console.log(JSON.stringify({
       topLevelObjects: out.topLevelObjects, propsInBands: out.propsInBands,
-      tickMsPerFrame: out.tickMsPerFrame, world: out.world,
+      tickMsPerFrame: out.tickMsPerFrame, revealMsPerFrame: out.revealMsPerFrame, revealMsMax: out.revealMsMax,
+      bakesDuringWalk: out.bakesDuringWalk, world: out.world,
       grid: out.grid, generationMs: out.generationMs, monsters: out.monsters, tilesSeen: out.tilesSeen,
       textureMB: out.textureMB, tweens: out.tweens, animsPlaying: out.animsPlaying, animsPlayingHidden: out.animsPlayingHidden,
       bootMB: Number((bootBytes / 1048576).toFixed(2)), bootRequests: bootRequests
     }, null, 2));
+    const shot = opt('--shot', null);
+    if (shot) { await page.screenshot({ path: shot }); console.log('\nscreenshot: ' + shot); }
     // guards: hidden sprites must not keep animating, and the GPU must not hold a card's worth of map sheets
     if (out.animsPlayingHidden > 4) { console.log('\nFAIL: ' + out.animsPlayingHidden + ' sprites animate while hidden'); process.exitCode = 1; }
     if (out.textureMB > 100) { console.log('\nFAIL: ' + out.textureMB + ' MB of textures'); process.exitCode = 1; }

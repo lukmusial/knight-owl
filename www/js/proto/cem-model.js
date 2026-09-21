@@ -1857,6 +1857,7 @@ var CemModel = (function() {
     difficultyAt: difficultyAt,
     hasAllKeyParts: hasAllKeyParts,
     keyPartCount: keyPartCount,
+    isGuardianDefeated: isGuardianDefeated,
     tombOfDoor: tombOfDoor,
     updateVisibility: updateVisibility,
     visibilityAt: visibilityAt,
