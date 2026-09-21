@@ -254,6 +254,7 @@ var CemScenes = (function() {
       this.buildShadows();
       this.buildFog();
       this.buildAtmosphere();
+      this.buildStorm();
       this.createPlayer();
       this.spawnMonsters();
       this.setupCamera();
@@ -682,6 +683,184 @@ var CemScenes = (function() {
       var s = Math.max(w, h) * 2.4 / 512;
       this.vignette.setScale(s);
       this.vignette.setPosition(w / 2, h / 2);
+      if (this.stormFlash) {
+        // overscaled like the vignette, so the flash still fills the view zoomed out to 0.4
+        var side = Math.max(w, h) * 2.6;
+        this.stormFlash.setDisplaySize(side, side).setPosition(w / 2, h / 2);
+      }
+    },
+
+    // --- Thunder and lightning ---------------------------------------------------------
+
+    /**
+     * The storm: a seeded schedule (CemStorm) and the objects a strike lights
+     * up, made once and hidden between strikes so a strike allocates nothing
+     * but its polyline. The timer is a scene TimerEvent, which only counts
+     * frames the game loop runs: pausing the game pauses the storm.
+     */
+    buildStorm: function() {
+      var seed = ((this.level.seed || 1) * 2654435761 + 97) >>> 0;
+      this.storm = CemStorm.create({ rng: CemModel.makeRng(seed) });
+      this.stormStrike = null;
+      this.stormFlash = this.add.image(0, 0, 'cem_flash').setScrollFactor(0).setDepth(1e6 + 1)
+        .setTint(0xdfe9ff).setAlpha(0).setVisible(false);
+      // the bolt: a wide, soft additive glow under a thin white core
+      this.boltGlow = this.add.graphics().setDepth(1e5 + 40).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+      this.boltCore = this.add.graphics().setDepth(1e5 + 41).setVisible(false);
+      // the ground at the foot of the bolt: a pool lying on the floor and a burst of light standing over it
+      this.boltGround = this.add.image(0, 0, 'cem_soft_light').setBlendMode(Phaser.BlendModes.ADD)
+        .setTint(0xcfe0ff).setScale(1.7).setVisible(false);
+      this.boltBurst = this.add.image(0, 0, 'glow_cyan').setBlendMode(Phaser.BlendModes.ADD)
+        .setTint(0xe4eeff).setScale(2.4, 1.6).setDepth(1e5 + 39).setVisible(false);
+      this.litProps = [];
+      this.layoutAtmosphere(this.cameras.main.width, this.cameras.main.height);
+      this.armStorm();
+    },
+
+    /** Wait for the next strike (the first comes sooner), or for another try after a skipped one */
+    armStorm: function(retry) {
+      if (!this.storm) return;
+      var self = this;
+      var ms = retry ? this.storm.retry() : this.storm.next();
+      this.stormTimer = this.time.addEvent({ delay: ms, callback: function() { self.onStormDue(); } });
+    },
+
+    /** No strikes while a card is up, the game is paused or the scene is not taking input */
+    stormBlocked: function() {
+      if (typeof ProtoCem !== 'undefined' && ProtoCem.isBusy && ProtoCem.isBusy()) return true;
+      if (!this.inputEnabled) return true;
+      if (this.level && this.level.paused) return true;
+      return !!this.stormStrike;
+    },
+
+    onStormDue: function() {
+      if (this.stormBlocked()) { this.armStorm(true); return; }
+      var struck = this.strikeLightning();
+      this.armStorm(!struck);
+    },
+
+    /**
+     * Lightning strikes a lit tile at least two tiles from Mr Owl: the bolt
+     * comes down from above the top of the view with a flash on the ground,
+     * the whole view lightens, nearby props catch the light, the camera
+     * shakes and thunder follows, later the farther away it struck. Under
+     * reduced motion there is no flash, no shake and no flicker, only a dim
+     * bolt and the sound. Returns the strike record, or null when nothing
+     * in sight could be hit.
+     * @param {Object} [opts] - { target: {gx, gy}, seed } to replay a strike (harnesses)
+     */
+    strikeLightning: function(opts) {
+      opts = opts || {};
+      if (!this.storm || this.stormStrike) return null;
+      var cfg = this.storm.cfg;
+      var L = this.level;
+      var rng = typeof opts.seed === 'number' ? CemModel.makeRng(opts.seed) : this.storm.rng;
+      var target = opts.target ? this.stormTargetAt(opts.target) : CemStorm.pickTarget(L, rng, cfg);
+      if (!target) return null;
+      var p = IsoModel.gridToIso(target.gx, target.gy);
+      var cam = this.cameras.main;
+      var from = CemStorm.origin(rng, p, cam.worldView.y, 120);
+      var bolt = CemStorm.bolt(rng, from, p, cfg);
+      var depth = 1e5 + 40;
+
+      this.boltGlow.clear();
+      this.drawBolt(this.boltGlow, bolt, 30, 0x5f8cff, 0.35);
+      this.drawBolt(this.boltGlow, bolt, 12, 0x9fc4ff, 0.8);
+      this.boltCore.clear();
+      this.drawBolt(this.boltCore, bolt, 3.5, 0xffffff, 1);
+      this.boltGround.setPosition(p.x, p.y).setDepth(POOL_BAND + IsoModel.depthKey(target.gx, target.gy, 0));
+      this.boltBurst.setPosition(p.x, p.y - 18).setDepth(depth - 1);
+
+      var strike = { target: target, dist: target.dist, t: 0, from: from, bolt: bolt,
+        boltMs: cfg.boltMs, flashMs: REDUCED_MOTION ? 0 : cfg.flashMs,
+        thunderAt: CemStorm.thunderDelay(target.dist, cfg) };
+      this.stormStrike = strike;
+      this.setBoltAlpha(REDUCED_MOTION ? 0.35 : 1);
+      if (!REDUCED_MOTION) {
+        this.stormFlash.setAlpha(cfg.flashPeak).setVisible(true);
+        cam.shake(cfg.shakeMs, cfg.shakeStrength);
+        this.brightenProps(target, cfg.brightenRadius);
+      }
+      var self = this;
+      this.time.delayedCall(strike.thunderAt, function() {
+        fx('thunder', { volume: CemStorm.thunderVolume(target.dist, cfg) });
+      });
+      return strike;
+    },
+
+    /** A strike aimed by the harness: any tile of the level, with its distance from Mr Owl */
+    stormTargetAt: function(t) {
+      var o = CemModel.owlPos(this.level);
+      var gx = Math.max(0, Math.min(this.level.W - 1, t.gx)), gy = Math.max(0, Math.min(this.level.H - 1, t.gy));
+      return { gx: gx, gy: gy, dist: Math.sqrt((gx - o.x) * (gx - o.x) + (gy - o.y) * (gy - o.y)) };
+    },
+
+    drawBolt: function(g, bolt, width, color, alpha) {
+      g.lineStyle(width, color, alpha);
+      this.strokePolyline(g, bolt.main);
+      g.lineStyle(width * 0.6, color, alpha);
+      for (var b = 0; b < bolt.branches.length; b++) this.strokePolyline(g, bolt.branches[b]);
+    },
+
+    strokePolyline: function(g, pts) {
+      g.beginPath();
+      g.moveTo(pts[0].x, pts[0].y);
+      for (var i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+      g.strokePath();
+    },
+
+    setBoltAlpha: function(a) {
+      var on = a > 0;
+      this.boltGlow.setAlpha(a).setVisible(on);
+      this.boltCore.setAlpha(a).setVisible(on);
+      this.boltGround.setAlpha(a * 0.9).setVisible(on);
+      this.boltBurst.setAlpha(a).setVisible(on);
+    },
+
+    /** Props near the strike take a cold white tint until the bolt is gone */
+    brightenProps: function(target, radius) {
+      var tiles = CemStorm.litTiles(this.level, target, radius);
+      for (var i = 0; i < tiles.length; i++) {
+        if (!this.level.vis[tiles[i]]) continue;
+        var props = this.tileProps[tiles[i]];
+        if (!props.length) continue;
+        for (var p = 0; p < props.length; p++) props[p].setTint(0xf2f6ff);
+        this.litProps.push(tiles[i]);
+      }
+    },
+
+    /** Put the tint refreshVisibility would give back on the props a strike lit */
+    restoreProps: function() {
+      var L = this.level;
+      for (var i = 0; i < this.litProps.length; i++) {
+        var idx = this.litProps[i];
+        var v = L.vis[idx];
+        if (!v) continue;
+        var tint = v === 2 ? lerpTint(L.lightMap[idx]) : SEEN_TINT;
+        var props = this.tileProps[idx];
+        for (var p = 0; p < props.length; p++) props[p].setTint(tint);
+      }
+      this.litProps.length = 0;
+    },
+
+    /** Per frame while a strike is in progress: the flicker and the flash, then tidy up */
+    tickStorm: function(delta) {
+      var s = this.stormStrike;
+      s.t += delta;
+      var a = REDUCED_MOTION ? (s.t < s.boltMs ? 0.35 : 0) : CemStorm.boltAlpha(s.t, s.boltMs);
+      this.setBoltAlpha(a);
+      if (s.flashMs) {
+        var f = CemStorm.flashAlpha(s.t, s.flashMs, this.storm.cfg.flashPeak);
+        this.stormFlash.setAlpha(f).setVisible(f > 0);
+      }
+      if (s.t >= Math.max(s.boltMs, s.flashMs)) this.endStrike();
+    },
+
+    endStrike: function() {
+      this.setBoltAlpha(0);
+      this.stormFlash.setAlpha(0).setVisible(false);
+      this.restoreProps();
+      this.stormStrike = null;
     },
 
     // --- Owl ---------------------------------------------------------------------
@@ -1441,6 +1620,7 @@ var CemScenes = (function() {
       this.updateOwlLighting();
       this.updateMonsters(time);
       this.updateFog();
+      if (this.stormStrike) this.tickStorm(Math.min(delta || 16, 100));
       if (this.player && this.player.visible) {
         var tx = this.player.x + this.followOffset.x / cam.zoom;
         var ty = this.player.y + this.followOffset.y / cam.zoom;

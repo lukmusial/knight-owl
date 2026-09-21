@@ -682,6 +682,8 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_glow_red', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(255,70,50,0.55)'); });
     canvasTexture(scene, 'cem_soft_light', 256, 128, function(ctx) { drawSoftLight(ctx, 256, 128); });
     canvasTexture(scene, 'cem_dark_ring', 1024, 1024, function(ctx) { drawDarkRing(ctx, 1024, 160); });
+    // the lightning flash over the whole view: a white square, tinted and stretched by the scene
+    canvasTexture(scene, 'cem_flash', 8, 8, function(ctx) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 8, 8); });
 
     // stand-in props
     for (var gv = 0; gv < 6; gv++) {
