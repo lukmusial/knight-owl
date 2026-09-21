@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
- * Records the cemetery rain as a short video: the rain starting and ramping
- * in over the gate plaza, puddles forming on the lane, droplet rings, and Mr
- * Owl walking through the puddles with splashes and ripples.
+ * Records the cemetery rain as a short video: an episode starting and
+ * ramping in over the gate plaza, puddles forming on the lane and mirroring
+ * a grave, a lantern and Mr Owl, droplet rings, a walk through the puddles
+ * with splashes and ripples, then the rain stopping and the puddles drying.
  *
  *   node tools/smoke/cem-record-rain.js [--out docs/videos/cemetery-rain.mp4]
  *                                       [--port 8095] [--width 1000] [--height 700]
  *
  * Same capture as cem-record.js (headless Chrome on the GPU through Metal,
  * DevTools screencast frames encoded with ffmpeg at real time), but the
- * walk is scripted for the weather, and the rain's tunables are wound up so
- * the puddles fill in seconds instead of a minute. Pass --software when the
+ * walk is scripted for the weather, and the schedule is wound up: one
+ * episode of 20 s that starts 3 s in, puddles filling in seconds and
+ * drying in seconds after it stops. Pass --software when the
  * GPU path is unavailable. No sound.
  */
 const path = require('path');
@@ -106,17 +108,19 @@ async function main() {
       { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 40000 });
 
-    // the weather, wound up for the camera: rain in 3 s, full in 5 more,
-    // puddles full within about 12 s; no monster interrupts the walk
+    // the weather, wound up for the camera: one 22 s episode 3 s in, ramping
+    // over 4 s, puddles full within about 10 s and dry 10 s after it stops;
+    // no monster interrupts the walk
     await page.evaluate(() => {
       const S = ProtoCem.getScene(), L = ProtoCem.getLevel();
-      const C = CemRain.CFG;
-      C.RAIN_DELAY_MS = 3000; C.RAIN_RAMP_MS = 5000;
-      C.PUDDLE_FILL_MS = 7000; C.PUDDLE_STAGGER_MS = 5000;
-      C.RING_RATE = 10;
+      CemRain.CFG.RING_RATE = 10;
       L.graceMs = 1e9;
+      S.rainSchedule = CemRain.schedule(L.seed || 1, {
+        FIRST_GAP_MIN_MS: 3000, FIRST_GAP_MAX_MS: 3000, EPISODE_MIN_MS: 22000, EPISODE_MAX_MS: 22000,
+        RAIN_RAMP_MS: 4000, RAIN_FADE_MS: 4000, PUDDLE_FILL_MS: 6000, PUDDLE_STAGGER_MS: 4000, PUDDLE_DRY_MS: 9000,
+        GAP_MIN_MS: 600000, GAP_MAX_MS: 600000
+      });
       S.rainT0 = S.time.now;
-      for (const p of S.puddles) { p.spec.delayMs = CemRain.hash(p.spec.gx, p.spec.gy, 67) * C.PUDDLE_STAGGER_MS; p.settled = false; }
     });
 
     const client = await page.createCDPSession();
@@ -130,33 +134,33 @@ async function main() {
     await client.send('Page.startScreencast', { format: 'jpeg', quality: 78, maxWidth: WIDTH, maxHeight: HEIGHT, everyNthFrame: 1 });
 
     log('recording: a dry moment at the gate, then the rain comes');
-    await wait(14000);                                   // rain ramps in, the plaza puddles fill
+    await wait(12000);                                   // rain ramps in, the plaza puddles fill
 
-    // a few short walks through the nearest puddles, then out along the lane
+    // walk through the puddles that mirror a grave or a lantern, and the
+    // nearest ones, standing a moment in each so Mr Owl's own reflection shows
     log('walking through the puddles');
     const stops = await page.evaluate(() => {
       const L = ProtoCem.getLevel(), S = ProtoCem.getScene();
       const from = CemModel.owlTile(L);
-      const near = S.puddles.map(p => p.spec)
-        .map(sp => ({ gx: sp.gx, gy: sp.gy, d: CemModel.pathTo(L, from, sp).length }))
+      const kind = p => p.statics.map(s => s.o.texture ? s.o.texture.key : '').join(' ');
+      const all = S.puddles.map(p => ({ gx: p.spec.gx, gy: p.spec.gy, d: CemModel.pathTo(L, from, p.spec).length, what: kind(p) }))
         .filter(p => p.d > 0).sort((a, b) => a.d - b.d);
       const out = [];
-      if (near.length) out.push(near[0]);
-      if (near.length > 2) out.push(near[Math.min(near.length - 1, 3)]);
-      if (near.length > 5) out.push(near[Math.min(near.length - 1, 6)]);
+      const grave = all.find(p => /grave/.test(p.what));
+      const lantern = all.find(p => /lantern|glow/.test(p.what) && p !== grave);
+      if (grave) out.push(grave);
+      if (lantern) out.push(lantern);
+      for (const p of all) { if (out.length >= 4) break; if (out.indexOf(p) === -1) out.push(p); }
       out.push(from);                                    // and back to the plaza
       return out;
     });
     for (const s of stops) {
-      const ok = await walkTo(page, s, 12000);
-      log('  ' + (ok ? 'reached' : 'stopped short of') + ' ' + s.gx + ',' + s.gy);
-      await wait(1500);                                  // stand in it: the reflection and the rings
+      const ok = await walkTo(page, s, 10000);
+      log('  ' + (ok ? 'reached' : 'stopped short of') + ' ' + s.gx + ',' + s.gy + (s.what ? ' (' + s.what + ')' : ''));
+      await wait(1600);                                  // stand in it: the reflection and the rings
     }
-    log('up the lane: fresh ground gets wet ahead of him');
-    await page.evaluate(() => ProtoCem.setSteer(0, -1));
-    await wait(6000);
-    await page.evaluate(() => ProtoCem.setSteer(0, 0));
-    await wait(2500);
+    log('the rain stops and the puddles dry');
+    await wait(9000);
 
     await client.send('Page.stopScreencast');
     await wait(400);

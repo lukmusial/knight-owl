@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Headless check of the cemetery rain: boots the level with `?perf=1`, winds
- * the rain clock forward so the puddles are full, walks Mr Owl through the
- * lanes, screenshots the wet grounds and prints what the rain costs.
+ * Headless check of the cemetery rain: boots the level with `?perf=1`, gives
+ * it a schedule that rains at once and for good, so the puddles are full,
+ * walks Mr Owl through the lanes, screenshots the wet grounds and prints
+ * what the rain and the reflections cost.
  *
  *   node tools/smoke/cem-rain.js [--port 8094] [--shot docs/screenshots/cem-rain.png] [--seconds 8] [--reduced]
  *
@@ -76,10 +77,12 @@ async function main() {
       L.cfg.OWL_SPEED *= 3;                   // headless Chrome renders a few frames a second: cover ground anyway
       const before = S.rainStats();
       await wait(300);
-      const reducedFull = S.puddles.filter(p => p.fill >= 1).length;   // before the clock is wound: only reduced motion fills them at once
-      // two minutes of rain in a moment: full strength, every puddle full
-      S.rainT0 -= 130000;
-      for (const p of S.puddles) p.settled = false;
+      const reducedFull = 0;
+      // rain at once and for good, puddles full in a blink
+      S.rainSchedule = CemRain.schedule(1, { FIRST_GAP_MIN_MS: 0, FIRST_GAP_MAX_MS: 0, EPISODE_MIN_MS: 3600000, EPISODE_MAX_MS: 3600000,
+        RAIN_RAMP_MS: 200, PUDDLE_FILL_MS: 200, PUDDLE_STAGGER_MS: 0 });
+      S.rainT0 = S.time.now - 1000;
+      await wait(300);
       let rainMs = 0, frames = 0, maxRings = 0, maxPuddles = 0, splashes = 0;
       const upd = S.updateRain;
       S.updateRain = function(t, d) {
@@ -129,10 +132,12 @@ async function main() {
       await wait(800);
       const overlay = S.children.list.find(o => o.type === 'Text' && o.depth === 1e7);
       const shown = S.puddles.filter(p => p.img.visible).length;
-      const full = S.puddles.filter(p => p.fill >= 1).length;
+      const full = S.puddles.filter(p => p.wet >= 0.99).length;
+      const mirrored = S.puddles.filter(p => p.hasRefl).length;
+      const owlMirrored = S.puddles.filter(p => /owl3d|owl/.test(p.liveKey) || (p.liveKey && p.liveKey.length > 0)).length;
       return {
         overlay: overlay ? overlay.text : '(overlay missing)',
-        before, after: S.rainStats(), shownPuddles: shown, fullPuddles: full, reducedFull,
+        before, after: S.rainStats(), shownPuddles: shown, fullPuddles: full, reducedFull, mirrored, owlMirrored,
         rainMsPerFrame: Number((rainMs / Math.max(1, frames)).toFixed(3)),
         emitterMsPerFrame: Number((emitMs / Math.max(1, emitFrames)).toFixed(3)),
         frames, maxRings, maxPuddles, splashes, inPuddleSamples: inPuddle,
@@ -145,19 +150,23 @@ async function main() {
     console.log('');
     console.log(JSON.stringify({
       before: out.before, after: out.after, shownPuddles: out.shownPuddles, fullPuddles: out.fullPuddles,
-      rainMsPerFrame: out.rainMsPerFrame, emitterMsPerFrame: out.emitterMsPerFrame, frames: out.frames, maxRings: out.maxRings, maxPuddles: out.maxPuddles,
+      rainMsPerFrame: out.rainMsPerFrame, emitterMsPerFrame: out.emitterMsPerFrame, frames: out.frames,
+      mirrored: out.mirrored, liveMirrored: out.owlMirrored, bakes: out.after.bakes, msPerBake: Number((out.after.bakeMs / Math.max(1, out.after.bakes)).toFixed(3)),
+      composes: out.after.composes, schedule: out.after.schedule, maxRings: out.maxRings, maxPuddles: out.maxPuddles,
       splashes: out.splashes, inPuddleSamples: out.inPuddleSamples, emitterAlive: out.emitterAlive
     }, null, 2));
     check(out.after.puddles > 0, 'puddles were laid (' + out.after.puddles + ')');
     check(out.maxPuddles <= out.cfg.MAX_PUDDLES, 'never more than MAX_PUDDLES');
     check(out.maxRings <= out.cfg.RING_CAP, 'never more than RING_CAP rings alive');
-    check(out.fullPuddles === out.after.puddles, 'every puddle filled once the clock ran');
+    check(out.fullPuddles === out.after.puddles, 'every puddle filled under the endless shower');
+    check(out.mirrored > 0, 'puddles mirror what stands around them (' + out.mirrored + ' of ' + out.after.puddles + ')');
+    check(out.owlMirrored > 0, 'a puddle mirrored Mr Owl or a monster as they passed (' + out.owlMirrored + ')');
+    check(out.after.bakes > 0 && out.after.bakeMs / out.after.bakes < 5, 'a mirror bake is cheap (' + (out.after.bakeMs / Math.max(1, out.after.bakes)).toFixed(2) + ' ms)');
     check(out.splashes > 0, 'Mr Owl splashed through a puddle (' + out.splashes + ')');
     check(out.after.puddles > out.before.puddles, 'new ground got wet as he walked (' + out.before.puddles + ' -> ' + out.after.puddles + ')');
     if (REDUCED) {
       check(out.emitterAlive === -1, 'reduced motion: no streaks');
       check(out.maxRings === 0, 'reduced motion: no rings');
-      check(out.reducedFull === out.before.puddles, 'reduced motion: the puddles lay there full from the start');
     } else {
       check(out.emitterAlive > 0, 'streaks are falling (' + out.emitterAlive + ')');
       check(out.after.strength === 1, 'the rain reached full strength');

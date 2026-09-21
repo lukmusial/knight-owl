@@ -1,17 +1,27 @@
 /**
  * CemRain
- * The weather of the cemetery, without any rendering: when the rain starts
- * and how it ramps in, which path tiles collect a puddle and how fast each
- * one fills, how the streaks fall, and the chance of a droplet ring. The
- * scene (cem-scenes.js, `buildRain`/`updateRain`) draws what this decides.
- * Everything here is deterministic per tile so a level looks the same on
- * every visit, and pure so it runs under node.
+ * The weather of the cemetery, without any rendering: a seeded schedule of
+ * rain episodes that come and go, how each ramps in and out, which lane
+ * tiles collect a puddle and how wet each one is at any moment (filling
+ * while it rains, drying slowly after), how the streaks fall, the chance of
+ * a droplet ring, and the geometry of what a puddle reflects. The scene
+ * (cem-scenes.js, `buildRain`/`updateRain`) draws what this decides.
+ * Everything here is deterministic per seed and per tile, and pure so it
+ * runs under node.
  */
 
 var CemRain = (function() {
   var CFG = {
-    RAIN_DELAY_MS: 4000,        // the scene is ready for this long before the first drop
-    RAIN_RAMP_MS: 7000,         // and the rain takes this long to reach full strength
+    // the schedule: a first shower soon after the gate, then episodes of
+    // 30-60 s separated by gaps of at most two minutes
+    FIRST_GAP_MIN_MS: 4000,
+    FIRST_GAP_MAX_MS: 25000,
+    GAP_MIN_MS: 20000,
+    GAP_MAX_MS: 120000,
+    EPISODE_MIN_MS: 30000,
+    EPISODE_MAX_MS: 60000,
+    RAIN_RAMP_MS: 7000,         // an episode takes this long to reach full strength
+    RAIN_FADE_MS: 6000,         // and this long to die away at its end
     RAIN_SPEED: 820,            // px per second a streak falls
     RAIN_SLANT_DEG: 13,         // how far from vertical it leans (to the right)
     RAIN_ALIVE: 220,            // streaks on screen at full strength
@@ -20,13 +30,18 @@ var CemRain = (function() {
     MAX_PUDDLES: 80,            // and never more than this many at once
     PUDDLE_REACH: 6,            // puddles are laid this many tiles around Mr Owl as he walks
     RECYCLE_DIST: 14,           // once the cap is reached, a puddle at least this far away is moved
-    PUDDLE_FILL_MS: 60000,      // a puddle takes about a minute to fill
-    PUDDLE_STAGGER_MS: 50000,   // spread the starts so they do not all fill together
+    PUDDLE_FILL_MS: 25000,      // a puddle fills in about this long of rain (each a little different)
+    PUDDLE_STAGGER_MS: 12000,   // spread the starts so they do not all fill together
+    PUDDLE_DRY_MS: 90000,       // and dries out over about this long once the rain has stopped
     RING_CAP: 20,               // droplet rings alive at once
     RING_RATE: 7,               // droplet rings a second, over all visible puddles
     RING_MS: 750,               // how long a droplet ring lasts
     SPLASH_MS: 360,             // no second splash sooner than this (about one step)
-    REFLECTION_ALPHA: 0.3       // Mr Owl's mirror image in a full puddle
+    LIVE_MS: 80,                // how often a puddle near something moving redraws its reflection (12.5 Hz)
+    BAKES_PER_TICK: 2,          // and how many puddles may redraw in one such tick (the rest wait for the next)
+    REFLECTION_ALPHA: 0.88,     // how strongly the water mirrors what stands around it
+    REFLECTION_TINT: 'rgba(14,22,60,0.48)',   // the mirror image is darkened and blued by this
+    WOBBLE_PX: 1.4              // how far the reflection sways while a ring crosses it
   };
 
   /** Deterministic 0..1 for a tile (the same helper the scene uses) */
@@ -45,6 +60,97 @@ var CemRain = (function() {
     return k * k * (3 - 2 * k);
   }
 
+  function merged(cfg) {
+    if (!cfg) return CFG;
+    var out = {};
+    for (var k in CFG) if (CFG.hasOwnProperty(k)) out[k] = cfg.hasOwnProperty(k) ? cfg[k] : CFG[k];
+    return out;
+  }
+
+  /** Park-Miller, the same generator the textures use */
+  function lcg(seed) {
+    var s = Math.floor(Math.abs(seed || 1)) % 2147483647;
+    if (s <= 0) s += 2147483646;
+    return function() {
+      s = (s * 16807) % 2147483647;
+      return (s - 1) / 2147483646;
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // The schedule
+  // ---------------------------------------------------------------------------
+
+  /**
+   * A seeded schedule of rain episodes. Episodes are drawn from the seed in
+   * order as time asks for them, so the same seed always rains at the same
+   * moments however often it is queried. Times are ms since the scene was
+   * ready.
+   * @param {number} seed
+   * @param {Object} [cfg] - overrides of CFG (the recorder winds the timings)
+   */
+  function schedule(seed, cfg) {
+    var c = merged(cfg);
+    var rnd = lcg(seed);
+    var start = c.FIRST_GAP_MIN_MS + rnd() * (c.FIRST_GAP_MAX_MS - c.FIRST_GAP_MIN_MS);
+    var len = c.EPISODE_MIN_MS + rnd() * (c.EPISODE_MAX_MS - c.EPISODE_MIN_MS);
+    return { seed: seed, cfg: c, rnd: rnd, episodes: [{ start: start, end: start + len }] };
+  }
+
+  /** Make sure the episodes reach past `t` */
+  function extend(sched, t) {
+    var eps = sched.episodes, c = sched.cfg;
+    while (eps[eps.length - 1].end <= t) {
+      var last = eps[eps.length - 1];
+      var start = last.end + c.GAP_MIN_MS + sched.rnd() * (c.GAP_MAX_MS - c.GAP_MIN_MS);
+      var len = c.EPISODE_MIN_MS + sched.rnd() * (c.EPISODE_MAX_MS - c.EPISODE_MIN_MS);
+      eps.push({ start: start, end: start + len });
+    }
+  }
+
+  /**
+   * Where `t` falls in the schedule: { raining, current, previous, next }.
+   * `current` is the episode `t` is inside (or null), `previous` the last
+   * one that has ended, `next` the first one still to come.
+   */
+  function episodeAt(sched, t) {
+    extend(sched, t);
+    var eps = sched.episodes;
+    var out = { raining: false, current: null, previous: null, next: null };
+    for (var i = 0; i < eps.length; i++) {
+      var e = eps[i];
+      if (t >= e.start && t < e.end) { out.raining = true; out.current = e; }
+      else if (e.end <= t) out.previous = e;
+      else if (e.start > t && !out.next) out.next = e;
+    }
+    return out;
+  }
+
+  /** How hard it rains at `t`: 0 in a gap, ramping up at the start of an episode and down at its end */
+  function strengthAt(sched, t) {
+    var at = episodeAt(sched, t);
+    if (!at.current) return 0;
+    var c = sched.cfg, e = at.current;
+    var up = smooth((t - e.start) / c.RAIN_RAMP_MS);
+    var down = 1 - smooth((t - (e.end - c.RAIN_FADE_MS)) / c.RAIN_FADE_MS);
+    return Math.min(up, down);
+  }
+
+  /** The overlay's one-liner */
+  function describe(sched, t) {
+    var at = episodeAt(sched, t);
+    var sec = function(ms) { return Math.max(0, Math.round(ms / 1000)) + 's'; };
+    if (at.current) {
+      var n = sched.episodes.indexOf(at.current) + 1;
+      return 'ep ' + n + ' ' + strengthAt(sched, t).toFixed(2) + ', ' + sec(at.current.end - t) + ' left';
+    }
+    return 'dry, next in ' + (at.next ? sec(at.next.start - t) : '?');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Puddles
+  // ---------------------------------------------------------------------------
+
   /** Water gathers on trodden ground: lanes and plazas, never grass or a doorway */
   function isPuddleTile(tile) {
     if (!tile) return false;
@@ -59,23 +165,22 @@ var CemRain = (function() {
 
   /**
    * Everything the scene needs to lay one puddle: which of the four shapes,
-   * how big, mirrored or not, where in the tile, and when it starts to fill.
+   * how big, mirrored or not, and where in the tile. How fast it fills and
+   * dries comes from the same hashes (see wetnessAt).
    */
-  function puddleSpec(gx, gy, cfg) {
-    cfg = cfg || CFG;
+  function puddleSpec(gx, gy) {
     return {
       gx: gx, gy: gy,
       variant: Math.floor(hash(gx, gy, 43) * 4) % 4,
       scale: 0.7 + hash(gx, gy, 47) * 0.4,
       flip: hash(gx, gy, 53) < 0.5,
       dx: (hash(gx, gy, 59) - 0.5) * 20,
-      dy: (hash(gx, gy, 61) - 0.5) * 10,
-      delayMs: hash(gx, gy, 67) * cfg.PUDDLE_STAGGER_MS
+      dy: (hash(gx, gy, 61) - 0.5) * 10
     };
   }
 
   /**
-   * Puddles for tiles just revealed, up to the cap.
+   * Puddles for the tiles offered, up to the cap.
    * @param {Object} level - CemModel level
    * @param {number[]} indices - tile indices to consider
    * @param {number} taken - puddles already laid
@@ -89,7 +194,7 @@ var CemRain = (function() {
     for (var i = 0; i < indices.length && out.length < room; i++) {
       var t = level.tiles[indices[i]];
       if (!wantsPuddle(t, cfg)) continue;
-      var spec = puddleSpec(t.gx, t.gy, cfg);
+      var spec = puddleSpec(t.gx, t.gy);
       spec.index = indices[i];
       out.push(spec);
     }
@@ -125,18 +230,29 @@ var CemRain = (function() {
     return bestD >= minDist ? best : -1;
   }
 
-  /** 0 before the rain starts, 1 once it has ramped in */
-  function rainStrength(elapsedMs, cfg) {
-    cfg = cfg || CFG;
-    return smooth((elapsedMs - cfg.RAIN_DELAY_MS) / cfg.RAIN_RAMP_MS);
+  /**
+   * How wet a puddle is at `t` (0 dry .. 1 full). It fills through the
+   * latest episode that has begun, after its own stagger and at its own
+   * pace, and dries at its own pace once that episode has ended. A puddle
+   * laid mid-episode gets the same answer as one that was there all along.
+   */
+  function wetnessAt(sched, spec, t) {
+    var at = episodeAt(sched, t);
+    var e = at.current || at.previous;
+    if (!e) return 0;
+    var c = sched.cfg;
+    var delay = hash(spec.gx, spec.gy, 67) * c.PUDDLE_STAGGER_MS;
+    var fillMs = c.PUDDLE_FILL_MS * (0.8 + hash(spec.gx, spec.gy, 71) * 0.4);
+    var dryMs = c.PUDDLE_DRY_MS * (0.7 + hash(spec.gx, spec.gy, 73) * 0.6);
+    var filledUntil = Math.min(t, e.end);
+    var full = smooth((filledUntil - e.start - delay) / fillMs);
+    if (t < e.end) return full;
+    return full * (1 - smooth((t - e.end) / dryMs));
   }
 
-  /** How full a puddle is (0..1) this long after the scene became ready */
-  function puddleFill(spec, elapsedMs, cfg) {
-    cfg = cfg || CFG;
-    var start = cfg.RAIN_DELAY_MS + spec.delayMs;
-    return smooth((elapsedMs - start) / cfg.PUDDLE_FILL_MS);
-  }
+  // ---------------------------------------------------------------------------
+  // Rain, rings, splashes
+  // ---------------------------------------------------------------------------
 
   /** Velocity of a streak and the rotation that lines its picture up with it */
   function rainVelocity(cfg) {
@@ -166,21 +282,51 @@ var CemRain = (function() {
     return now - (lastAt || -1e9) >= cfg.SPLASH_MS;
   }
 
+  // ---------------------------------------------------------------------------
+  // Reflections
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Where the mirror image of a standing thing lies: its picture flipped
+   * about its ground line and hung below it. `o` is anything with x, y,
+   * displayWidth, displayHeight, originX, originY (a Phaser image);
+   * `groundY` is the line it stands on (its y unless told otherwise).
+   * @returns {Object} { left, top, w, h } in world px
+   */
+  function mirrorRect(o, groundY) {
+    var g = (typeof groundY === 'number') ? groundY : o.y;
+    var w = o.displayWidth, h = o.displayHeight;
+    var left = o.x - w * o.originX;
+    var top = o.y - h * o.originY;
+    return { left: left, top: 2 * g - (top + h), w: w, h: h };
+  }
+
+  /** Does a mirror image reach a puddle of scale `s` centred on (px, py) with a w by h picture */
+  function rectHitsPuddle(r, px, py, s, w, h) {
+    var hw = w * 0.42 * s, hh = h * 0.4 * s;
+    return r.left < px + hw && r.left + r.w > px - hw && r.top < py + hh && r.top + r.h > py - hh;
+  }
+
   return {
     CFG: CFG,
     hash: hash,
+    schedule: schedule,
+    episodeAt: episodeAt,
+    strengthAt: strengthAt,
+    describe: describe,
     isPuddleTile: isPuddleTile,
     wantsPuddle: wantsPuddle,
     puddleSpec: puddleSpec,
     planPuddles: planPuddles,
     tilesAround: tilesAround,
     farthestPuddle: farthestPuddle,
-    rainStrength: rainStrength,
-    puddleFill: puddleFill,
+    wetnessAt: wetnessAt,
     rainVelocity: rainVelocity,
     rainRate: rainRate,
     ringDue: ringDue,
-    splashDue: splashDue
+    splashDue: splashDue,
+    mirrorRect: mirrorRect,
+    rectHitsPuddle: rectHitsPuddle
   };
 })();
 

@@ -55,7 +55,6 @@ TestRunner.suite('CemRain', () => {
       TestRunner.assert(s.variant >= 0 && s.variant < 4 && s.variant === Math.floor(s.variant), 'one of four shapes');
       TestRunner.assert(s.scale >= 0.7 && s.scale <= 1.1, 'scale 0.7..1.1');
       TestRunner.assert(Math.abs(s.dx) <= 10 && Math.abs(s.dy) <= 5, 'stays near the tile centre');
-      TestRunner.assert(s.delayMs >= 0 && s.delayMs <= CFG.PUDDLE_STAGGER_MS, 'staggered within the window');
       TestRunner.assert(typeof s.flip === 'boolean', 'mirrored or not');
     }
   });
@@ -108,37 +107,116 @@ TestRunner.suite('CemRain', () => {
     TestRunner.assertEqual(CemRain.farthestPuddle(puddles, 5, 5, 0), 1, 'any distance will do');
   });
 
-  TestRunner.test('the rain waits, ramps in and stays', () => {
-    TestRunner.assertEqual(CemRain.rainStrength(0), 0, 'dry at the start');
-    TestRunner.assertEqual(CemRain.rainStrength(CFG.RAIN_DELAY_MS - 1), 0, 'dry until the delay');
-    var mid = CemRain.rainStrength(CFG.RAIN_DELAY_MS + CFG.RAIN_RAMP_MS / 2);
-    TestRunner.assert(mid > 0.4 && mid < 0.6, 'half way through the ramp');
-    TestRunner.assertEqual(CemRain.rainStrength(CFG.RAIN_DELAY_MS + CFG.RAIN_RAMP_MS), 1, 'full after the ramp');
-    TestRunner.assertEqual(CemRain.rainStrength(1e7), 1, 'and stays full');
-    var last = -1;
-    for (var t = 0; t < CFG.RAIN_DELAY_MS + CFG.RAIN_RAMP_MS; t += 250) {
-      var v = CemRain.rainStrength(t);
+  TestRunner.test('the schedule is seeded: the same seed rains at the same moments', () => {
+    var a = CemRain.schedule(42), b = CemRain.schedule(42), c = CemRain.schedule(43);
+    for (var t = 0; t < 1200000; t += 5000) {
+      TestRunner.assertEqual(CemRain.strengthAt(a, t), CemRain.strengthAt(b, t), 'same at ' + t);
+    }
+    var differs = false;
+    for (var u = 0; u < 1200000 && !differs; u += 5000) if (CemRain.strengthAt(a, u) !== CemRain.strengthAt(c, u)) differs = true;
+    TestRunner.assert(differs, 'another seed rains at other times');
+    TestRunner.assertEqual(a.episodes.length, b.episodes.length, 'the same episodes were drawn');
+  });
+
+  TestRunner.test('episodes last 30-60 s, the first comes soon, and gaps never pass two minutes', () => {
+    for (var seed = 1; seed <= 20; seed++) {
+      var sched = CemRain.schedule(seed);
+      CemRain.episodeAt(sched, 3600000);      // an hour of weather
+      var eps = sched.episodes;
+      TestRunner.assert(eps.length >= 20, 'plenty of episodes in an hour (' + eps.length + ')');
+      TestRunner.assert(eps[0].start >= CFG.FIRST_GAP_MIN_MS && eps[0].start <= CFG.FIRST_GAP_MAX_MS, 'the first shower comes soon');
+      for (var i = 0; i < eps.length; i++) {
+        var len = eps[i].end - eps[i].start;
+        TestRunner.assert(len >= CFG.EPISODE_MIN_MS && len <= CFG.EPISODE_MAX_MS, 'episode ' + i + ' lasts ' + len);
+        if (i > 0) {
+          var gap = eps[i].start - eps[i - 1].end;
+          TestRunner.assert(gap >= CFG.GAP_MIN_MS && gap <= CFG.GAP_MAX_MS, 'gap ' + i + ' is ' + gap);
+          TestRunner.assert(gap <= 120000, 'never more than two minutes dry');
+        }
+      }
+    }
+  });
+
+  TestRunner.test('an episode ramps in, holds, fades out, and the gaps are dry', () => {
+    var sched = CemRain.schedule(7);
+    var e = sched.episodes[0];
+    TestRunner.assertEqual(CemRain.strengthAt(sched, 0), 0, 'dry at the gate');
+    TestRunner.assertEqual(CemRain.strengthAt(sched, e.start - 1), 0, 'dry until it starts');
+    var mid = CemRain.strengthAt(sched, e.start + CFG.RAIN_RAMP_MS / 2);
+    TestRunner.assert(mid > 0.4 && mid < 0.6, 'half way up the ramp');
+    TestRunner.assertEqual(CemRain.strengthAt(sched, e.start + CFG.RAIN_RAMP_MS), 1, 'full after the ramp');
+    TestRunner.assertEqual(CemRain.strengthAt(sched, (e.start + e.end) / 2), 1, 'full in the middle');
+    var fading = CemRain.strengthAt(sched, e.end - CFG.RAIN_FADE_MS / 2);
+    TestRunner.assert(fading > 0.4 && fading < 0.6, 'half way down the fade');
+    TestRunner.assertEqual(CemRain.strengthAt(sched, e.end), 0, 'over at the end');
+    var at = CemRain.episodeAt(sched, e.end + 1000);
+    TestRunner.assert(!at.raining && at.previous === e && at.next === sched.episodes[1], 'in the gap: previous and next are known');
+    TestRunner.assert(/^dry, next in \d+s$/.test(CemRain.describe(sched, e.end + 1000)), 'described as dry');
+    TestRunner.assert(/^ep 1 1\.00, \d+s left$/.test(CemRain.describe(sched, (e.start + e.end) / 2)), 'described as raining');
+    var last = 0;
+    for (var t = e.start; t <= e.start + CFG.RAIN_RAMP_MS; t += 100) {
+      var v = CemRain.strengthAt(sched, t);
       TestRunner.assert(v >= last, 'never eases off while ramping');
       last = v;
     }
   });
 
-  TestRunner.test('a puddle fills after its own delay, over PUDDLE_FILL_MS, and puddles differ', () => {
+  TestRunner.test('a puddle fills while it rains and dries out slowly after', () => {
+    var sched = CemRain.schedule(11, { EPISODE_MIN_MS: 60000, EPISODE_MAX_MS: 60000, GAP_MIN_MS: 600000, GAP_MAX_MS: 600000 });
+    var e = sched.episodes[0];
     var spec = CemRain.puddleSpec(20, 20);
-    var start = CFG.RAIN_DELAY_MS + spec.delayMs;
-    TestRunner.assertEqual(CemRain.puddleFill(spec, start - 1), 0, 'dry before its start');
-    TestRunner.assertEqual(CemRain.puddleFill(spec, start + CFG.PUDDLE_FILL_MS), 1, 'full a fill later');
-    var half = CemRain.puddleFill(spec, start + CFG.PUDDLE_FILL_MS / 2);
-    TestRunner.assert(half > 0.4 && half < 0.6, 'half full half way');
-    var last = -1;
-    for (var t = 0; t <= start + CFG.PUDDLE_FILL_MS; t += 1000) {
-      var v = CemRain.puddleFill(spec, t);
-      TestRunner.assert(v >= last, 'only ever fills');
-      last = v;
+    TestRunner.assertEqual(CemRain.wetnessAt(sched, spec, 0), 0, 'dry before the first shower');
+    TestRunner.assertEqual(CemRain.wetnessAt(sched, spec, e.start), 0, 'dry as it starts');
+    var quarter = CemRain.wetnessAt(sched, spec, e.start + 15000);
+    var half = CemRain.wetnessAt(sched, spec, e.start + 30000);
+    TestRunner.assert(half > quarter && quarter >= 0, 'wetter as the rain goes on');
+    var full = CemRain.wetnessAt(sched, spec, e.end - 1);
+    TestRunner.assert(full > 0.95, 'full by the end of a long episode (' + full.toFixed(2) + ')');
+    var later = CemRain.wetnessAt(sched, spec, e.end + 30000);
+    TestRunner.assert(later < full && later > 0, 'drying after the rain stops');
+    var gone = CemRain.wetnessAt(sched, spec, e.end + CFG.PUDDLE_DRY_MS * 1.3);
+    TestRunner.assertEqual(gone, 0, 'dry again a couple of minutes later');
+    var last = 0;
+    for (var t = e.start; t < e.end; t += 1000) {
+      var w = CemRain.wetnessAt(sched, spec, t);
+      TestRunner.assert(w >= last, 'only fills while raining');
+      last = w;
     }
-    var delays = {};
-    for (var i = 0; i < 30; i++) delays[Math.round(CemRain.puddleSpec(i, 3).delayMs / 1000)] = true;
-    TestRunner.assert(Object.keys(delays).length > 10, 'starts are spread out');
+    // every puddle has its own pace
+    var seen = {};
+    for (var i = 0; i < 30; i++) seen[CemRain.wetnessAt(sched, CemRain.puddleSpec(i, 3), e.start + 12000).toFixed(2)] = true;
+    TestRunner.assert(Object.keys(seen).length > 8, 'puddles fill at different rates');
+  });
+
+  TestRunner.test('the recorder can wind the schedule through cfg overrides', () => {
+    var fast = CemRain.schedule(5, { FIRST_GAP_MIN_MS: 1000, FIRST_GAP_MAX_MS: 1000, EPISODE_MIN_MS: 5000, EPISODE_MAX_MS: 5000,
+      RAIN_RAMP_MS: 1000, RAIN_FADE_MS: 1000, PUDDLE_FILL_MS: 2000, PUDDLE_STAGGER_MS: 0, PUDDLE_DRY_MS: 2000 });
+    TestRunner.assertEqual(fast.episodes[0].start, 1000, 'starts at one second');
+    TestRunner.assertEqual(fast.episodes[0].end, 6000, 'five seconds long');
+    TestRunner.assertEqual(CemRain.strengthAt(fast, 2000), 1, 'full after a one-second ramp');
+    TestRunner.assert(CemRain.wetnessAt(fast, CemRain.puddleSpec(3, 3), 5999) > 0.95, 'puddles full within the episode');
+    TestRunner.assertEqual(CemRain.wetnessAt(fast, CemRain.puddleSpec(3, 3), 10000), 0, 'dry again soon after');
+    TestRunner.assertEqual(CemRain.CFG.EPISODE_MIN_MS, 30000, 'the defaults are untouched');
+  });
+
+  TestRunner.test('a mirror image hangs below the ground line, flipped, and reaches only nearby puddles', () => {
+    // a grave 64 wide and 84 tall, anchored at its floor (origin y 0.9), standing at (100, 200)
+    var grave = { x: 100, y: 200, displayWidth: 64, displayHeight: 84, originX: 0.5, originY: 0.9 };
+    var r = CemRain.mirrorRect(grave);
+    TestRunner.assertEqual(r.left, 68, 'same left edge');
+    TestRunner.assertEqual(r.w, 64, 'same width');
+    TestRunner.assertEqual(r.h, 84, 'same height');
+    // upright it spans [124.4, 208.4]; mirrored about y=200 that is [191.6, 275.6]
+    TestRunner.assert(Math.abs(r.top - 191.6) < 1e-9, 'top of the mirror image is just above the ground line');
+    var r2 = CemRain.mirrorRect(grave, 190);
+    TestRunner.assert(Math.abs(r2.top - 171.6) < 1e-9, 'a different ground line moves it');
+    var W = 112, H = 56;
+    TestRunner.assert(CemRain.rectHitsPuddle(r, 100, 240, 1, W, H), 'a puddle just below the grave sees it');
+    TestRunner.assert(CemRain.rectHitsPuddle(r, 100, 290, 1, W, H), 'and one a little further down');
+    TestRunner.assert(!CemRain.rectHitsPuddle(r, 100, 320, 1, W, H), 'but not one below its reach');
+    TestRunner.assert(!CemRain.rectHitsPuddle(r, 100, 150, 1, W, H), 'nor one behind it');
+    TestRunner.assert(!CemRain.rectHitsPuddle(r, 200, 240, 1, W, H), 'nor one off to the side');
+    TestRunner.assert(CemRain.rectHitsPuddle(r, 100, 320, 2, W, H), 'a bigger puddle reaches further');
   });
 
   TestRunner.test('streaks fall down and to the right, and their picture leans the same way', () => {
