@@ -33,9 +33,10 @@ var CemRain = (function() {
     PUDDLE_FILL_MS: 25000,      // a puddle fills in about this long of rain (each a little different)
     PUDDLE_STAGGER_MS: 12000,   // spread the starts so they do not all fill together
     PUDDLE_DRY_MS: 90000,       // and dries out over about this long once the rain has stopped
-    RING_CAP: 20,               // droplet rings alive at once
-    RING_RATE: 7,               // droplet rings a second, over all visible puddles
-    RING_MS: 750,               // how long a droplet ring lasts
+    RING_CAP: 48,               // droplet rings and plips alive at once
+    RING_RATE: 3,               // drops hitting each puddle in view a second, at full rain
+    RING_MS: 600,               // how long a droplet ring lasts
+    PLIP_MS: 150,               // and the bright dot where the drop hit
     SPLASH_MS: 360,             // no second splash sooner than this (about one step)
     LIVE_MS: 80,                // how often a puddle near something moving redraws its reflection (12.5 Hz)
     BAKES_PER_TICK: 2,          // and how many puddles may redraw in one such tick (the rest wait for the next)
@@ -268,13 +269,15 @@ var CemRain = (function() {
   }
 
   /**
-   * Whether a droplet ring lands this frame: RING_RATE a second over all the
-   * puddles in view, none when there are none.
+   * How many drops hit one puddle this frame: RING_RATE a second at full
+   * rain, in proportion to the strength, the fraction settled by the roll.
    */
-  function ringDue(rnd, dtMs, visiblePuddles, cfg) {
+  function impactsDue(rnd, dtMs, strength, cfg) {
     cfg = cfg || CFG;
-    if (!visiblePuddles) return false;
-    return rnd < Math.min(1, cfg.RING_RATE * dtMs / 1000);
+    if (strength <= 0) return 0;
+    var x = cfg.RING_RATE * strength * dtMs / 1000;
+    var n = Math.floor(x);
+    return n + (rnd < x - n ? 1 : 0);
   }
 
   function splashDue(now, lastAt, cfg) {
@@ -323,7 +326,7 @@ var CemRain = (function() {
     wetnessAt: wetnessAt,
     rainVelocity: rainVelocity,
     rainRate: rainRate,
-    ringDue: ringDue,
+    impactsDue: impactsDue,
     splashDue: splashDue,
     mirrorRect: mirrorRect,
     rectHitsPuddle: rectHitsPuddle

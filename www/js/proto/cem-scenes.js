@@ -1056,16 +1056,47 @@ var CemScenes = (function() {
 
     /**
      * A ring spreading on the water at a world point; `size` is its full
-     * scale, `dur` its life. Rings lie on the floor layer with the puddles.
+     * scale (the picture is 64 px wide), `dur` its life. Rings lie on the
+     * floor layer with the puddles, just above the puddle's own texture and
+     * under everything that stands.
      */
-    spawnRing: function(x, y, size, dur, alpha, depth) {
+    spawnRing: function(x, y, size, dur, alpha, depth, key) {
       if (this.rings.length >= CemRain.CFG.RING_CAP) return null;
       var img = this.poolTake(this.ringPool, 'cem_drop_ring');
       if (!img.cemInFloor) { this.world.floorLayer.add(img); img.cemInFloor = true; }
-      img.setPosition(x, y).setScale(size * 0.15).setAlpha(alpha).setDepth(depth).setVisible(true);
+      img.setTexture(key || 'cem_drop_ring').setPosition(x, y).setScale(size * 0.15).setAlpha(alpha).setDepth(depth).setVisible(true);
       var ring = { img: img, t0: this.time.now, dur: dur, from: size * 0.15, to: size, alpha: alpha };
       this.rings.push(ring);
+      this.ringsSpawned = (this.ringsSpawned || 0) + 1;
       return ring;
+    },
+
+    /** The bright dot where a drop hit: pops and is gone in PLIP_MS */
+    spawnPlip: function(x, y, depth) {
+      if (this.rings.length >= CemRain.CFG.RING_CAP) return null;
+      var img = this.poolTake(this.ringPool, 'cem_droplet');
+      if (!img.cemInFloor) { this.world.floorLayer.add(img); img.cemInFloor = true; }
+      img.setTexture('cem_droplet').setPosition(x, y - 1).setScale(0.25).setAlpha(1).setDepth(depth + 0.01).setVisible(true);
+      var plip = { img: img, t0: this.time.now, dur: CemRain.CFG.PLIP_MS, from: 0.25, to: 0.5, alpha: 1 };
+      this.rings.push(plip);
+      return plip;
+    },
+
+    /**
+     * Drops hitting one puddle: `n` impacts, each a plip and a ring at a
+     * point inside the water, and the mirror image sways.
+     */
+    puddleImpacts: function(pd, n, now) {
+      var cfg = CemRain.CFG;
+      var sc = pd.spec.scale;
+      for (var k = 0; k < n; k++) {
+        var a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random());
+        var x = pd.x + Math.cos(a) * rr * 36 * sc, y = pd.y + Math.sin(a) * rr * 16 * sc;
+        // the small native ring (16 px wide) grows to 12-19 px
+        this.spawnRing(x, y, (0.75 + Math.random() * 0.45), cfg.RING_MS, 0.85 * pd.img.alpha, pd.depth + 0.5, 'cem_plip_ring');
+        this.spawnPlip(x, y, pd.depth + 0.5);
+      }
+      pd.wobbleUntil = now + cfg.RING_MS;
     },
 
     /** Water flung up from a step: it rises, falls back and is gone */
@@ -1137,16 +1168,15 @@ var CemScenes = (function() {
       if (now >= this.liveAt) { this.liveAt = now + cfg.LIVE_MS; this.updateLiveReflections(now); }
       if (REDUCED_MOTION) return;
 
-      // now and then a drop lands on a puddle in view
-      if (this.rainStrength > 0.05 && CemRain.ringDue(Math.random(), dt, visiblePuddles)) {
-        pd = this.puddles[Math.floor(Math.random() * this.puddles.length)];
-        if (pd && pd.vis === 2 && pd.wet > 0.25 &&
-            pd.x > view.x && pd.x < view.right && pd.y > view.y && pd.y < view.bottom) {
-          var sc = pd.spec.scale;
-          var a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random());
-          this.spawnRing(pd.x + Math.cos(a) * rr * 34 * sc, pd.y + Math.sin(a) * rr * 15 * sc,
-            (0.25 + Math.random() * 0.3) * sc, cfg.RING_MS, 0.55 * pd.wet, pd.depth + 0.5);
-          pd.wobbleUntil = now + cfg.RING_MS;
+      // the rain hits the water: every wet puddle in view takes RING_RATE
+      // drops a second at full strength, each a plip and a ring
+      if (this.rainStrength > 0.02) {
+        for (i = 0; i < this.puddles.length; i++) {
+          pd = this.puddles[i];
+          if (!pd.img.visible || pd.img.alpha < 0.2) continue;
+          if (pd.x < view.x || pd.x > view.right || pd.y < view.y || pd.y > view.bottom) continue;
+          var hits = CemRain.impactsDue(Math.random(), dt, this.rainStrength);
+          if (hits) this.puddleImpacts(pd, hits, now);
         }
       }
 
@@ -1162,7 +1192,7 @@ var CemScenes = (function() {
           continue;
         }
         var e = 1 - (1 - k) * (1 - k);
-        ring.img.setScale(ring.from + (ring.to - ring.from) * e).setAlpha(ring.alpha * (1 - k));
+        ring.img.setScale(ring.from + (ring.to - ring.from) * e).setAlpha(ring.alpha * (1 - k * k));
       }
 
       // drops fly up and fall back
@@ -1193,6 +1223,7 @@ var CemScenes = (function() {
         streaks: this.rainEmitter ? this.rainEmitter.getAliveParticleCount() : 0,
         puddles: this.puddles ? this.puddles.length : 0,
         rings: this.rings ? this.rings.length : 0,
+        ringsSpawned: this.ringsSpawned || 0,
         drops: this.drops ? this.drops.length : 0,
         strength: this.rainStrength,
         bakes: rs.bakes, bakeMs: rs.bakeMs, composes: rs.composes,
