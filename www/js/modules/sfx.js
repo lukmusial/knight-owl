@@ -127,6 +127,12 @@ var SFX = (function() {
     'knockback': { dur: 0.40, steps: [
       noise(0, 0.30, 0.35, 'lowpass', 600),
       tone(0, 0.35, 0.35, 'sine', 200, 60)
+    ] },
+    // a foot landing in a shallow puddle: a soft wet slap and a short patter
+    'splash': { dur: 0.26, steps: [
+      noise(0, 0.10, 0.28, 'bandpass', 1900, 700),
+      tone(0, 0.08, 0.12, 'sine', 480, 220),
+      noise(0.05, 0.20, 0.16, 'lowpass', 1100, 500)
     ] }
   };
   RECIPES['door'] = RECIPES['reveal'];
