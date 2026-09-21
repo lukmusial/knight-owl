@@ -254,7 +254,7 @@ var CemTextures = (function() {
    * gets an opening drawn for it.
    */
   var DOOR_SLOPE = 0.5;
-  var SPILL_REACH = 3.2;        // how far the light reaches out, in door widths
+  var SPILL_REACH = 3.8;        // how far the light reaches out, in door widths
 
   /** Arch outline: jambs at x=0 and x=w, sloped sill, round top; (0,0) is the top-left */
   function archPath(ctx, w, hL) {
@@ -290,9 +290,9 @@ var CemTextures = (function() {
     ctx.save();
     ctx.clip();
     var g = ctx.createLinearGradient(0, h, 0, 0);
-    g.addColorStop(0, 'rgba(255,255,255,0.9)');
-    g.addColorStop(0.4, 'rgba(255,255,255,0.4)');
-    g.addColorStop(1, 'rgba(255,255,255,0.05)');
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.45, 'rgba(255,255,255,0.7)');
+    g.addColorStop(1, 'rgba(255,255,255,0.18)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
@@ -316,7 +316,7 @@ var CemTextures = (function() {
       var t = i / (steps - 1);
       var px = cx + dx * reach * t, py = cy + dy * reach * t;
       var r = w * (0.55 + 1.3 * t);
-      var a = 0.62 * (1 - t) * (1 - t) + 0.05;
+      var a = 0.85 * (1 - t) * (1 - t) + 0.08;
       var g = ctx.createRadialGradient(px, py, 0, px, py, r);
       g.addColorStop(0, 'rgba(255,255,255,' + a.toFixed(3) + ')');
       g.addColorStop(0.55, 'rgba(255,255,255,' + (a * 0.45).toFixed(3) + ')');

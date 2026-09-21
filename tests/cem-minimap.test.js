@@ -49,4 +49,26 @@ TestRunner.suite('CemMinimap', () => {
     TestRunner.assertEqual(countOf(svg, 'cem-map-monster"'), visibleMonsters, 'visible monsters marked');
     TestRunner.assertEqual(countOf(CemMinimap.render(L, { showMonsters: false }), 'cem-map-monster"'), 0, 'monsters can be hidden');
   });
+
+  TestRunner.test('tells visited tombs from the ones still to visit', () => {
+    var L = CemModel.generate(33);
+    for (var i = 0; i < L.seen.length; i++) L.seen[i] = 1;
+    CemModel.updateVisibility(L);
+    var before = CemMinimap.render(L);
+    TestRunner.assertEqual(countOf(before, ' visited"'), 0, 'nothing visited at the start');
+    TestRunner.assertEqual(countOf(before, 'cem-map-tick'), 0, 'no ticks at the start');
+    TestRunner.assertEqual(countOf(before, 'stroke="#ffd08a"'), 4, 'the four small tombs outlined gold, like their door light');
+    var key0 = CemMinimap.stateKey(L);
+    CemModel.defeatMonster(L, 'g1');
+    var after = CemMinimap.render(L);
+    TestRunner.assertEqual(countOf(after, 'class="cem-map-tomb visited"'), 1, 'the first tomb is marked visited');
+    TestRunner.assertEqual(countOf(after, 'cem-map-tick'), 1, 'and gets a tick');
+    TestRunner.assertEqual(countOf(after, 'stroke="#ffd08a"'), 3, 'three still to visit');
+    TestRunner.assert(CemMinimap.stateKey(L) !== key0, 'the HUD map redraws when a tomb is done');
+    var large = L.tombs.filter(function(t) { return t.size === 'large'; })[0];
+    TestRunner.assert(!CemMinimap.tombVisited(L, large), 'the great tomb waits for the Reaper');
+    ['g2', 'g3', 'g4', 'boss'].forEach(function(uid) { CemModel.defeatMonster(L, uid); });
+    TestRunner.assert(CemMinimap.tombVisited(L, large), 'beaten Reaper: the great tomb is done');
+    TestRunner.assertEqual(countOf(CemMinimap.render(L), 'cem-map-tick'), 5, 'all five ticked');
+  });
 });

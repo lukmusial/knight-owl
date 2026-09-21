@@ -14,6 +14,8 @@ var CemScenes = (function() {
   var FOG_ENABLED = false;     // the moving night is off for now; the remembered-tile tint still applies
   // what the light in a tomb doorway means: waiting, taken, sealed
   var DOOR_LIGHT = { gold: 0xffd08a, blue: 0x7fd8ff, red: 0xff5a46 };
+  // how strongly a doorway burns: the light is additive, so these go close to 1
+  var DOOR_ALPHA = { waiting: 0.95, taken: 0.75, large: 0.9 };
   var REDUCED_MOTION = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false;
@@ -524,10 +526,10 @@ var CemScenes = (function() {
         var tint, alpha;
         if (tomb.size === 'large') {
           tint = CemModel.hasAllKeyParts(L) ? DOOR_LIGHT.gold : DOOR_LIGHT.red;
-          alpha = 0.55;
+          alpha = DOOR_ALPHA.large;
         } else {
           tint = beaten ? DOOR_LIGHT.blue : DOOR_LIGHT.gold;
-          alpha = beaten ? 0.45 : 0.6;
+          alpha = beaten ? DOOR_ALPHA.taken : DOOR_ALPHA.waiting;
         }
         if (tomb.size === 'large' && this.bossRevealed && !this.bossBeaten) alpha *= 0.4;   // he must read against it
         if (rec.glowTint !== tint) {

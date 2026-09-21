@@ -691,7 +691,8 @@ body.on-game #victory-screen {
 .cem-map-legend .label-pl { display: block; font-style: italic; opacity: 0.75; }
 .cem-map-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
 .cem-map-dot.you { background: #00bcd4; box-shadow: 0 0 0 2px #e0f7fa; }
-.cem-map-dot.tomb { background: #7a8290; border-radius: 2px; }
+.cem-map-dot.tomb { background: #3a3f4c; border-radius: 2px; box-shadow: 0 0 0 1.5px #ffd08a; }
+.cem-map-dot.visited { background: #2c5a70; border-radius: 2px; box-shadow: 0 0 0 1.5px #7fd8ff; }
 .cem-map-dot.great { background: #8a5cc7; border-radius: 2px; }
 .cem-map-dot.monster { background: #e14b4b; }
 .cem-map-hint { flex-basis: 100%; opacity: 0.85; }
