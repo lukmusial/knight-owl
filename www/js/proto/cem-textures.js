@@ -358,19 +358,48 @@ var CemTextures = (function() {
     return puddleCache[v];
   }
 
-  /** A soft elliptical ring, the trace of a drop landing in water */
+  /**
+   * An elliptical ring, the trace of a drop landing in water: a bright thin
+   * rim with a faint dark line inside it, so it reads against the water at
+   * map scale even when only a dozen pixels wide.
+   */
   function drawDropRing(ctx, w, h) {
     var cx = w / 2, cy = h / 2;
     ctx.save();
     ctx.translate(cx, cy);
     ctx.scale(1, h / w);
-    for (var i = 0; i < 3; i++) {
-      ctx.beginPath();
-      ctx.arc(0, 0, w * 0.42 - i * 1.4, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(200,220,255,' + (i === 1 ? 0.7 : 0.3) + ')';
-      ctx.lineWidth = 1.6;
-      ctx.stroke();
-    }
+    ctx.beginPath();
+    ctx.arc(0, 0, w * 0.4 - 2.5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(10,16,40,0.45)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, w * 0.4, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(232,242,255,0.98)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /**
+   * The ring of a raindrop hitting a puddle, drawn at the size it is seen
+   * (a dozen pixels), so its rim stays a crisp pixel and a half wide: white
+   * outside, a dark line inside for contrast on lit water.
+   */
+  function drawPlipRing(ctx, w, h) {
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(1, h / w);
+    ctx.beginPath();
+    ctx.arc(0, 0, w / 2 - 2.6, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(8,12,34,0.6)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, w / 2 - 1.2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(240,248,255,1)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -843,6 +872,7 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_flash', 8, 8, function(ctx) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 8, 8); });
     // rain: a droplet ring, a streak and a splash drop (the puddles are composited per puddle, see puddleParts)
     canvasTexture(scene, 'cem_drop_ring', 64, 32, function(ctx) { drawDropRing(ctx, 64, 32); });
+    canvasTexture(scene, 'cem_plip_ring', 16, 8, function(ctx) { drawPlipRing(ctx, 16, 8); });
     canvasTexture(scene, 'cem_rain_streak', 4, 30, function(ctx) { drawRainStreak(ctx, 4, 30); });
     canvasTexture(scene, 'cem_droplet', 10, 10, function(ctx) { drawDroplet(ctx, 10); });
 

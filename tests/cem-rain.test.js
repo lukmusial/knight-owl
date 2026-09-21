@@ -238,13 +238,20 @@ TestRunner.suite('CemRain', () => {
     TestRunner.assertEqual(CemRain.rainRate(0), 0, 'no rain, no streaks');
   });
 
-  TestRunner.test('droplet rings land RING_RATE a second while a puddle is in view', () => {
-    TestRunner.assert(!CemRain.ringDue(0, 16, 0), 'never without a puddle');
-    TestRunner.assert(CemRain.ringDue(0, 16, 3), 'a lucky roll lands one');
-    TestRunner.assert(!CemRain.ringDue(0.99, 16, 3), 'an unlucky one does not');
+  TestRunner.test('drops hit each puddle RING_RATE a second at full rain, fewer in a drizzle, none when dry', () => {
+    TestRunner.assertEqual(CemRain.impactsDue(0, 16, 0), 0, 'no rain, no drops');
     var p = CFG.RING_RATE * 16 / 1000;
-    TestRunner.assert(CemRain.ringDue(p - 1e-6, 16, 1) && !CemRain.ringDue(p + 1e-6, 16, 1), 'the threshold is rate times frame time');
-    TestRunner.assert(CemRain.ringDue(0.999, 5000, 1), 'a very long frame always lands one');
+    TestRunner.assertEqual(CemRain.impactsDue(p - 1e-6, 16, 1), 1, 'a lucky roll lands one');
+    TestRunner.assertEqual(CemRain.impactsDue(p + 1e-6, 16, 1), 0, 'an unlucky one does not');
+    TestRunner.assertEqual(CemRain.impactsDue(p / 2 + 1e-6, 16, 0.5), 0, 'half the rain, half the chance');
+    var long = CemRain.impactsDue(0.999, 1000, 1);
+    TestRunner.assertEqual(long, CFG.RING_RATE, 'a whole second at full rain lands RING_RATE');
+    TestRunner.assertEqual(CemRain.impactsDue(0, 1100, 1), CFG.RING_RATE + 1, 'plus the fraction on a lucky roll');
+    var sum = 0, frames = 100000;
+    var seq = 0.5;
+    for (var i = 0; i < frames; i++) { seq = (seq * 9301 + 49297) % 233280; sum += CemRain.impactsDue(seq / 233280, 16, 1); }
+    var perSec = sum / (frames * 16 / 1000);
+    TestRunner.assert(Math.abs(perSec - CFG.RING_RATE) < CFG.RING_RATE * 0.1, 'over many frames the rate holds (' + perSec.toFixed(2) + ')');
   });
 
   TestRunner.test('a splash is not repeated within SPLASH_MS', () => {
