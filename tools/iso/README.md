@@ -55,7 +55,7 @@ tints, not baked into the sprites.
 { "ppt": 128, "sprites": {
   "grave_0":   { "kit": "graveyard", "src": ["gravestone-bevel"], "scale": 1.3, "footprint": [1, 1] },
   "fence_w":   { "kit": "nature", "src": ["fence_simple"], "rot": 90, "offset": [-0.5, 0, 0], "footprint": [1, 1] },
-  "lantern_post": { "kit": "graveyard", "src": ["lightpost-single"], "scale": 1.15, "footprint": [1, 1], "light": "top" },
+  "lantern_post": { "kit": "graveyard", "src": ["lightpost-single"], "scale": 1.15, "footprint": [1, 1], "light": [0, -0.33, 1.19] },
   "tomb_small": { "footprint": [2, 2], "door": [0, -1.0, 0], "parts": [
       { "kit": "graveyard", "src": ["crypt-small"], "scale": 1.35 },
       { "kit": "graveyard", "src": ["crypt-small-roof"], "scale": 1.35, "pos": [0, 0, 1.35] } ] }
@@ -66,7 +66,12 @@ tints, not baked into the sprites.
 - `rot` (degrees about Z), `offset`/`pos` (tile units) and `scale` transform
   a model; `parts` composes several models into one sprite.
 - `light` (`"top"` or `[x, y, z]`) and `door` (`[x, y, z]`, floor point) are
-  projected into the image and written to the output manifest.
+  projected into the image and written to the output manifest. `"top"` is
+  the top of the model on the footprint centre's axis, which is only right
+  for a lamp that sits on its post: the kit's `lightpost-single` hangs its
+  lamp from an arm along -Y (screen-left), so its light is the glass centre
+  `[0, -0.33, 1.19]`, and `CemModel.CONFIG.LAMP_OFFSET` carries the same
+  floor offset (+0.33 gy) for the light pool, light map and shadows.
 
 Output: `www/assets/proto/iso/cemetery/<name>.png` (trimmed, transparent)
 and `cemetery.json` with `w`, `h`, `anchor` (the floor point of the footprint

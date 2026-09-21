@@ -11,6 +11,12 @@ var CemScenes = (function() {
   // how fast a monster swings its heading around (radians per second)
   var TURN_RATE = Math.PI * 1.6;
   var FOG_DARK = 0.62;         // how dark the night is away from any light
+  // the lantern flame inside the lamp's glass: the sprite manifest's `light`
+  // point is the glass centre, the flame stands FLAME_LIFT px below it and
+  // its tongue (50 of the frame's 64 px) is FLAME_SCALE tall, so it stays
+  // within the 16 px glass box of the kit lamp
+  var FLAME_SCALE = 0.32;
+  var FLAME_LIFT = 7;
   var MONSTER_REVEAL_RATE = 2.5;   // a monster's alpha moves toward its reveal at most this much per second
   var GROUND_SPRITE_DEPTH = -250000;   // ground drawn as tile sprites while it is still coming up, under the tomb spills
   var GROUND_SPRITE_GAP = 0.03;        // a tile sprite bridges the ground only when its peak is this far past the chunk's bake
@@ -370,7 +376,9 @@ var CemScenes = (function() {
           ga = CemReveal.alphaAt(R, idx);
           if (ga <= 0) continue;
           if (tile.kind === 'lantern') {
-            var lp = IsoModel.gridToIso(gx, gy);
+            // the pool lies under the lamp head, which hangs off the post
+            var lamp = CemModel.lampPoint(L, { gx: gx, gy: gy });
+            var lp = IsoModel.gridToIso(lamp.gx, lamp.gy);
             stamp.setTexture('light_pool').setOrigin(0.5, 0.5).setScale(1.25).setAngle(0)
               .setAlpha(0.5).setTint(0xffd9a0).setBlendMode(Phaser.BlendModes.ADD);
             rt.batchDraw(stamp, lp.x - rect.left, lp.y - rect.top);
@@ -380,7 +388,7 @@ var CemScenes = (function() {
           if (!caster) continue;
           var near = L.nearLights[idx] || [];
           for (var li = 0; li < near.length; li++) {
-            var sh = IsoModel.castShadow({ gx: gx, gy: gy, height: caster.h, radius: caster.r }, L.lights[near[li]]);
+            var sh = IsoModel.castShadow({ gx: gx, gy: gy, height: caster.h, radius: caster.r }, CemModel.lampPoint(L, L.lights[near[li]]));
             if (!sh) continue;
             var sp = IsoModel.gridToIso(gx, gy);
             stamp.setTexture('cast_shadow').setOrigin(0.12, 0.5).setRotation(sh.angle)
@@ -637,22 +645,27 @@ var CemScenes = (function() {
         var t = L.tiles[i];
         if (t.kind !== 'lantern') continue;
         var p = IsoModel.gridToIso(t.gx, t.gy);
+        var lamp = IsoModel.gridToIso(CemModel.lampPoint(L, t).gx, CemModel.lampPoint(L, t).gy);
         var flameX = p.x, flameY = p.y - 80;
         if (entry) {
           var img = this.placeSprite(entry, t.gx, t.gy);
           this.tileObjs[i].push(img); this.tileProps[i].push(img);
           this.world.addProp(img, t.gx, t.gy);
           if (entry.light) {
+            // the manifest's light point is the centre of the lamp's glass
+            // (on the kit post that hangs from an arm beside the post)
             var sc = img.scaleX || 1;
             flameX = img.x + (entry.light.x - entry.anchor.x) * entry.w * sc;
             flameY = img.y + (entry.light.y - entry.anchor.y) * entry.h * sc;
           }
         }
         var depth = IsoModel.depthKey(t.gx, t.gy, LAYERS.token);
-        var glow = this.add.image(flameX, flameY - 6, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(0.8);
+        var glow = this.add.image(flameX, flameY, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(0.8);
         glow.cemTweened = true;    // a lantern tile is lit from the start; the flicker tween owns this alpha
-        var flame = this.add.sprite(flameX, flameY + 6, 'flame_0').setOrigin(0.5, 0.92).setScale(0.42).setDepth(depth + 0.2);
-        var pool = this.add.image(p.x, p.y, 'light_pool').setDepth(POOL_BAND + IsoModel.depthKey(t.gx, t.gy, 0))
+        // the flame tongue is 50 px of its 64 px frame: at FLAME_SCALE it is 16 px tall,
+        // standing from just under the glass centre to just under its top, inside the lamp
+        var flame = this.add.sprite(flameX, flameY + FLAME_LIFT, 'flame_0').setOrigin(0.5, 0.92).setScale(FLAME_SCALE).setDepth(depth + 0.2);
+        var pool = this.add.image(lamp.x, lamp.y, 'light_pool').setDepth(POOL_BAND + IsoModel.depthKey(t.gx, t.gy, 0))
           .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.5).setScale(1.25).setTint(0xffd9a0);
         if (!REDUCED_MOTION) {
           flame.play({ key: 'flame', startFrame: Math.floor(hash(t.gx, t.gy) * 8) });
@@ -729,7 +742,8 @@ var CemScenes = (function() {
       this.fogRing.setPosition(op.x, op.y + 12).setScale(sc);
       var n = 0;
       for (var i = 0; i < L.lights.length; i++) {
-        var lp = IsoModel.gridToIso(L.lights[i].gx, L.lights[i].gy);
+        var lamp = CemModel.lampPoint(L, L.lights[i]);
+        var lp = IsoModel.gridToIso(lamp.gx, lamp.gy);
         if (lp.x < view.x - 400 || lp.x > view.right + 400 || lp.y < view.y - 400 || lp.y > view.bottom + 400) continue;
         this.fogGlow(n++, lp.x, lp.y - 20, L.cfg.VIS_LANTERN + 0.5, 0.42, 0xffd9a8);
       }

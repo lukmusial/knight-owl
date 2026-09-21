@@ -47,7 +47,13 @@ var CemModel = (function() {
     ROCKS: 16,
     MAX_LANTERNS: 56,
     LANTERN_EVERY: 8,
-    LANTERN_HEIGHT: 1.1
+    LANTERN_HEIGHT: 1.1,
+    // where the lamp hangs, in tiles from its post's tile centre: the kit's
+    // lamp post carries its lamp on an arm to the screen-left (+gy) side
+    // (measured off lantern_post.png; the sprite manifest's `light` point
+    // projects the same offset), so the light pool, the light map and the
+    // shadows come from under the lamp, not from the post
+    LAMP_OFFSET: { gx: 0, gy: 0.33 }
   };
 
   var KIND = {
@@ -1653,17 +1659,31 @@ var CemModel = (function() {
    * Per-tile lantern light (0 dark .. 1 lit) and the two nearest lanterns,
    * computed once so the renderer never scans every lantern per frame.
    */
+  /**
+   * The point a lantern's light comes from: the lamp head, which hangs off
+   * the post by `cfg.LAMP_OFFSET`. `light.gx/gy` stay the post's tile (the
+   * reveal, the minimap and the tile visibility work on tiles); this is what
+   * the light map, the cast shadows and the floor pool use.
+   * @returns {Object} { gx, gy, height } in tiles
+   */
+  function lampPoint(level, light) {
+    var off = (level.cfg && level.cfg.LAMP_OFFSET) || CONFIG.LAMP_OFFSET;
+    return { gx: light.gx + off.gx, gy: light.gy + off.gy, height: light.height };
+  }
+
   function computeLightMap(level) {
     var n = level.W * level.H;
     level.lightMap = new Float32Array(n);
     level.nearLights = new Array(n);
     var range = IsoModel.LIGHT.range;
+    var lamps = [];
+    for (var lp = 0; lp < level.lights.length; lp++) lamps.push(lampPoint(level, level.lights[lp]));
     for (var i = 0; i < n; i++) {
       var t = level.tiles[i];
-      level.lightMap[i] = IsoModel.lightLevel(t.gx, t.gy, level.lights);
+      level.lightMap[i] = IsoModel.lightLevel(t.gx, t.gy, lamps);
       var best = [], bestD = [];
-      for (var li = 0; li < level.lights.length; li++) {
-        var dx = t.gx - level.lights[li].gx, dy = t.gy - level.lights[li].gy;
+      for (var li = 0; li < lamps.length; li++) {
+        var dx = t.gx - lamps[li].gx, dy = t.gy - lamps[li].gy;
         var d = dx * dx + dy * dy;
         if (d > range * range) continue;
         if (best.length < 2) { best.push(li); bestD.push(d); }
@@ -1848,6 +1868,7 @@ var CemModel = (function() {
     updateVisibility: updateVisibility,
     visibilityAt: visibilityAt,
     computeLightMap: computeLightMap,
+    lampPoint: lampPoint,
     exportState: exportState,
     loadState: loadState,
     drawOrder: drawOrder,
