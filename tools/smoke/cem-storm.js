@@ -122,6 +122,7 @@ async function main() {
     const strike = await page.evaluate(() => new Promise(resolve => {
       const S = ProtoCem.getScene();
       const g = S.sys.game;
+      if (S.stormStrike) S.endStrike();   // the plan's own strike may be running; the check wants its own
       const s = S.strikeLightning();
       if (!s) { resolve(null); return; }
       // read at the moment of the strike, before the first tick moves it on
@@ -211,6 +212,7 @@ async function main() {
       const frame = () => new Promise(r => g.events.once('postrender', () => r()));
       const count = async () => { let sum = 0; for (let i = 0; i < 8; i++) { draws = 0; await frame(); sum += draws; } return sum / 8; };
       const tick = S.tickStorm;
+      if (S.stormStrike) S.endStrike();   // the plan's own strike may be running; the check wants its own
       const s = S.strikeLightning();
       const bright = CemStorm.brightest(s.seq);
       S.tickStorm = function() { S.applyStorm(bright.t); };   // hold the strike on its main stroke
