@@ -5,7 +5,10 @@
  * walks Mr Owl through the lanes, screenshots the wet grounds and prints
  * what the rain and the reflections cost.
  *
- *   node tools/smoke/cem-rain.js [--port 8094] [--shot docs/screenshots/cem-rain.png] [--seconds 8] [--reduced]
+ *   node tools/smoke/cem-rain.js [--port N] [--shot docs/screenshots/cem-rain.png] [--seconds 8] [--reduced]
+ *
+ * Without --port a free port is picked, so a stale server left on a fixed
+ * port cannot serve another tree's files to this check.
  *
  * Exits non-zero on a page error, when no puddle was laid, when nothing is
  * falling, or when the caps are broken (more than MAX_PUDDLES puddles, more
@@ -16,12 +19,13 @@
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const net = require('net');
 const puppeteer = require('puppeteer-core');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const args = process.argv.slice(2);
 function opt(name, def) { const i = args.indexOf(name); return i === -1 ? def : args[i + 1]; }
-const PORT = Number(opt('--port', 8094));
+const PORT_OPT = opt('--port', null);
 const SHOT = opt('--shot', path.join(ROOT, 'docs', 'screenshots', 'cem-rain.png'));
 const SECONDS = Number(opt('--seconds', 8));
 const REDUCED = args.indexOf('--reduced') !== -1;
@@ -50,7 +54,19 @@ function check(cond, msg) {
   if (!cond) failures++;
 }
 
+/** A port nobody is listening on */
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => resolve(p)); });
+  });
+}
+
 async function main() {
+  const PORT = PORT_OPT ? Number(PORT_OPT) : await freePort();
+  console.log('serving ' + path.join(ROOT, 'www') + ' on port ' + PORT);
   const server = spawn('python3', ['-m', 'http.server', String(PORT), '-d', path.join(ROOT, 'www')], { stdio: 'ignore' });
   await wait(600);
   const browser = await puppeteer.launch({
@@ -105,6 +121,10 @@ async function main() {
           emitMs += performance.now() - t0; emitFrames++;
         };
       }
+      // the live path: every bake that carried Mr Owl or a monster into a puddle
+      let liveBakes = 0;
+      const bake = S.bakeReflection;
+      S.bakeReflection = function(pd, movers) { if (movers && movers.length) liveBakes++; return bake.call(S, pd, movers); };
       const sp = S.splashStep;
       S.splashStep = function(o) { const r = sp.call(S, o); if (r) splashes++; return r; };
       // walk through the nearest puddles (tap-to-walk, so it works at any
@@ -141,10 +161,10 @@ async function main() {
       const shown = S.puddles.filter(p => p.img.visible).length;
       const full = S.puddles.filter(p => p.wet >= 0.99).length;
       const mirrored = S.puddles.filter(p => p.hasRefl).length;
-      const owlMirrored = S.puddles.filter(p => /owl3d|owl/.test(p.liveKey) || (p.liveKey && p.liveKey.length > 0)).length;
+      const owlMirrored = S.puddles.filter(p => p.liveKey && p.liveKey.length > 0).length;   // still mirroring a mover right now
       return {
         overlay: overlay ? overlay.text : '(overlay missing)',
-        before, after: S.rainStats(), shownPuddles: shown, fullPuddles: full, reducedFull, mirrored, owlMirrored,
+        before, after: S.rainStats(), shownPuddles: shown, fullPuddles: full, reducedFull, mirrored, owlMirrored, liveBakes,
         rainMsPerFrame: Number((rainMs / Math.max(1, frames)).toFixed(3)),
         emitterMsPerFrame: Number((emitMs / Math.max(1, emitFrames)).toFixed(3)),
         frames, maxRings, maxPuddles, splashes, inPuddleSamples: inPuddle,
@@ -159,7 +179,7 @@ async function main() {
     console.log(JSON.stringify({
       before: out.before, after: out.after, shownPuddles: out.shownPuddles, fullPuddles: out.fullPuddles,
       rainMsPerFrame: out.rainMsPerFrame, emitterMsPerFrame: out.emitterMsPerFrame, frames: out.frames,
-      mirrored: out.mirrored, liveMirrored: out.owlMirrored, bakes: out.after.bakes, msPerBake: Number((out.after.bakeMs / Math.max(1, out.after.bakes)).toFixed(3)),
+      mirrored: out.mirrored, liveBakes: out.liveBakes, stillMirroringMover: out.owlMirrored, bakes: out.after.bakes, msPerBake: Number((out.after.bakeMs / Math.max(1, out.after.bakes)).toFixed(3)),
       composes: out.after.composes, schedule: out.after.schedule, maxRings: out.maxRings, maxPuddles: out.maxPuddles,
       splashes: out.splashes, inPuddleSamples: out.inPuddleSamples, emitterAlive: out.emitterAlive,
       ringsSpawned: out.ringsSpawned, ringsPerPuddleSec: out.ringsPerPuddleSec, avgWetInView: out.avgWetInView
@@ -169,7 +189,7 @@ async function main() {
     check(out.maxRings <= out.cfg.RING_CAP, 'never more than RING_CAP rings alive');
     check(out.fullPuddles === out.after.puddles, 'every puddle filled under the endless shower');
     check(out.mirrored > 0, 'puddles mirror what stands around them (' + out.mirrored + ' of ' + out.after.puddles + ')');
-    check(out.owlMirrored > 0, 'a puddle mirrored Mr Owl or a monster as they passed (' + out.owlMirrored + ')');
+    check(out.liveBakes > 0, 'puddles mirrored Mr Owl or a monster as they passed (' + out.liveBakes + ' live bakes; ' + out.owlMirrored + ' still mirroring one)');
     check(out.after.bakes > 0 && out.after.bakeMs / out.after.bakes < 5, 'a mirror bake is cheap (' + (out.after.bakeMs / Math.max(1, out.after.bakes)).toFixed(2) + ' ms)');
     check(out.splashes > 0, 'Mr Owl splashed through a puddle (' + out.splashes + ')');
     check(out.after.puddles > out.before.puddles, 'new ground got wet as he walked (' + out.before.puddles + ' -> ' + out.after.puddles + ')');
