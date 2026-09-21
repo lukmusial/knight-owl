@@ -1778,11 +1778,16 @@ var CemScenes = (function() {
     /**
      * How far a monster has come out of the dark: the reveal factor of the
      * tile it stands on, so it fades up as Mr Owl approaches instead of
-     * popping in at a fixed distance. The Reaper once risen, and anything on
-     * its way out, stays fully shown.
+     * popping in at a fixed distance. The Reaper once risen stays fully
+     * shown. A monster that has been beaten is shown in full for the whole
+     * of its leaving (the model already marks it defeated while it still
+     * flinches, so this must not read that), the exit pose fades it, and
+     * once the exit has run its course it is dark until it is removed: the
+     * removal timer runs on Phaser's capped clock and can fire frames later.
      */
     monsterReveal: function(st) {
-      if (st.keepShown || st.actions.exit) return 1;
+      if (st.leaving) return CemMonsters.progress(st.actions.exit, this.time.now, CemMonsters.ACTIONS.exit, true) >= 1 ? 0 : 1;
+      if (st.keepShown) return 1;
       if (st.m.defeated) return 0;
       var L = this.level, R = this.reveal;
       // from where the figure is drawn, not the tile it is walking to, and
@@ -1815,7 +1820,7 @@ var CemScenes = (function() {
      */
     showMonster: function(st, target, dtMs) {
       st.revealTarget = target;
-      var snap = REDUCED_MOTION || st.keepShown || st.actions.exit || st.reveal === undefined;
+      var snap = REDUCED_MOTION || st.keepShown || st.leaving || st.reveal === undefined;
       st.reveal = snap ? target : CemReveal.approach(st.reveal, target, MONSTER_REVEAL_RATE, dtMs || 16, false);
       var reveal = st.reveal;
       var lit = reveal > 0;
@@ -1908,7 +1913,11 @@ var CemScenes = (function() {
       this.time.delayedCall(CemMonsters.ACTIONS.lunge + 80, function() { if (onDone) onDone(); });
     },
 
-    /** Flinch, then leave in the monster's own style; sparkles for the loot */
+    /**
+     * Flinch, then leave in the monster's own style; sparkles for the loot.
+     * `leaving` keeps the figure shown from the first frame of the flinch
+     * to the last of the exit, whatever the model says about it by then.
+     */
     playDefeat: function(uid, onDone) {
       var st = this.monsters[uid];
       if (!st || st.removed) { if (onDone) onDone(); return; }
@@ -1916,6 +1925,7 @@ var CemScenes = (function() {
       st.dir = this.dirToOwl(st);
       st.gdirTo = this.gridDirToOwl(st);
       if (REDUCED_MOTION) { this.removeMonster(uid); if (onDone) onDone(); return; }
+      st.leaving = true;
       st.actions.flinch = this.time.now;
       fx('hit');
       this.time.delayedCall(CemMonsters.ACTIONS.flinch, function() {
@@ -2118,7 +2128,7 @@ var CemScenes = (function() {
           lunge: CemMonsters.progress(st.actions.lunge, time, A.lunge),
           flinch: CemMonsters.progress(st.actions.flinch, time, A.flinch),
           appear: CemMonsters.progress(st.actions.appear, time, A.appear),
-          exit: CemMonsters.progress(st.actions.exit, time, A.exit)
+          exit: CemMonsters.progress(st.actions.exit, time, A.exit, true)   // held: a finished exit stays gone
         };
         ev.gdir = st.gdir;
         if (st.anim) ev.animated = true;

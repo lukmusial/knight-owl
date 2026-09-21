@@ -237,10 +237,16 @@ var CemMonsters = (function() {
     return { clip: clip, facing: f.facing, flip: f.flip, direction: f.name };
   }
 
-  /** Progress of a timed action (0..1) or -1 when not running */
-  function progress(startMs, nowMs, durMs) {
+  /**
+   * Progress of a timed action (0..1) or -1 when not running. With `hold`
+   * a finished action stays at 1 instead of dropping back to -1: the exit
+   * is drawn from it, and a monster that has gone must not be posed as if
+   * it were standing there again while the removal timer is still to fire.
+   */
+  function progress(startMs, nowMs, durMs, hold) {
     if (!startMs) return -1;
     var t = (nowMs - startMs) / durMs;
+    if (t > 1 && hold) return 1;
     return t >= 0 && t <= 1 ? t : -1;
   }
 
