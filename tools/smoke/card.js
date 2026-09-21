@@ -175,6 +175,27 @@ async function main() {
     }));
     check(lunged === 'visible', 'the matching card lets its lunge out too (' + lunged + ')');
     await page.evaluate(() => UI.hideMatchingModal());
+
+    // On a phone the card's stage and image are sized by different style
+    // sheets (styles.css for the classic page, proto-hud.css for the game
+    // views); if the stage ends up shorter than the image it clips the bottom
+    // of every monster
+    for (const url of ['/index.html', '/proto/isometric.html']) {
+      const phone = await browser.newPage();
+      await phone.setViewport({ width: 412, height: 900, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+      await phone.goto('http://localhost:' + PORT + url, { waitUntil: 'load' });
+      await phone.waitForFunction(() => typeof UI !== 'undefined' && typeof MonsterStage !== 'undefined' &&
+        typeof MONSTERS !== 'undefined' && document.getElementById('monster-image'), { timeout: 30000 });
+      await wait(800);
+      await openQuiz(phone, 'ghost');
+      await wait(2500);
+      const fit = await phone.evaluate(() => {
+        const img = document.getElementById('monster-image');
+        return { img: Math.round(img.getBoundingClientRect().height), stage: Math.round(img.parentNode.getBoundingClientRect().height) };
+      });
+      check(fit.img > 0 && fit.stage >= fit.img, 'on a phone (' + url + ') the whole card shows (image ' + fit.img + 'px, stage ' + fit.stage + 'px)');
+      await phone.close();
+    }
   } finally {
     await browser.close();
     server.kill();
