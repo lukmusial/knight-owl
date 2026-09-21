@@ -229,7 +229,7 @@ var CemWorld = (function() {
           slot.used = frameCounter;
           // the reveal brightens ground every frame while he walks; the dirty
           // flag waits, so a chunk is repainted at most every BAKE_MIN_MS
-          if (dirty[ci] && budget > 0 && (force || now - (slot.bakedAt || 0) >= BAKE_MIN_MS)) { bake(slot); budget--; }
+          if (dirty[ci] && budget > 0 && (force || now - (slot.bakedAt || 0) >= api.bakeMinMs)) { bake(slot); budget--; }
         } else if (slot && frameCounter - slot.used > 600) {
           slot.rt.setVisible(false);
           slot.chunk = -1;
@@ -270,15 +270,21 @@ var CemWorld = (function() {
       for (var i = 0; i < pool.length; i++) if (pool[i].chunk !== -1) dirty[pool[i].chunk] = true;
     }
 
+    /** Is this chunk painted right now (a tile sprite is only needed over a live chunk) */
+    function isLive(chunk) {
+      return byChunk[chunk] !== undefined;
+    }
+
     function stats() {
       var live = 0;
       for (var i = 0; i < pool.length; i++) if (pool[i].chunk !== -1) live++;
       return { chunks: live, pool: pool.length, bakes: bakes, cells: Object.keys(cells).length, visibleCells: visibleCells, bands: bands.length };
     }
 
-    return {
+    var api = {
       CHUNK: CHUNK,
       SHADOW_PAD: SHADOW_PAD,
+      bakeMinMs: BAKE_MIN_MS,      // settable: the reveal check raises it to stress the tile-sprite handoff
       groundLayer: groundLayer,
       floorLayer: floorLayer,
       lightsLayer: lightsLayer,
@@ -292,10 +298,12 @@ var CemWorld = (function() {
       removeDynamic: removeDynamic,
       setPropShown: setPropShown,
       markSeen: markSeen,
+      isLive: isLive,
       rebakeAll: rebakeAll,
       update: update,
       stats: stats
     };
+    return api;
   }
 
   return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK, SHADOW_PAD: SHADOW_PAD, BAKE_MIN_MS: BAKE_MIN_MS };

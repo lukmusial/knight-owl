@@ -47,7 +47,7 @@ TestRunner.suite('CemReveal', () => {
   }
 
   function fresh() {
-    return { changed: [], risen: [] };
+    return { changed: [] };
   }
 
   TestRunner.test('the factor is 1 inside INNER, 0 beyond OUTER and falls smoothly between', () => {
@@ -72,9 +72,9 @@ TestRunner.suite('CemReveal', () => {
     TestRunner.assertEqual(CemReveal.litOf(C.LIT_FROM), 0, 'still the remembered blue at LIT_FROM');
     TestRunner.assert(CemReveal.litOf(0.5) > 0 && CemReveal.litOf(0.5) < 1, 'warming half way');
     TestRunner.assertEqual(CemReveal.litOf(1), 1, 'lantern light when fully revealed');
-    TestRunner.assertEqual(CemReveal.levelOf(0), 0, 'no ground yet');
-    TestRunner.assertEqual(CemReveal.levelOf(1), C.LEVELS, 'full ground at the top step');
-    TestRunner.assert(CemReveal.levelOf(0.3) > 0 && CemReveal.levelOf(0.3) < C.LEVELS, 'a step in between');
+    // nothing is shown at the outer edge: the curve starts from 0
+    TestRunner.assertEqual(CemReveal.alphaOf(CemReveal.factorAt(C.OUTER)), 0, 'invisible at OUTER');
+    TestRunner.assert(CemReveal.alphaOf(CemReveal.factorAt(C.OUTER - 0.05)) < 0.01, 'and barely there a hair inside it');
   });
 
   TestRunner.test('reduced motion steps instead of ramping', () => {
@@ -82,7 +82,7 @@ TestRunner.suite('CemReveal', () => {
     TestRunner.assertEqual(CemReveal.alphaOf(0, C, true), 0, 'dark stays dark');
     TestRunner.assertEqual(CemReveal.litOf(0.9, C, true), 0, 'blue until fully revealed');
     TestRunner.assertEqual(CemReveal.litOf(1, C, true), 1, 'then lit');
-    TestRunner.assertEqual(CemReveal.levelOf(0.2, C, true), C.LEVELS, 'ground pops in whole');
+    TestRunner.assertEqual(CemReveal.approach(0.2, 1, 2.5, 16, true), 1, 'no easing: the value snaps');
   });
 
   TestRunner.test('lantern-lit and remembered tiles start fully revealed, the rest dark', () => {
@@ -92,12 +92,12 @@ TestRunner.suite('CemReveal', () => {
     var li = CemModel.index(L, lamp.gx, lamp.gy);
     TestRunner.assertEqual(R.lamp[li], 1, 'the lamp post tile is lantern-lit');
     TestRunner.assertEqual(R.peak[li], 1, 'and fully revealed');
-    TestRunner.assertEqual(CemReveal.groundAlpha(R, li), 1, 'with solid ground');
+    TestRunner.assertEqual(CemReveal.alphaAt(R, li), 1, 'with solid ground');
     TestRunner.assertEqual(CemReveal.factor(R, li), 1, 'live factor 1 without Mr Owl');
     var dark = 0, seenOk = true;
     for (var i = 0; i < L.tiles.length; i++) {
       if (L.seen[i] && R.peak[i] !== 1) seenOk = false;
-      if (!L.seen[i] && !R.lamp[i]) { dark++; if (R.peak[i] !== 0 || R.level[i] !== 0) seenOk = false; }
+      if (!L.seen[i] && !R.lamp[i]) { dark++; if (R.peak[i] !== 0) seenOk = false; }
     }
     TestRunner.assert(seenOk, 'seen tiles at 1, unseen unlit tiles at 0');
     TestRunner.assert(dark > 1000, 'most of the grounds are still dark');
@@ -112,20 +112,19 @@ TestRunner.suite('CemReveal', () => {
     var at = unlitAt(L, R, 7);
     var target = at.idx;
     TestRunner.assertEqual(R.f[target], 0, 'seven tiles off: still dark');
-    var lastF = 0, lastLevel = 0, steps = 0, risenSeen = 0;
+    var lastF = 0, lastA = 0, steps = 0, biggest = 0;
     for (var k = 1; k <= 60; k++) {
       CemReveal.update(R, o.x + at.dx * k * 0.1, o.y + at.dy * k * 0.1, out);
       var f = R.f[target];
       TestRunner.assert(f >= lastF - 1e-6, 'factor never falls while approaching');
-      TestRunner.assert(R.level[target] >= lastLevel, 'ground level never falls');
-      if (R.level[target] > lastLevel) risenSeen++;
+      var a = CemReveal.alphaAt(R, target);
+      biggest = Math.max(biggest, a - lastA);
       if (f > lastF) steps++;
-      lastF = f; lastLevel = R.level[target];
-      if (out.risen.indexOf(target) !== -1) TestRunner.assert(R.level[target] > 0, 'risen lists a tile whose level went up');
+      lastF = f; lastA = a;
     }
     TestRunner.assert(steps >= 8, 'the factor climbed in many small steps: ' + steps);
     TestRunner.assert(lastF > 0.5, 'and he got it well out of the dark: ' + lastF);
-    TestRunner.assert(risenSeen >= 3, 'the ground brightened over several steps: ' + risenSeen);
+    TestRunner.assert(biggest < 0.12, 'a tenth of a tile never moved the alpha by more than a little: ' + biggest.toFixed(3));
     TestRunner.assertEqual(R.peak[target], lastF, 'the peak is where he got it to');
   });
 
@@ -145,7 +144,7 @@ TestRunner.suite('CemReveal', () => {
     TestRunner.assertEqual(R.peak[here], 1, 'the peak stays');
     TestRunner.assertEqual(CemReveal.alphaAt(R, here), 1, 'so its props stay solid');
     TestRunner.assertEqual(CemReveal.litAt(R, here), 0, 'in the remembered blue');
-    TestRunner.assertEqual(CemReveal.groundAlpha(R, here), 1, 'and its ground stays');
+    TestRunner.assertEqual(CemReveal.alphaAt(R, here), 1, 'and its ground stays');
   });
 
   TestRunner.test('only the window around him is looked at, and nothing changes while he stands still', () => {
@@ -164,7 +163,6 @@ TestRunner.suite('CemReveal', () => {
     TestRunner.assert(R.active.length <= (2 * R.half + 1) * (2 * R.half + 1), 'active list bounded by the window');
     CemReveal.update(R, o.x, o.y, out);
     TestRunner.assertEqual(out.changed.length, 0, 'a still owl changes nothing');
-    TestRunner.assertEqual(out.risen.length, 0, 'and brightens no ground');
     var far = 0;
     for (var i = 0; i < R.n; i++) {
       var t = L.tiles[i];
@@ -213,5 +211,39 @@ TestRunner.suite('CemReveal', () => {
     TestRunner.assert(values['1'] && values['0.5'], 'both lit and remembered tiles around him');
     CemReveal.update(R, o.x + 0.2, o.y, out);
     TestRunner.assert(out.changed.length < 40, 'a small move changes only the tiles that crossed a step: ' + out.changed.length);
+  });
+
+  TestRunner.test('a moving thing takes the curve from its float position, with lantern light fading past the disc', () => {
+    var L = gen(58);
+    var R = CemReveal.create(L);
+    var ox = 20, oy = 20;
+    TestRunner.assertEqual(CemReveal.pointFactor(R, ox, oy, ox, oy, []), 1, 'on top of Mr Owl');
+    TestRunner.assertEqual(CemReveal.pointFactor(R, ox, oy, ox + C.OUTER + 1, oy, []), 0, 'beyond OUTER, no lantern: dark');
+    // walk a point from 8 tiles off to 2 tiles off: the factor never jumps
+    var last = 0, biggest = 0;
+    for (var d = 8; d >= 2; d -= 0.05) {
+      var f = CemReveal.pointFactor(R, ox, oy, ox + d, oy, []);
+      biggest = Math.max(biggest, f - last);
+      last = f;
+    }
+    TestRunner.assert(biggest < 0.03, 'a twentieth of a tile never moved it by more than a little: ' + biggest.toFixed(3));
+    var lamp = { gx: 40, gy: 40 };
+    var r = R.lampRadius;
+    TestRunner.assertEqual(CemReveal.pointFactor(R, ox, oy, lamp.gx + r, lamp.gy, [lamp]), 1, 'lit at the edge of the disc');
+    TestRunner.assertEqual(CemReveal.pointFactor(R, ox, oy, lamp.gx + r + C.LAMP_FADE, lamp.gy, [lamp]), 0, 'dark past the fade');
+    last = 1; biggest = 0;
+    for (var e = 0; e <= C.LAMP_FADE + 0.5; e += 0.05) {
+      var lf = CemReveal.pointFactor(R, ox, oy, lamp.gx + r + e, lamp.gy, [lamp]);
+      biggest = Math.max(biggest, last - lf);
+      last = lf;
+    }
+    TestRunner.assert(biggest < 0.06, 'leaving the light is gradual: ' + biggest.toFixed(3));
+  });
+
+  TestRunner.test('approach eases toward a target by a rate, in either direction', () => {
+    TestRunner.assertEqual(CemReveal.approach(0, 1, 2.5, 100), 0.25, 'a tenth of a second at 2.5 per second');
+    TestRunner.assertEqual(CemReveal.approach(0.9, 1, 2.5, 100), 1, 'never overshoots');
+    TestRunner.assertEqual(CemReveal.approach(1, 0, 2.5, 100), 0.75, 'and eases down too');
+    TestRunner.assertEqual(CemReveal.approach(0.1, 0, 2.5, 100), 0, 'to exactly the target');
   });
 });
