@@ -562,7 +562,7 @@ TestRunner.suite('CemModel', () => {
     TestRunner.assertEqual(L.lightMap.length, L.W * L.H, 'one entry per tile');
     for (var i = 0; i < 50; i++) {
       var t = L.tiles[(i * 61) % L.tiles.length];
-      var expected = IsoModel.lightLevel(t.gx, t.gy, L.lights);
+      var expected = IsoModel.lightLevel(t.gx, t.gy, L.lights.map(function(l) { return CemModel.lampPoint(L, l); }));
       TestRunner.assert(Math.abs(L.lightMap[CemModel.index(L, t.gx, t.gy)] - expected) < 1e-6, 'light at ' + t.gx + ',' + t.gy);
       TestRunner.assert(L.nearLights[CemModel.index(L, t.gx, t.gy)].length <= 2, 'at most two near lanterns');
     }
@@ -590,6 +590,57 @@ TestRunner.suite('CemModel', () => {
     var lit = 0;
     for (var j = 0; j < L.vis.length; j++) if (L.vis[j] === 2) lit++;
     TestRunner.assert(lit > 0, 'the owl still lights tiles after the diffing rewrite');
+  });
+
+  TestRunner.test('lantern light comes from the lamp head, which hangs off the post', () => {
+    var L = gen(48);
+    var off = CemModel.CONFIG.LAMP_OFFSET;
+    TestRunner.assert(off.gy > 0.2 && off.gy < 0.5 && off.gx === 0, 'the lamp hangs a third of a tile toward +gy (screen-left)');
+    var light = L.lights[0];
+    var lamp = CemModel.lampPoint(L, light);
+    TestRunner.assert(Math.abs(lamp.gx - light.gx - off.gx) < 1e-9 && Math.abs(lamp.gy - light.gy - off.gy) < 1e-9, 'lampPoint is the post tile plus the offset');
+    TestRunner.assertEqual(lamp.height, light.height, 'at the lamp height');
+    TestRunner.assert(Number.isInteger(light.gx) && Number.isInteger(light.gy), 'the light itself stays on the post tile');
+    // a lantern with no other lamp near enough to light the tiles either side of it
+    var range = IsoModel.LIGHT.range;
+    var lone = L.lights.filter(function(a) {
+      return L.lights.every(function(b) { return a === b || Math.sqrt((a.gx - b.gx) * (a.gx - b.gx) + (a.gy - b.gy) * (a.gy - b.gy)) > range + 1.5; });
+    })[0];
+    TestRunner.assertTruthy(lone, 'a lantern on its own');
+    var below = L.lightMap[CemModel.index(L, lone.gx, lone.gy + 1)], above = L.lightMap[CemModel.index(L, lone.gx, lone.gy - 1)];
+    TestRunner.assert(below > above + 0.05, 'the ground on the lamp side is lit more (' + below.toFixed(3) + ' vs ' + above.toFixed(3) + ')');
+    // a caster beside the post throws its shadow away from the lamp, not from the post
+    var caster = { gx: lone.gx + 1, gy: lone.gy, height: 0.9, radius: 0.25 };
+    var fromLamp = IsoModel.castShadow(caster, CemModel.lampPoint(L, lone));
+    var fromPost = IsoModel.castShadow(caster, lone);
+    TestRunner.assert(fromLamp.angle < fromPost.angle - 0.1, 'the shadow leans away from the lamp side');
+  });
+
+  TestRunner.test('the kit manifest puts the lantern light in the lamp head, off the post, where the model says', () => {
+    // node only: reads the sprite manifest and its Blender source off disk
+    var fs = typeof require !== 'undefined' ? require('fs') : null;
+    var path = typeof require !== 'undefined' ? require('path') : null;
+    if (!fs) return;
+    var root = path.resolve(__dirname || '.', '..');
+    var kit = JSON.parse(fs.readFileSync(path.join(root, 'www', 'assets', 'proto', 'iso', 'cemetery', 'cemetery.json'), 'utf8'));
+    var e = kit.sprites.lantern_post;
+    var px = e.light.x * e.w, py = e.light.y * e.h;
+    // the lamp head of lantern_post.png (the green box with the yellow panes),
+    // measured with tools/smoke/png-probe.js: x 3..24, y 22..50 of 51x129
+    TestRunner.assert(px >= 3 && px <= 24 && py >= 22 && py <= 50, 'light at (' + px.toFixed(1) + ', ' + py.toFixed(1) + ') is inside the lamp head');
+    TestRunner.assert(py >= 30 && py <= 44, 'and level with the glass panes');
+    TestRunner.assert(Math.abs(e.light.x - e.anchor.x) * e.w > 15, 'off the post\'s axis, where the lamp hangs');
+    // the floor offset the point projects to is the model's LAMP_OFFSET (screen x = (gx - gy) * ppt / 2)
+    var off = CemModel.CONFIG.LAMP_OFFSET;
+    var floorDx = (e.light.x - e.anchor.x) * e.w / (kit.ppt / 2);
+    TestRunner.assert(Math.abs(floorDx - (off.gx - off.gy)) < 0.03, 'the sprite offset ' + floorDx.toFixed(3) + ' matches LAMP_OFFSET');
+    // and the manifest is what render_kit.py would write for the source of truth
+    var src = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'iso', 'cemetery_models.json'), 'utf8')).sprites.lantern_post.light;
+    TestRunner.assertArray(src, 'the source gives the lamp as a point, not "top"');
+    TestRunner.assert(Math.abs(src[0] - off.gx) < 1e-9 && Math.abs(-src[1] - off.gy) < 1e-9, 'world -Y is +gy: the source offset is LAMP_OFFSET');
+    var ppu = kit.ppt / Math.SQRT2, vz = ppu * Math.cos(Math.asin(0.5));
+    var ax = e.anchor.x * e.w + src[0] * 64 + src[1] * 64, ay = e.anchor.y * e.h + src[0] * 32 - src[1] * 32 - src[2] * vz;
+    TestRunner.assert(Math.abs(ax / e.w - e.light.x) < 0.002 && Math.abs(ay / e.h - e.light.y) < 0.002, 'the manifest point is the projected source point');
   });
 
   TestRunner.test('a save from the first cut (tile only) still loads', () => {

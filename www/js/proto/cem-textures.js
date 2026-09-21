@@ -686,7 +686,8 @@ var CemTextures = (function() {
   }
 
   function drawLanternPost(ctx) {
-    // canvas 48x120, base (24, 112), light at (24, 30)
+    // canvas 48x120, base (24, 112), light at (24, 34): the centre of the
+    // glass box (y 27..42) this lamp carries on top of its post
     shadowBlob(ctx, 24, 112, 12, 4);
     ctx.fillStyle = '#2b2b30';
     ctx.fillRect(21, 40, 6, 72);
@@ -902,7 +903,7 @@ var CemTextures = (function() {
     fallback('fence_w', 'cem_fb_fence_w', 128, 76, 64, 60, null, null, function(ctx) { drawFenceSegment(ctx, 'w', false); });
     fallback('gate_n', 'cem_fb_gate_n', 128, 76, 64, 60, null, null, function(ctx) { drawFenceSegment(ctx, 'n', true); });
     fallback('fence_post', 'cem_fb_post', 32, 80, 16, 72, null, null, function(ctx) { drawFencePost(ctx); });
-    fallback('lantern_post', 'cem_fb_lantern', 48, 120, 24, 112, null, { light: { x: 0.5, y: 30 / 120 } }, function(ctx) { drawLanternPost(ctx); });
+    fallback('lantern_post', 'cem_fb_lantern', 48, 120, 24, 112, null, { light: { x: 0.5, y: 34 / 120 } }, function(ctx) { drawLanternPost(ctx); });
     for (var pv = 0; pv < 3; pv++) {
       (function(v) {
         fallback('pumpkin_' + v, 'cem_fb_pumpkin_' + v, 48, 40, 24, 36, null, null, function(ctx) { drawPumpkin(ctx, v); });
