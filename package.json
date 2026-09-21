@@ -25,6 +25,7 @@
     "record:cem:reveal": "node tools/smoke/cem-record-reveal.js",
     "record:cem:rain": "node tools/smoke/cem-record-rain.js",
     "record:cem:storm": "node tools/smoke/cem-record-storm.js",
+    "record:cem:weather": "node tools/smoke/cem-record-weather.js",
     "record:classic": "node tools/smoke/dungeon-record.js --view classic",
     "record:iso": "node tools/smoke/dungeon-record.js --view iso",
     "record:fp": "node tools/smoke/fp-record.js --mode explore --seconds 60",
