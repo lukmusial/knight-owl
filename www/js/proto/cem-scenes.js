@@ -44,6 +44,7 @@ var CemScenes = (function() {
     return CemMonsters.mapHeight(id, role);
   }
   var FLOOR_BAND = -300000;
+  var POOL_BAND = -200000;     // the ground light of a lightning strike; the lantern pools that shared it are baked into the chunks now
   var SHADOW_BAND = -100000;
   var SEEN_TINT = 0x4b5578;    // remembered but unlit tiles
   var STORM_LIT_TINT = 0xf2f6ff;   // props in the light of a lightning strike
