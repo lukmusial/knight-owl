@@ -238,6 +238,7 @@ loadScript('www/js/proto/cem-model.js');
 loadScript('www/js/proto/cem-storm.js');
 loadScript('www/js/proto/cem-monsters.js');
 loadScript('www/js/proto/cem-minimap.js');
+loadScript('www/js/proto/cem-rain.js');
 loadScript('www/js/modules/monster-stage.js');
 
 console.log(`${colors.green}Modules loaded successfully${colors.reset}`);
@@ -271,6 +272,7 @@ loadScript('tests/cem-model.test.js');
 loadScript('tests/cem-storm.test.js');
 loadScript('tests/cem-monsters.test.js');
 loadScript('tests/cem-minimap.test.js');
+loadScript('tests/cem-rain.test.js');
 loadScript('tests/monster-stage.test.js');
 loadScript('tests/lifecycle.test.js');
 loadScript('tests/integration.test.js');

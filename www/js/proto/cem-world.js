@@ -185,6 +185,26 @@ var CemWorld = (function() {
       return obj;
     }
 
+    /** A prop laid somewhere else: it leaves its cull cell for the new tile's (same layer) */
+    function moveProp(obj, gx, gy) {
+      var old = obj.cemCell;
+      if (old) {
+        var k = old.objs.indexOf(obj);
+        if (k !== -1) old.objs.splice(k, 1);
+      }
+      var c = cellFor(gx, gy);
+      c.objs.push(obj);
+      var hw = (obj.displayWidth || TILE_W) / 2 + 32;
+      var hh = (obj.displayHeight || TILE_H) + 32;
+      c.minX = Math.min(c.minX, obj.x - hw);
+      c.maxX = Math.max(c.maxX, obj.x + hw);
+      c.minY = Math.min(c.minY, obj.y - hh);
+      c.maxY = Math.max(c.maxY, obj.y + 32);
+      obj.cemCell = c;
+      obj.visible = obj.cemShown !== false && c.shown;
+      return obj;
+    }
+
     /** Owl and monsters hop between bands as they walk */
     function placeDynamic(obj, gx, gy) {
       var b = Math.min(bands.length - 1, Math.max(0, bandOf(gx, gy)));
@@ -280,6 +300,7 @@ var CemWorld = (function() {
       chunkTiles: chunkTiles,
       chunkIndexOf: chunkIndexOf,
       addProp: addProp,
+      moveProp: moveProp,
       placeDynamic: placeDynamic,
       removeDynamic: removeDynamic,
       setPropShown: setPropShown,

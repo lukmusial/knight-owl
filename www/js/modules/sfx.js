@@ -136,6 +136,12 @@ var SFX = (function() {
       noise(0.04, 2.3, 0.55, 'lowpass', 900, 70),
       noise(0.35, 2.1, 0.4, 'lowpass', 500, 50),
       tone(0.05, 1.8, 0.3, 'sine', 62, 28)
+    ] },
+    // a foot landing in a shallow puddle: a soft wet slap and a short patter
+    'splash': { dur: 0.26, steps: [
+      noise(0, 0.10, 0.28, 'bandpass', 1900, 700),
+      tone(0, 0.08, 0.12, 'sine', 480, 220),
+      noise(0.05, 0.20, 0.16, 'lowpass', 1100, 500)
     ] }
   };
   RECIPES['door'] = RECIPES['reveal'];
