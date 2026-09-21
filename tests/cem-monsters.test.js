@@ -71,6 +71,33 @@ TestRunner.suite('CemMonsters', () => {
     TestRunner.assertEqual(CemMonsters.facing(-3), true, 'moving left flips');
     TestRunner.assertEqual(CemMonsters.facing(3), false, 'moving right does not flip');
   });
+
+  TestRunner.test('a held exit stays finished, so a beaten monster never stands up again before it is removed', () => {
+    TestRunner.assertEqual(CemMonsters.progress(0, 100, 500, true), -1, 'held: not started is still not running');
+    TestRunner.assertEqual(CemMonsters.progress(1000, 1250, 500, true), 0.5, 'held: half way is half way');
+    TestRunner.assertEqual(CemMonsters.progress(1000, 1600, 500, true), 1, 'held: finished stays at 1');
+    TestRunner.assertEqual(CemMonsters.progress(1000, 99000, 500, true), 1, 'held: long after, still 1');
+    // the frames between the end of the exit and the removal timer: what the
+    // held progress feeds the pose and the clip must keep the monster gone
+    ['fade', 'sink', 'vanish', 'runaway'].forEach(function(style) {
+      var A = CemMonsters.ACTIONS;
+      var start = 5000, dir = { x: 1, y: 0 };
+      var lastAlpha = null;
+      [start, start + A.exit * 0.5, start + A.exit, start + A.exit + 40, start + A.exit + 400].forEach(function(now) {
+        var ev = { exit: CemMonsters.progress(start, now, A.exit, true), exitStyle: style, dir: dir, gdir: { x: 1, y: 1 } };
+        var o = CemMonsters.pose('shamble', now / 1000, 0, ev);
+        if (lastAlpha !== null) TestRunner.assert(o.alpha <= lastAlpha + 1e-9, style + ' alpha never rises through the exit (' + lastAlpha + ' -> ' + o.alpha + ' at ' + (now - start) + ' ms)');
+        lastAlpha = o.alpha;
+        if (now >= start + A.exit) {
+          TestRunner.assert(o.alpha < 0.01, style + ' is invisible ' + (now - start) + ' ms into the exit');
+          TestRunner.assertEqual(CemMonsters.clipFor(ev).clip, 'hit', style + ' keeps the hit clip after the exit, no idle for a frame');
+        }
+      });
+    });
+    // without the hold, the old behaviour: the pose stands the monster up again
+    var back = CemMonsters.pose('shamble', 0, 0, { exit: CemMonsters.progress(5000, 5000 + CemMonsters.ACTIONS.exit + 40, CemMonsters.ACTIONS.exit), exitStyle: 'fade' });
+    TestRunner.assertEqual(back.alpha, 1, 'an unheld finished exit poses at full alpha (why the hold is needed)');
+  });
   TestRunner.test('clipFor picks the reaction over the gait', () => {
     const south = { gdir: { x: 1, y: 1 } };
     var hit = CemMonsters.clipFor({ walking: true, lunge: 0.5, flinch: 0.5, gdir: south.gdir });

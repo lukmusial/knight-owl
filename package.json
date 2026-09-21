@@ -17,6 +17,7 @@
     "test:cem": "node tools/smoke/cemetery.js",
     "test:cem:perf": "node tools/smoke/cem-perf.js",
     "test:cem:reveal": "node tools/smoke/cem-reveal-check.js",
+    "test:cem:defeat": "node tools/smoke/cem-defeat-check.js",
     "test:cem:rain": "node tools/smoke/cem-rain.js",
     "test:cem:storm": "node tools/smoke/cem-storm.js",
     "test:fp:perf": "node tools/smoke/fp-perf.js",
