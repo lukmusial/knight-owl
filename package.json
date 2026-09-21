@@ -19,6 +19,7 @@
     "test:fp:perf": "node tools/smoke/fp-perf.js",
     "test:card": "node tools/smoke/card.js",
     "record:cem": "node tools/smoke/cem-record.js",
+    "record:cem:reveal": "node tools/smoke/cem-record-reveal.js",
     "record:classic": "node tools/smoke/dungeon-record.js --view classic",
     "record:iso": "node tools/smoke/dungeon-record.js --view iso",
     "record:fp": "node tools/smoke/fp-record.js --mode explore --seconds 60",

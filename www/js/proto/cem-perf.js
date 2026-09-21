@@ -36,6 +36,9 @@ var CemPerf = (function() {
     var drawSum = 0;
     var logicMs = 0;
     var logicSum = 0;
+    var revealMs = 0;
+    var revealSum = 0;
+    var revealMax = 0;
 
     function countVisible() {
       var n = 0;
@@ -55,10 +58,15 @@ var CemPerf = (function() {
       /** Time spent in the game logic this frame */
       mark: function(ms) { logicMs = ms; },
 
+      /** Time spent moving the night reveal this frame (CemeteryScene.updateReveal) */
+      markReveal: function(ms) { revealMs = ms; },
+
       frame: function() {
         frames++;
         drawSum += draws;
         logicSum += logicMs;
+        revealSum += revealMs;
+        if (revealMs > revealMax) revealMax = revealMs;
         draws = 0;
         var now = scene.time.now;
         if (now < at) return;
@@ -67,6 +75,7 @@ var CemPerf = (function() {
         var fps = Math.round(scene.sys.game.loop.actualFps);
         text.setText([
           'fps ' + fps + '   logic ' + (logicSum / Math.max(1, frames)).toFixed(2) + ' ms',
+          'reveal ' + (revealSum / Math.max(1, frames)).toFixed(2) + ' ms (max ' + revealMax.toFixed(2) + ')',
           'draws ' + Math.round(drawSum / Math.max(1, frames)) + '   sprites ' + countVisible(),
           'chunks ' + st.chunks + '/' + st.pool + ' (' + st.bakes + ' bakes)',
           'cells ' + st.visibleCells + '/' + st.cells + '   bands ' + st.bands,
@@ -74,7 +83,7 @@ var CemPerf = (function() {
         ].join('\n'));
         var view = scene.cameras.main.worldView;
         text.setPosition(8, 8);
-        frames = 0; drawSum = 0; logicSum = 0;
+        frames = 0; drawSum = 0; logicSum = 0; revealSum = 0; revealMax = 0;
         void view;
       }
     };
