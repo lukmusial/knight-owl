@@ -21,20 +21,12 @@ var CemScenes = (function() {
   var TILE_W = 128, TILE_H = 64;
   var LAYERS = { floor: 0, wall: 1, token: 2, fx: 3 };
   var SPRITE_DIR = 'assets/proto/monsters/';
+  // what the cemetery takes from the dungeon's procedural set (a prefix ending in '_' takes every frame)
+  var SHARED_TEXTURES = ['flame_', 'light_pool', 'cast_shadow', 'highlight_ring', 'reach_ring', 'glow_warm', 'glow_cyan', 'glow_purple'];
   var OWL_H = 104;
   var OWL3D_H = 118;
-  var MONSTER_H = 110;
-  var REAPER_H = OWL3D_H * 2;            // the Reaper towers over Mr Owl
-  /**
-   * How tall each monster stands next to the others. Without this every
-   * figure is normalised to the same height, which makes a spider or a rat
-   * as big as a zombie.
-   */
-  var MONSTER_SCALE = {
-    spider: 0.36, giant_rat: 0.34, bat_swarm: 0.42,
-    ghost: 0.5, lost_soul: 0.52, will_o_wisp: 0.45,
-    pumpkin_man: 0.85, banshee: 0.9, skeleton: 0.95, zombie: 0.95, clown: 1.14
-  };
+  // monster heights live in CemMonsters (MAP_H, MAP_SCALE, BOSS_H): the sheet
+  // shrink tool and the tests read them there; the Reaper's BOSS_H is OWL3D_H * 2
 
   // how far above the ground a flier hangs, in px: the shadow stays on the floor
   var HOVER_PX = { bat_swarm: 44, will_o_wisp: 30, ghost: 10, lost_soul: 12, banshee: 6 };
@@ -44,12 +36,9 @@ var CemScenes = (function() {
   }
 
   function monsterHeight(id, role) {
-    if (role === 'boss') return REAPER_H;
-    var k = Object.prototype.hasOwnProperty.call(MONSTER_SCALE, id) ? MONSTER_SCALE[id] : 1;
-    return MONSTER_H * k;
+    return CemMonsters.mapHeight(id, role);
   }
   var FLOOR_BAND = -300000;
-  var POOL_BAND = -200000;
   var SHADOW_BAND = -100000;
   var SEEN_TINT = 0x4b5578;    // remembered but unlit tiles
   var DARK = { r: 0x9e, g: 0xaa, b: 0xd4 };   // night sky light, no lantern
@@ -120,76 +109,81 @@ var CemScenes = (function() {
       this.load.atlas('owl3d', 'assets/proto/iso/owl3d.png', 'assets/proto/iso/owl3d.json');
       CemTextures.loadKit(this);
       this.load.json('cem_anim_index', 'assets/proto/iso/monsters/index.json');
-      monsterIds(this).concat(['knight_owl']).forEach(function(id) {
-        self.load.image('cut_' + id, SPRITE_DIR + id + '.png');
-      });
+      // the cutouts are queued in create, and only for a monster without a rendered sheet
     },
 
     create: function() {
       var self = this;
       var palette = IsoTextures.DUNGEON_PALETTE;
-      // flame frames, glows, light pool, cast shadow, rings and the dungeon decor come from the shared set
-      IsoTextures.generateFallbacks(this, palette, null);
-      CemTextures.generate(this);
+      // flame frames, glows, light pool, cast shadow and rings come from the shared set; the rest of it is the dungeon's
+      IsoTextures.generateFallbacks(this, palette, null, SHARED_TEXTURES);
+      CemTextures.generate(this, { fog: FOG_ENABLED });
+
+      var wanted = monsterIds(this);
+      var animIndex = this.cache.json.exists('cem_anim_index') ? this.cache.json.get('cem_anim_index') : null;
+      var animIds = (animIndex && animIndex.monsters) || [];
+      var sheetIds = [], cutIds = [];
+      for (var wi = 0; wi < wanted.length; wi++) {
+        (animIds.indexOf(wanted[wi]) === -1 ? cutIds : sheetIds).push(wanted[wi]);
+      }
+      // Rendered sprite sheets for the monsters the index lists; the painted
+      // cutout only for the others (it was 2 MB of downloads nobody saw)
+      for (var si = 0; si < sheetIds.length; si++) {
+        this.load.atlas('anim_' + sheetIds[si], 'assets/proto/iso/monsters/' + sheetIds[si] + '.png',
+          'assets/proto/iso/monsters/' + sheetIds[si] + '.json');
+      }
+      var owlSheet = this.textures.exists('owl3d');
+      var cutouts = owlSheet ? cutIds : cutIds.concat(['knight_owl']);
+      for (var ci = 0; ci < cutouts.length; ci++) {
+        this.load.image('cut_' + cutouts[ci], SPRITE_DIR + cutouts[ci] + '.png');
+      }
+      // Rendered Kenney kit sprites (optional): queue them from the manifest
+      var queued = CemTextures.queueKitImages(this) + sheetIds.length + cutouts.length;
+      var loaded = new Promise(function(resolve) {
+        if (!queued) { resolve(); return; }
+        self.load.once('complete', function() { resolve(); });
+        self.load.start();
+      });
 
       function cutout(id) {
         return self.textures.exists('cut_' + id) ? self.textures.get('cut_' + id).getSourceImage() : null;
       }
 
-      var jobs = [];
-      monsterIds(this).forEach(function(id) {
-        var targetH = monsterHeight(id, id === CemModel.BOSS_ID ? 'boss' : 'wander');
-        var img = cutout(id);
-        if (img && IsoTextures.makeStanding(self, 'mon_' + id, img, targetH)) return;
-        jobs.push(IsoTextures.loadImage('assets/' + id + '.jpg').then(function(full) {
-          if (!full || !IsoTextures.makeStanding(self, 'mon_' + id, full, targetH)) {
-            IsoTextures.makeFallbackToken(self, 'mon_' + id, id.charAt(0).toUpperCase(), '#4a148c', '#b388ff', 96);
-          }
-        }));
-      });
-
-      if (this.textures.exists('owl3d')) {
-        var owlMeta = this.textures.get('owl3d').customData.meta || {};
-        var owlClips = owlMeta.clips || { walk: 8, idle: 6 };
-        (owlMeta.facings || ['front', 'back']).forEach(function(facing) {
-          if (self.anims.exists('owl3d_walk_' + facing)) return;
-          self.anims.create({ key: 'owl3d_walk_' + facing, frameRate: 12, repeat: -1,
-            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_walk_', start: 0, end: (owlClips.walk || 8) - 1 }) });
-          self.anims.create({ key: 'owl3d_idle_' + facing, frameRate: 3, repeat: -1,
-            frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_idle_', start: 0, end: (owlClips.idle || 6) - 1 }) });
-        });
-      } else {
-        var owl = cutout('knight_owl');
-        if (!owl || !IsoTextures.makeWalkCycle(this, 'owl', owl, OWL_H)) {
-          jobs.push(IsoTextures.loadImage('assets/knight_owl.jpg').then(function(full) {
-            if (!full || !IsoTextures.makeWalkCycle(self, 'owl', full, OWL_H)) {
-              IsoTextures.makeFallbackToken(self, 'owl', 'O', '#006064', '#00bcd4', 96);
+      loaded.then(function() {
+        var jobs = [];
+        cutIds.forEach(function(id) {
+          var targetH = monsterHeight(id, id === CemModel.BOSS_ID ? 'boss' : 'wander');
+          var img = cutout(id);
+          if (img && IsoTextures.makeStanding(self, 'mon_' + id, img, targetH)) return;
+          jobs.push(IsoTextures.loadImage('assets/' + id + '.jpg').then(function(full) {
+            if (!full || !IsoTextures.makeStanding(self, 'mon_' + id, full, targetH)) {
+              IsoTextures.makeFallbackToken(self, 'mon_' + id, id.charAt(0).toUpperCase(), '#4a148c', '#b388ff', 96);
             }
           }));
+        });
+
+        if (owlSheet) {
+          var owlMeta = self.textures.get('owl3d').customData.meta || {};
+          var owlClips = owlMeta.clips || { walk: 8, idle: 6 };
+          (owlMeta.facings || ['front', 'back']).forEach(function(facing) {
+            if (self.anims.exists('owl3d_walk_' + facing)) return;
+            self.anims.create({ key: 'owl3d_walk_' + facing, frameRate: 12, repeat: -1,
+              frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_walk_', start: 0, end: (owlClips.walk || 8) - 1 }) });
+            self.anims.create({ key: 'owl3d_idle_' + facing, frameRate: 3, repeat: -1,
+              frames: self.anims.generateFrameNames('owl3d', { prefix: facing + '_idle_', start: 0, end: (owlClips.idle || 6) - 1 }) });
+          });
+        } else {
+          var owl = cutout('knight_owl');
+          if (!owl || !IsoTextures.makeWalkCycle(self, 'owl', owl, OWL_H)) {
+            jobs.push(IsoTextures.loadImage('assets/knight_owl.jpg').then(function(full) {
+              if (!full || !IsoTextures.makeWalkCycle(self, 'owl', full, OWL_H)) {
+                IsoTextures.makeFallbackToken(self, 'owl', 'O', '#006064', '#00bcd4', 96);
+              }
+            }));
+          }
         }
-      }
-
-      // Rendered monster sprite sheets (optional): whatever the index lists
-      var animIndex = this.cache.json.exists('cem_anim_index') ? this.cache.json.get('cem_anim_index') : null;
-      var animIds = (animIndex && animIndex.monsters) || [];
-      var wanted = monsterIds(this);
-      var animQueued = 0;
-      for (var ai = 0; ai < animIds.length; ai++) {
-        if (wanted.indexOf(animIds[ai]) === -1) continue;
-        this.load.atlas('anim_' + animIds[ai], 'assets/proto/iso/monsters/' + animIds[ai] + '.png',
-          'assets/proto/iso/monsters/' + animIds[ai] + '.json');
-        animQueued++;
-      }
-      // Rendered Kenney kit sprites (optional): queue them from the manifest
-      var queued = CemTextures.queueKitImages(this) + animQueued;
-      var kitDone = new Promise(function(resolve) {
-        if (!queued) { resolve(); return; }
-        self.load.once('complete', function() { resolve(); });
-        self.load.start();
-      });
-      jobs.push(kitDone);
-
-      Promise.all(jobs).then(function() {
+        return Promise.all(jobs);
+      }).then(function() {
         // one animation set per monster that has a rendered sheet
         var made = [];
         for (var i = 0; i < wanted.length; i++) {
@@ -268,7 +262,7 @@ var CemScenes = (function() {
         };
       }
       this.placeOwl(this.level.owl, true);
-      this.refreshVisibility(true);
+      this.refreshVisibility(null, true);
       this.fadeReveals = true;              // from now on, reveals fade in
       // repaint the ground twice after boot: the first bakes on a slow
       // device can land before its textures are uploaded and come out blank
@@ -436,7 +430,7 @@ var CemScenes = (function() {
             .setBlendMode(Phaser.BlendModes.ADD).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.token) + 0.2);
           this.tileObjs[i].push(glow); this.tileLights[i].push(glow);
           this.world.addProp(glow, t.gx, t.gy, { light: true });
-          if (!REDUCED_MOTION) this.tweens.add({ targets: glow, alpha: 0.75, duration: 900 + hash(t.gy, t.gx) * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+          if (!REDUCED_MOTION) glow.cemTween = this.tweens.add({ targets: glow, alpha: 0.75, duration: 900 + hash(t.gy, t.gx) * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
       }
     },
@@ -571,19 +565,16 @@ var CemScenes = (function() {
         var depth = IsoModel.depthKey(t.gx, t.gy, LAYERS.token);
         var glow = this.add.image(flameX, flameY - 6, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(0.8);
         var flame = this.add.sprite(flameX, flameY + 6, 'flame_0').setOrigin(0.5, 0.92).setScale(0.42).setDepth(depth + 0.2);
-        var pool = this.add.image(p.x, p.y, 'light_pool').setDepth(POOL_BAND + IsoModel.depthKey(t.gx, t.gy, 0))
-          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.5).setScale(1.25).setTint(0xffd9a0);
+        // the warm floor pool is baked into the ground chunk (bakeChunk), so there is no pool object here
         if (!REDUCED_MOTION) {
           flame.play({ key: 'flame', startFrame: Math.floor(hash(t.gx, t.gy) * 8) });
           var dur = 380 + hash(t.gy, t.gx) * 240;
-          this.tweens.add({ targets: glow, alpha: 0.95, scale: 0.95, duration: dur, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-          this.tweens.add({ targets: pool, alpha: 0.65, duration: dur * 1.3, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+          glow.cemTween = this.tweens.add({ targets: glow, alpha: 0.95, scale: 0.95, duration: dur, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
         this.tileObjs[i].push(glow, flame);
         this.tileLights[i].push(glow, flame);
         this.world.addProp(glow, t.gx, t.gy, { light: true });
         this.world.addProp(flame, t.gx, t.gy, { light: true });
-        pool.destroy();   // the warm floor pool is baked into the ground chunk
       }
     },
 
@@ -930,7 +921,7 @@ var CemScenes = (function() {
         if (st.actions.exit) lit = true;
         if (lit !== st.shown) {
           st.shown = lit;
-          st.sprite.setVisible(lit);
+          this.world.setActive(st.sprite, lit);    // also pauses its animation while it is unseen
           st.contact.setVisible(lit);
           if (st.glow) st.glow.setVisible(lit);
         }
@@ -1271,11 +1262,22 @@ var CemScenes = (function() {
         onComplete: function() { obj.cemFading = false; } });
     },
 
-    refreshVisibility: function() {
+    /**
+     * @param {number[]} [indices] - tiles whose visibility changed (the model's
+     *   `visChanged`); without it every tile is checked
+     * @param {boolean} [force] - also re-cull and bake every dirty chunk now
+     *   (boot); otherwise the per-frame update bakes them two a frame
+     */
+    refreshVisibility: function(indices, force) {
       var L = this.level;
-      for (var i = 0; i < L.tiles.length; i++) {
+      var full = !indices;
+      var count = full ? L.tiles.length : indices.length;
+      var touched = full ? null : {};
+      for (var k = 0; k < count; k++) {
+        var i = full ? k : indices[k];
         var v = L.vis[i];
         if (v === this.lastVis[i]) continue;
+        if (touched && L.tiles[i].tombId) touched[L.tiles[i].tombId] = true;
         var objs = this.tileObjs[i], lights = this.tileLights[i], props = this.tileProps[i];
         var shown = v > 0;
         var fresh = shown && this.lastVis[i] === 0 && !REDUCED_MOTION && this.fadeReveals;
@@ -1290,8 +1292,10 @@ var CemScenes = (function() {
         }
         this.lastVis[i] = v;
       }
+      if (full) L.visChanged.length = 0;
       for (var id in this.tombObjs) {
         if (!this.tombObjs.hasOwnProperty(id)) continue;
+        if (touched && !touched[id]) continue;
         var rec = this.tombObjs[id];
         var best = 0;
         for (var yy = rec.tomb.y0; yy < rec.tomb.y0 + rec.tomb.h; yy++) {
@@ -1302,9 +1306,9 @@ var CemScenes = (function() {
         for (var k2 = 0; k2 < rec.lit.length; k2++) this.world.setPropShown(rec.lit[k2], best > 0);
         if (rec.sprite) rec.sprite.setTint(best === 2 ? lerpTint(L.lightMap[CemModel.index(L, rec.tomb.door.gx, rec.tomb.door.gy)]) : SEEN_TINT);
       }
-      this.refreshTombs();
+      if (full) this.refreshTombs();
       this.refreshMonsters();
-      this.world.update(true);
+      if (force) this.world.update(true);
     },
 
     // --- Camera and input ----------------------------------------------------------
@@ -1356,9 +1360,9 @@ var CemScenes = (function() {
     },
 
     /** Newly revealed tiles: show their ground and props */
-    onTilesRevealed: function(indices) {
+    onTilesRevealed: function(indices, changed) {
       if (indices && indices.length && this.world) this.world.markSeen(indices);
-      this.refreshVisibility();
+      this.refreshVisibility(changed || null);
     },
 
     /** Brief ring on a tapped tile */

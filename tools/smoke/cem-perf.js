@@ -56,9 +56,18 @@ async function main() {
     await page.setViewport({ width: 1200, height: 860 });
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
+    // what the boot downloads (Phaser re-reads images through blob: URLs, not counted)
+    let bootBytes = 0, bootRequests = 0, booting = true;
+    page.on('requestfinished', async req => {
+      if (!booting || req.url().startsWith('blob:')) return;
+      bootRequests++;
+      try { const r = req.response(); const h = r && r.headers()['content-length']; bootBytes += h ? Number(h) : (r ? (await r.buffer()).length : 0); } catch (e) { /* body gone */ }
+    });
     await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Perf&action=new&level=cemetery&perf=1&music=none',
       { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 30000 });
+    await wait(500);
+    booting = false;
 
     const out = await page.evaluate(async (legMs) => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -83,6 +92,13 @@ async function main() {
       S.world.bands.forEach(b => { inBands += b.list.length; });
       let seen = 0;
       for (let i = 0; i < L.seen.length; i++) if (L.seen[i]) seen++;
+      // what the GPU holds (decoded RGBA of every texture source) and what keeps running unseen
+      let texMB = 0;
+      const tl = S.sys.game.textures.list;
+      for (const key in tl) { const t = tl[key]; if (!t.source) continue; for (const src of t.source) texMB += (src.width || 0) * (src.height || 0) * 4; }
+      let animsPlaying = 0, animsHidden = 0;
+      (function walk(list) { for (const o of list) { if (o.type === 'Layer') { walk(o.list); continue; } if (o.anims && o.anims.isPlaying) { animsPlaying++; if (!o.visible) animsHidden++; } } })(S.children.list);
+      const tweens = S.tweens.getTweens().length;
       return {
         overlay: overlay ? overlay.text : '(overlay missing: is ?perf=1 set?)',
         world: S.world.stats(),
@@ -92,7 +108,11 @@ async function main() {
         grid: L.W + 'x' + L.H,
         generationMs: L.genMs,
         monsters: L.monsters.length,
-        tilesSeen: seen
+        tilesSeen: seen,
+        textureMB: Number((texMB / 1048576).toFixed(1)),
+        tweens: tweens,
+        animsPlaying: animsPlaying,
+        animsPlayingHidden: animsHidden
       };
     }, LEG_MS);
 
@@ -101,8 +121,13 @@ async function main() {
     console.log(JSON.stringify({
       topLevelObjects: out.topLevelObjects, propsInBands: out.propsInBands,
       tickMsPerFrame: out.tickMsPerFrame, world: out.world,
-      grid: out.grid, generationMs: out.generationMs, monsters: out.monsters, tilesSeen: out.tilesSeen
+      grid: out.grid, generationMs: out.generationMs, monsters: out.monsters, tilesSeen: out.tilesSeen,
+      textureMB: out.textureMB, tweens: out.tweens, animsPlaying: out.animsPlaying, animsPlayingHidden: out.animsPlayingHidden,
+      bootMB: Number((bootBytes / 1048576).toFixed(2)), bootRequests: bootRequests
     }, null, 2));
+    // guards: hidden sprites must not keep animating, and the GPU must not hold a card's worth of map sheets
+    if (out.animsPlayingHidden > 4) { console.log('\nFAIL: ' + out.animsPlayingHidden + ' sprites animate while hidden'); process.exitCode = 1; }
+    if (out.textureMB > 100) { console.log('\nFAIL: ' + out.textureMB + ' MB of textures'); process.exitCode = 1; }
     if (errors.length) { console.log('\npage errors: ' + errors.slice(0, 3).join(' | ')); process.exitCode = 1; }
   } finally {
     await browser.close();

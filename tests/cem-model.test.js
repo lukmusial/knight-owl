@@ -574,6 +574,24 @@ TestRunner.suite('CemModel', () => {
     TestRunner.assert(L.newlySeen.length > 0, 'newly seen tiles are logged for the renderer');
   });
 
+  TestRunner.test('visChanged lists exactly the tiles whose visibility changed', () => {
+    var L = gen(50);
+    L.visChanged.length = 0;
+    var before = L.vis.slice();
+    var far = L.tiles.filter(function(t) { return t.kind === K.path && !L.seen[CemModel.index(L, t.gx, t.gy)]; })[0];
+    CemModel.setOwlTile(L, far.gx, far.gy);
+    var expected = [];
+    for (var i = 0; i < L.vis.length; i++) if (L.vis[i] !== before[i]) expected.push(i);
+    TestRunner.assert(expected.length > 0, 'moving far away changes some tiles');
+    TestRunner.assertEqual(L.visChanged.slice().sort(function(a, b) { return a - b; }).join(','), expected.join(','), 'the list is the diff, nothing more');
+    L.visChanged.length = 0;
+    CemModel.updateVisibility(L);
+    TestRunner.assertEqual(L.visChanged.length, 0, 'a repeated update changes nothing');
+    var lit = 0;
+    for (var j = 0; j < L.vis.length; j++) if (L.vis[j] === 2) lit++;
+    TestRunner.assert(lit > 0, 'the owl still lights tiles after the diffing rewrite');
+  });
+
   TestRunner.test('a save from the first cut (tile only) still loads', () => {
     var L = gen(49);
     var state = CemModel.exportState(L);

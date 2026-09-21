@@ -37,6 +37,7 @@ TestRunner.suite('SFX Module', () => {
     SFX.init();
     SFX.unlock();
     TestRunner.assertEqual(SFX.isAvailable(), false, 'not available in node');
+    TestRunner.assertEqual(SFX.warm(), false, 'warm() reports no context in node and does not throw');
     TestRunner.assertEqual(SFX.play('correct'), false, 'play returns false without context');
     TestRunner.assertEqual(SFX.play('no-such-sound'), false, 'unknown sound returns false');
     SFX.duck(true);

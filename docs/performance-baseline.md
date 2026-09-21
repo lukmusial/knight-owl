@@ -4,7 +4,51 @@ Figures the game was last known good at, and how each was taken. Append a new
 dated section when re-baselining; never overwrite an old one, they are the
 history.
 
-## 2026-09-21 (later) - after the card and asset optimisation pass (BASELINE going forward)
+## 2026-09-21 (cemetery pass) - phone-minded cemetery optimisation (BASELINE going forward)
+
+Same machine and Chrome as below. This pass came out of a phone-viewport
+probe (390x844, DPR 3, 4x CPU throttle, headed Chrome with a real GPU, script
+kept outside the repo): the frame itself was fine (6-8 ms of game.step at 4x
+throttle, 54-60 rAF/s) but the cemetery held 130 MB of GPU textures, downloaded
+8 MB to boot, froze 320 ms on the first footstep, and walked the whole 3120-tile
+grid on every tile step.
+
+Changes: the six small monster kinds' map sheets are shrunk to what the map
+draws (`tools/monsters3d/shrink_iso_sheets.py`, run by `render_all.sh`; the
+spider went from 1912x2880 to 656x975); the boot loads a monster's painted
+cutout only when it has no sheet (2 MB less), builds only the dozen shared
+textures the cemetery uses, registers the stand-in props without painting them,
+and skips the night sheet while the fog is off; `SFX.warm()` builds the
+AudioContext behind the loading veil; the model's `visChanged` list lets the
+scene refresh only the tiles that changed and leaves chunk bakes to the
+per-frame budget; the lantern floor pools (baked into the chunks) no longer
+leave 50 tweens on destroyed images; sprites and glows that are culled or
+unlit have their animation and tween paused (`CemWorld.setActive`); the chunk
+pool is capped at 28 render textures (80 MB) instead of 48.
+
+| figure | now | the baseline below |
+|---|---|---|
+| GPU textures at scene ready (`textureMB`) | 71.6 MB | 130.1 MB |
+| of which the 12 map sheets (decoded) | 60.5 MB | 114 MB |
+| `assets/proto/iso/monsters/` on disk | 2.3 MB | 3.1 MB |
+| cemetery boot download (`bootMB`, `bootRequests`) | 5.56 MB, 128 req | 8.03 MB, 141 req |
+| tweens alive after the walk | 77-78 | 133-139 |
+| sprite animations playing / of those hidden | 19-22 / 0 | 64-70 / 37-50 |
+| first footstep (AudioContext built in-frame, headed) | 0.3 ms | 327 ms |
+| `refreshVisibility` per tile step (phone x4, headed) | tiles that changed only, no forced bakes | 13 ms |
+| unit suite | 436/436 | 433/433 |
+| `npm run test:cem` | pass | pass |
+
+`test:cem:perf` now prints `textureMB`, `tweens`, `animsPlaying`,
+`animsPlayingHidden`, `bootMB` and `bootRequests`, and fails when more than 4
+sprites animate while hidden or textures pass 100 MB. Draw calls, visible
+sprites and logic time are unchanged (29-37, 148-165, 0.03 ms).
+
+Not done, still worth it on a phone: the six big kinds' sheets are still
+6-10 MB each (120 frames at 100x135); Phaser's 1.45 MB parse (1.3 s at 4x
+throttle); the music buffer (117 s mono decoded = 20.6 MB).
+
+## 2026-09-21 (later) - after the card and asset optimisation pass (superseded by the section above)
 
 Same machine and Chrome as the section below. Changes in this pass: the card
 animation loop is stopped when a card is put away (`MonsterStage.release`);

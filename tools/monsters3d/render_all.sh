@@ -25,6 +25,8 @@ do
     "$glb" "/tmp/frames/$id" --motion "$motion" --yaw "$yaw" --engine "$ENGINE" --size 160 >/dev/null
   "$PY" "$ROOT/tools/owl3d/pack_sprites.py" "/tmp/frames/$id" "$OUT/$id" 8 --quant 128
 done
+# the map draws the small kinds at 40-90 px: size their sheets to that
+"$PY" "$ROOT/tools/monsters3d/shrink_iso_sheets.py"
 "$PY" - <<'PYEOF'
 import json, os
 out = os.path.join(os.environ.get('ROOT', '.'), 'www/assets/proto/iso/monsters')
