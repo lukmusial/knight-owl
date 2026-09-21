@@ -240,68 +240,6 @@ TestRunner.suite('CemReveal', () => {
     TestRunner.assert(biggest < 0.06, 'leaving the light is gradual: ' + biggest.toFixed(3));
   });
 
-  TestRunner.test('a tile in the camera view comes up to the remembered level over VIEW_FADE_MS, once', () => {
-    var L = darkLevel(59);
-    var R = CemReveal.create(L);
-    var at = unlitAt(L, R, 7);
-    var idx = at.idx;
-    var out = fresh();
-    TestRunner.assertEqual(R.peak[idx], 0, 'dark before the camera reaches it');
-    TestRunner.assert(CemReveal.enterView(R, idx), 'the first look starts the fade');
-    TestRunner.assert(!CemReveal.enterView(R, idx), 'a second look does not restart it');
-    TestRunner.assertEqual(R.fading.length, 1, 'one fade running');
-    var last = 0, biggest = 0, frames = 0;
-    while (R.fading.length) {
-      out.changed.length = 0;
-      CemReveal.advanceView(R, 16, out);
-      frames++;
-      TestRunner.assert(R.peak[idx] >= last, 'the peak never falls');
-      biggest = Math.max(biggest, R.peak[idx] - last);
-      last = R.peak[idx];
-      if (frames > 1000) break;
-    }
-    var expect = Math.round(C.VIEW_FADE_MS / 16);
-    TestRunner.assert(Math.abs(frames - expect) <= 1, 'the fade takes VIEW_FADE_MS: ' + frames + ' frames of 16 ms');
-    TestRunner.assert(Math.abs(R.peak[idx] - C.VIEW_PEAK) < 1e-6, 'and ends at VIEW_PEAK: ' + R.peak[idx]);
-    TestRunner.assertEqual(CemReveal.alphaAt(R, idx), 1, 'which is solid');
-    TestRunner.assertEqual(CemReveal.litAt(R, idx), 0, 'but still the remembered blue');
-    TestRunner.assert(biggest < 0.02, 'no frame moved it by more than a little: ' + biggest.toFixed(4));
-    TestRunner.assertEqual(R.fading.length, 0, 'the fade list drains');
-    out.changed.length = 0;
-    CemReveal.advanceView(R, 16, out);
-    TestRunner.assertEqual(out.changed.length, 0, 'and nothing changes after');
-  });
-
-  TestRunner.test('the distance curve lifts a viewed tile past the remembered level, and a tile already brighter is left alone', () => {
-    var L = darkLevel(60);
-    var R = CemReveal.create(L);
-    var o = L.owl;
-    var out = fresh();
-    CemReveal.update(R, o.x, o.y, out);
-    var here = CemModel.index(L, o.gx, o.gy);
-    TestRunner.assertEqual(R.peak[here], 1, 'his own tile is at 1');
-    CemReveal.enterView(R, here);
-    for (var k = 0; k < 200; k++) CemReveal.advanceView(R, 16, out);
-    TestRunner.assertEqual(R.peak[here], 1, 'the view fade never lowers it');
-    var at = unlitAt(L, R, 7);
-    CemReveal.enterView(R, at.idx);
-    for (var j = 0; j < 200; j++) CemReveal.advanceView(R, 16, out);
-    TestRunner.assert(Math.abs(R.peak[at.idx] - C.VIEW_PEAK) < 1e-6, 'a far tile rests at the remembered level');
-    for (var m = 1; m <= 60; m++) CemReveal.update(R, o.x + at.dx * m * 0.1, o.y + at.dy * m * 0.1, out);
-    TestRunner.assert(R.peak[at.idx] > C.VIEW_PEAK + 0.1, 'and walking up to it lifts it on: ' + R.peak[at.idx].toFixed(2));
-  });
-
-  TestRunner.test('reduced motion: a viewed tile is remembered at once', () => {
-    var L = darkLevel(61);
-    var R = CemReveal.create(L, { instant: true });
-    var at = unlitAt(L, R, 7);
-    var out = fresh();
-    CemReveal.enterView(R, at.idx);
-    CemReveal.advanceView(R, 16, out);
-    TestRunner.assert(Math.abs(R.peak[at.idx] - C.VIEW_PEAK) < 1e-6, 'at the remembered level after one frame');
-    TestRunner.assertEqual(R.fading.length, 0, 'nothing left fading');
-  });
-
   TestRunner.test('approach eases toward a target by a rate, in either direction', () => {
     TestRunner.assertEqual(CemReveal.approach(0, 1, 2.5, 100), 0.25, 'a tenth of a second at 2.5 per second');
     TestRunner.assertEqual(CemReveal.approach(0.9, 1, 2.5, 100), 1, 'never overshoots');
