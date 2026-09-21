@@ -308,7 +308,8 @@ var CemScenes = (function() {
       this.time.delayedCall(500, function() { if (self2.world) { self2.world.rebakeAll(); self2.world.update(true); } });
       this.time.delayedCall(2000, function() { if (self2.world) { self2.world.rebakeAll(); self2.world.update(true); } });
       this.perf = (typeof CemPerf !== 'undefined') ? CemPerf.attach(this) : null;
-      this.rainT0 = this.time.now;          // the rain clock starts when the scene is ready
+      // the rain clock (rainT0) is started by the first update() frame, not
+      // here: the scene Clock still reads 0 in create()
       var cb = callbacks(this);
       if (cb.onReady) cb.onReady(this);
     },
@@ -816,7 +817,7 @@ var CemScenes = (function() {
 
     /** ms on the rain clock, which the storm shares */
     rainElapsed: function() {
-      return this.time.now - (this.rainT0 || this.time.now);
+      return CemRain.clockElapsed(this.rainT0, this.time.now);
     },
 
     /** No strikes while a card is up, the game is paused or the scene is not taking input */
@@ -1019,6 +1020,7 @@ var CemScenes = (function() {
       this.drops = [];                            // live splash droplets
       this.dropPool = [];
       this.rainSchedule = CemRain.schedule(L.seed || 1);
+      this.rainT0 = -1;                           // not started: the first update() frame starts it (rainElapsed)
       this.rainStrength = 0;
       this.rainStarted = false;
       this.splashAt = -1e9;
@@ -1449,7 +1451,7 @@ var CemScenes = (function() {
       if (!this.puddles) return;
       var cfg = CemRain.CFG;
       var now = this.time.now;
-      var elapsed = now - (this.rainT0 || now);
+      var elapsed = this.rainElapsed();
       var dt = Math.min(delta || 16, 100);
       var L = this.level;
       var cam = this.cameras.main;
@@ -1531,9 +1533,11 @@ var CemScenes = (function() {
 
     /** For the perf overlay and the harnesses */
     rainStats: function() {
-      var elapsed = this.time.now - (this.rainT0 || this.time.now);
+      var elapsed = this.rainElapsed();
       var rs = this.reflStats || { bakes: 0, bakeMs: 0, composes: 0 };
       return {
+        elapsed: elapsed,
+        firstShowerMs: this.rainSchedule ? this.rainSchedule.episodes[0].start : -1,
         streaks: this.rainEmitter ? this.rainEmitter.getAliveParticleCount() : 0,
         puddles: this.puddles ? this.puddles.length : 0,
         rings: this.rings ? this.rings.length : 0,
@@ -2416,6 +2420,9 @@ var CemScenes = (function() {
     },
 
     update: function(time, delta) {
+      // the rain clock, which the storm shares, counts from the first frame:
+      // create() ran before the scene Clock's first tick, when it still read 0
+      if (!(this.rainT0 >= 0)) this.rainT0 = this.time.now;
       var p1 = this.input.pointer1, p2 = this.input.pointer2;
       var cam = this.cameras.main;
       var cb = callbacks(this);
