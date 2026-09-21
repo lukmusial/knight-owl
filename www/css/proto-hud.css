@@ -506,7 +506,14 @@ body.on-game .modal-content {
     0 12px 40px rgba(0, 0, 0, 0.8);
 }
 
-/* Encounter illustrations keep their painted scene, framed in gold */
+/* Encounter illustrations keep their painted scene, framed in gold. The
+   stage around the card image clips its monster, so it takes the same cap
+   as the image: styles.css caps it at 200px on phones for the classic page,
+   and with the image at 32vh that cut the bottom off every card */
+body.proto .monster-display .monster-stage,
+body.on-game .monster-display .monster-stage {
+  max-height: 32vh;
+}
 body.proto .monster-display img,
 body.on-game .monster-display img {
   max-height: 32vh;

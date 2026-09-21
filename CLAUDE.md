@@ -20,6 +20,7 @@ Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game wher
 - Performance baseline and how to re-measure it: `docs/performance-baseline.md`
 - 3D view playthrough videos (headless Chrome on the GPU): `npm run record:fp` (a minute of exploring) and `npm run record:fp:dragon` (walks to the boss chamber and beats the dragon)
 - Cemetery playthrough video (headless Chrome on the GPU, plays gate to Grim Reaper and encodes it with ffmpeg): `npm run record:cem`
+- Dungeon playthrough videos in the classic page and the isometric view (shortest way to the dragon, fighting on the way, beating it): `npm run record:classic`, `npm run record:iso`
 - E2E tests: `npm run test:e2e` (requires Maestro and running emulator)
 
 **Mobile builds**:
