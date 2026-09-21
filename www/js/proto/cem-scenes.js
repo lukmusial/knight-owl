@@ -31,9 +31,9 @@ var CemScenes = (function() {
    * as big as a zombie.
    */
   var MONSTER_SCALE = {
-    spider: 0.3, giant_rat: 0.34, bat_swarm: 0.42,
+    spider: 0.36, giant_rat: 0.34, bat_swarm: 0.42,
     ghost: 0.5, lost_soul: 0.52, will_o_wisp: 0.45,
-    pumpkin_man: 0.85, banshee: 0.9, skeleton: 0.95, zombie: 0.95
+    pumpkin_man: 0.85, banshee: 0.9, skeleton: 0.95, zombie: 0.95, clown: 1.14
   };
 
   // how far above the ground a flier hangs, in px: the shadow stays on the floor
@@ -117,7 +117,6 @@ var CemScenes = (function() {
       var self = this;
       this.missing = {};
       this.load.on('loaderror', function(file) { self.missing[file.key] = true; });
-      this.load.image('palette_src', 'assets/directions/n_s_e.png');
       this.load.atlas('owl3d', 'assets/proto/iso/owl3d.png', 'assets/proto/iso/owl3d.json');
       CemTextures.loadKit(this);
       this.load.json('cem_anim_index', 'assets/proto/iso/monsters/index.json');
@@ -128,10 +127,7 @@ var CemScenes = (function() {
 
     create: function() {
       var self = this;
-      var palette = IsoTextures.FALLBACK_PALETTE;
-      if (this.textures.exists('palette_src')) {
-        palette = IsoTextures.samplePalette(this.textures.get('palette_src').getSourceImage());
-      }
+      var palette = IsoTextures.DUNGEON_PALETTE;
       // flame frames, glows, light pool, cast shadow, rings and the dungeon decor come from the shared set
       IsoTextures.generateFallbacks(this, palette, null);
       CemTextures.generate(this);
@@ -145,7 +141,7 @@ var CemScenes = (function() {
         var targetH = monsterHeight(id, id === CemModel.BOSS_ID ? 'boss' : 'wander');
         var img = cutout(id);
         if (img && IsoTextures.makeStanding(self, 'mon_' + id, img, targetH)) return;
-        jobs.push(IsoTextures.loadImage('assets/' + id + '.png').then(function(full) {
+        jobs.push(IsoTextures.loadImage('assets/' + id + '.jpg').then(function(full) {
           if (!full || !IsoTextures.makeStanding(self, 'mon_' + id, full, targetH)) {
             IsoTextures.makeFallbackToken(self, 'mon_' + id, id.charAt(0).toUpperCase(), '#4a148c', '#b388ff', 96);
           }
@@ -165,7 +161,7 @@ var CemScenes = (function() {
       } else {
         var owl = cutout('knight_owl');
         if (!owl || !IsoTextures.makeWalkCycle(this, 'owl', owl, OWL_H)) {
-          jobs.push(IsoTextures.loadImage('assets/knight_owl.png').then(function(full) {
+          jobs.push(IsoTextures.loadImage('assets/knight_owl.jpg').then(function(full) {
             if (!full || !IsoTextures.makeWalkCycle(self, 'owl', full, OWL_H)) {
               IsoTextures.makeFallbackToken(self, 'owl', 'O', '#006064', '#00bcd4', 96);
             }

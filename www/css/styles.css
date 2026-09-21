@@ -1811,6 +1811,9 @@ body {
     overflow-y: auto;
   }
 
+  /* the card image inherits its cap from the stage around it, so the stage
+     has to shrink too or phones kept the 400px desktop card */
+  .monster-display .monster-stage,
   .monster-display img {
     max-height: 200px;
     max-width: 100%;
@@ -2160,6 +2163,7 @@ body {
     padding: 15px;
   }
 
+  .monster-display .monster-stage,
   .monster-display img {
     max-height: 150px;
   }

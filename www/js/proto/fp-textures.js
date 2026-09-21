@@ -600,7 +600,7 @@ var FpTextures = (function() {
         var cc = billboardCanvas(cut, true);
         if (cc) return cc;
       }
-      return loadImage('assets/' + imageId + '.png').then(function(img) {
+      return loadImage('assets/' + imageId + '.jpg').then(function(img) {
         var c = img ? billboardCanvas(img, false) : null;
         return c || placeholderBillboard(imageId);
       });

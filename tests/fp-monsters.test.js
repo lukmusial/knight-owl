@@ -14,7 +14,9 @@ TestRunner.suite('FpMonsters', () => {
       TestRunner.assert(c.height > 1 && c.height < 3, id + ' height in range');
       TestRunner.assertEqual(FpMonsters.url(id), 'assets/proto/fp/monsters/' + id + '.glb', id + ' url');
     });
-    TestRunner.assertEqual(FpMonsters.has('dragon'), false, 'dragon keeps its billboard');
+    TestRunner.assertTruthy(FpMonsters.config('dragon'), 'the dragon is a model too');
+    var tallest = Math.max.apply(null, Object.keys(FpMonsters.MODELS).map(function(id) { return FpMonsters.MODELS[id].height; }));
+    TestRunner.assert(tallest <= 3.5, 'nothing reaches through the chamber vault');
   });
 
   TestRunner.test('idle motion stays subtle and loops', () => {
@@ -85,5 +87,26 @@ TestRunner.suite('FpMonsters', () => {
     [run, fly, gone].forEach(function(o) { TestRunner.assertEqual(o.fade, 0, 'fully faded'); });
     var midRun = FpMonsters.pose('breathe', 0, 0, { exit: 0.3, exitStyle: 'runaway' });
     TestRunner.assertEqual(midRun.fade, 1, 'still visible while turning');
+  });
+  TestRunner.test('every monster in the game has a 3D model, and so does the treasure', () => {
+    var ids = (typeof MONSTERS !== 'undefined' ? MONSTERS : []).map(function(m) { return m.id; });
+    TestRunner.assert(ids.length > 30, 'the roster was loaded');
+    ids.forEach(function(id) {
+      TestRunner.assert(FpMonsters.has(id), id + ' has a model');
+      var cfg = FpMonsters.config(id);
+      TestRunner.assert(cfg.height > 0.5 && cfg.height < 6, id + ' is a believable height');
+      TestRunner.assert(['runaway', 'flyaway', 'vanish'].indexOf(cfg.exit) !== -1, id + ' leaves in a known way');
+    });
+    TestRunner.assert(FpMonsters.has('treasure'), 'the treasure hoard is a model too');
+    TestRunner.assertEqual(FpMonsters.config('treasure').motion, 'still', 'gold does not breathe');
+  });
+
+  TestRunner.test('a still model holds its pose', () => {
+    var a = FpMonsters.pose('still', 0, 0, {});
+    var b = FpMonsters.pose('still', 1.3, 2, {});
+    ['y', 'sx', 'sy', 'sz', 'rotZ'].forEach(function(k) {
+      TestRunner.assertEqual(a[k], b[k], k + ' does not drift');
+    });
+    TestRunner.assertEqual(b.sy, 1, 'no breathing');
   });
 });

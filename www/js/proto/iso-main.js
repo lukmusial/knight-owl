@@ -116,6 +116,8 @@ var ProtoIso = (function() {
         session = ProtoSession.begin('Explorer', { levels: ['dungeon'] });
       }
       currentLevel = 'dungeon';
+      // the encounter cards are played in dungeon rooms again
+      if (typeof MonsterStage !== 'undefined') MonsterStage.setTheme('dungeon');
       startDungeon();
     });
   }

@@ -296,7 +296,13 @@
   position: relative;
   display: inline-block;
   line-height: 0;
+  /* the fight is played inside the picture: nothing walks out of the frame */
+  overflow: hidden;
 }
+/* the one exception: the lunge comes at the player, and is allowed to break
+   out of the card for the moment it lasts (MonsterStage.allowLunge) */
+.monster-stage.lunging { overflow: visible; }
+.monster-stage.lunging .monster-actor { z-index: 3; }
 .monster-actor {
   position: absolute;
   background-repeat: no-repeat;
@@ -314,8 +320,8 @@
 @keyframes fx-actor-lunge {
   0% { transform: translateY(0) scale(1); filter: brightness(1); }
   22% { transform: translateY(-3%) scale(0.93); filter: brightness(0.85); }
-  52% { transform: translateY(11%) scale(1.34); filter: brightness(1.25); }
-  74% { transform: translateY(5%) scale(1.12); }
+  52% { transform: translateY(16%) scale(1.55); filter: brightness(1.3); }
+  74% { transform: translateY(6%) scale(1.14); }
   100% { transform: translateY(0) scale(1); filter: brightness(1); }
 }
 .monster-actor.fx-hit { animation: fx-actor-hit 550ms ease-out; }

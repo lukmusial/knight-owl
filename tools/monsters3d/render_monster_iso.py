@@ -4,6 +4,8 @@
         [--size 192] [--motion shamble] [--yaw 0] [--engine cycles|eevee]
         [--samples 32] [--clips idle,walk,attack,hit]
         [--facings down,down_right,right,up_right,up]
+        [--elev 26.57] [--clip-facings idle:*,attack:down,hit:down,walk:up]
+        [--exposure 0.35] [--contrast 0]
 
 Same camera as tools/owl3d/render_iso.py (orthographic, 2:1 dimetric) so the
 frames sit in the isometric view next to Mr Owl. The models have no rig, so
@@ -11,6 +13,13 @@ the life comes from object-level motion per character type: a zombie shambles,
 a ghost floats, bats flap, a spider skitters, the reaper glides with a bend in
 its robe. Attack leans and stretches without travelling (the game moves the
 sprite toward Mr Owl itself); hit recoils and ends on the idle pose.
+
+--elev tilts the camera: the isometric default (26.57 deg) for the map, a
+shallower angle for the encounter card, where the figure stands in a painted
+room seen almost head on. --clip-facings renders only the combinations a
+sheet actually needs, which is what keeps the bigger card sheets affordable:
+the card idles in every facing but only attacks and is hit facing the player,
+and only walks away with its back turned.
 
 Writes <facing>_<clip>_<n>.png plus pivot.json for tools/owl3d/pack_sprites.py.
 Eight screen directions are covered by five rendered facings: down, down_right,
@@ -34,6 +43,16 @@ MOTION = opt('--motion', 'shamble')
 YAW = math.radians(float(opt('--yaw', 0)))
 ENGINE = opt('--engine', 'cycles')
 SAMPLES = int(opt('--samples', 32))
+ELEV = opt('--elev')
+EXPOSURE = float(opt('--exposure', 0.35))
+# extra key/rim strength for the encounter card, where the figure stands in a
+# painted room and has to read against it rather than sit in a flat map tile
+CONTRAST = float(opt('--contrast', 0))
+CLIP_FACINGS = {}
+if opt('--clip-facings'):
+    for part in opt('--clip-facings').split(','):
+        name, _, which = part.partition(':')
+        CLIP_FACINGS[name] = None if which in ('', '*', 'all') else which.split('+')
 CLIPS = {'idle': 6, 'walk': 8, 'attack': 6, 'hit': 4}
 only = opt('--clips')
 if only:
@@ -112,7 +131,7 @@ scene.render.film_transparent = True
 scene.render.image_settings.file_format = 'PNG'
 scene.render.image_settings.color_mode = 'RGBA'
 scene.view_settings.view_transform = 'Standard'
-scene.view_settings.exposure = 0.35
+scene.view_settings.exposure = EXPOSURE
 scene.render.resolution_x = SIZE
 scene.render.resolution_y = SIZE
 
@@ -133,20 +152,52 @@ def sun(name, direction, energy, color):
     obj.rotation_euler = (-Vector(direction).normalized()).to_track_quat('-Z', 'Y').to_euler()
 
 
-sun('key', (-1.0, -1.6, 2.4), 3.2, (1, 0.97, 0.92))
-sun('fill', (1.8, 0.5, 1.0), 1.1, (0.82, 0.88, 1.0))
-sun('rim', (0.4, 1.6, 0.8), 1.6, (1.0, 0.8, 0.55))
+sun('key', (-1.0, -1.6, 2.4), 3.2 + 1.4 * CONTRAST, (1, 0.97, 0.92))
+sun('fill', (1.8, 0.5, 1.0), 1.1 - 0.25 * CONTRAST, (0.82, 0.88, 1.0))
+sun('rim', (0.4, 1.6, 0.8), 1.6 + 1.2 * CONTRAST, (1.0, 0.8, 0.55))
 
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam'))
 scene.collection.objects.link(cam)
 scene.camera = cam
 cam.data.type = 'ORTHO'
 cam.data.ortho_scale = 1.55
-elev = math.atan(0.5)
+elev = math.radians(float(ELEV)) if ELEV else math.atan(0.5)
 d = 10.0
 target = Vector((0, 0, 0.45))
 cam.location = target + Vector((d * math.cos(elev) / math.sqrt(2), -d * math.cos(elev) / math.sqrt(2), d * math.sin(elev)))
 cam.rotation_euler = (target - cam.location).to_track_quat('-Z', 'Y').to_euler()
+
+# Widen the view for a model that is wider than it is tall. Heights are
+# normalised, so a dragon on its hoard, a spider's legs or a swarm of bats used
+# to run off the sides of the frame and be rendered with their edges cut off.
+# The figure simply comes out smaller in the sheet; the card sizes it by the
+# figure height it measures (MonsterStage.stand), so nothing else changes.
+bpy.context.view_layer.update()
+lo3 = Vector((1e9, 1e9, 1e9))
+hi3 = Vector((-1e9, -1e9, -1e9))
+for c in body.bound_box:
+    w = body.matrix_world @ Vector(c)
+    lo3 = Vector((min(lo3.x, w.x), min(lo3.y, w.y), min(lo3.z, w.z)))
+    hi3 = Vector((max(hi3.x, w.x), max(hi3.y, w.y), max(hi3.z, w.z)))
+radius = max(abs(lo3.x), abs(hi3.x), abs(lo3.y), abs(hi3.y))
+used = 0.0
+for sx in (-radius, radius):
+    for sy in (-radius, radius):
+        for sz in (lo3.z, hi3.z):
+            v = world_to_camera_view(scene, cam, Vector((sx, sy, sz)))
+            used = max(used, abs(v.x - 0.5) * 2, abs(v.y - 0.5) * 2)
+MOTION_ROOM = 1.16      # the poses lean, hop and stretch beyond the still bounds
+MAX_PX = 768            # the widest frame worth downloading
+RENDER_PX = SIZE
+if used * MOTION_ROOM > 1.0:
+    widen = used * MOTION_ROOM
+    cam.data.ortho_scale *= widen
+    # the figure now covers less of the frame, so render more pixels to keep it
+    # the same size on screen
+    px = min(MAX_PX, int(round(SIZE * widen)))
+    scene.render.resolution_x = scene.render.resolution_y = px
+    RENDER_PX = px
+    print('widened view to ortho %.2f, rendering %d px' % (cam.data.ortho_scale, px), flush=True)
 
 # --- motion tables ----------------------------------------------------------
 TAU = math.pi * 2
@@ -260,6 +311,9 @@ pivot = None
 
 for facing, base in FACINGS.items():
     for clip, count in CLIPS.items():
+        allowed = CLIP_FACINGS.get(clip, None)
+        if allowed is not None and facing not in allowed:
+            continue
         for i in range(count):
             u = i / float(count)
             loc, rot, scl, ang = pose(MOTION, clip, u)
@@ -276,6 +330,6 @@ for facing, base in FACINGS.items():
                 pivot = {'x': round(v.x, 4), 'y': round(1 - v.y, 4)}
             print('  %s %s %d' % (facing, clip, i), flush=True)
 
-json.dump({'size': SIZE, 'pivot': pivot, 'clips': CLIPS, 'facings': list(FACINGS.keys()), 'motion': MOTION},
+json.dump({'size': RENDER_PX, 'pivot': pivot, 'clips': CLIPS, 'facings': list(FACINGS.keys()), 'motion': MOTION},
           open(os.path.join(OUT, 'pivot.json'), 'w'))
 print('wrote', OUT)

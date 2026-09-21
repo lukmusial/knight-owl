@@ -318,8 +318,34 @@ let errorSink = null;
       });
       if (i < 2) await waitFor(page, n => Player.getDragonStreak() === n, 'streak ' + (i + 1), i + 1);
     }
+
     await waitFor(page, () => !document.getElementById('result-modal').classList.contains('hidden'), 'the result card');
     await shot(page, '08-reaper-beaten');
+
+    // A boss asks three questions on one card, and the Listen button used to
+    // keep reading the word the fight had opened with.
+    const tts = await page.evaluate(async () => {
+      const said = [];
+      // AudioAdapter is a top-level const, so it is not a window property:
+      // patch the object the page itself holds
+      const audio = AudioAdapter;
+      const realHas = audio.hasImplementation, realSpeak = audio.speak;
+      audio.hasImplementation = function() { return true; };
+      audio.speak = function(word) { said.push(word); return Promise.resolve(true); };
+      const monster = { id: 'grim_reaper', name: 'Grim Reaper', namePL: 'Ponury Żniwiarz', description: '', descriptionPL: '' };
+      const q = (id, word) => ({ id: id, category: 'vocabulary', difficulty: 3, prompt: 'What does "' + word + '" mean?',
+        hint: '', options: ['a', 'b', 'c', 'd'], correctIndex: 0 });
+      UI.showQuizModal({ monster: monster, question: q('t1', 'kot'), isDragon: true, dragonStreak: 0 }, function() {});
+      document.getElementById('speak-word-btn').click();
+      await new Promise(r => setTimeout(r, 60));
+      UI.updateQuizQuestion(q('t2', 'pies'), 1, function() {});
+      document.getElementById('speak-word-btn').click();
+      await new Promise(r => setTimeout(r, 60));
+      UI.hideQuizModal();
+      audio.hasImplementation = realHas; audio.speak = realSpeak;
+      return said;
+    });
+    check(tts[0] === 'kot' && tts[1] === 'pies', 'each challenge reads out its own word (' + tts.join(', ') + ')');
     await pressContinue(page);
     await waitFor(page, () => { const v = document.getElementById('victory-screen'); return v && !v.classList.contains('hidden'); }, 'the victory screen');
     const victory = await page.evaluate(() => ({ text: document.getElementById('victory-screen').innerText.slice(0, 300), completed: ProtoCem.getLevel().completed, save: Save.hasSave('Smoke') }));

@@ -217,10 +217,15 @@ TestRunner.suite('Dungeon Module', () => {
 TestRunner.suite('Monster roster themes', () => {
   TestRunner.test('themed (cemetery) monsters never come up in the dungeon', () => {
     const themed = MONSTERS.filter(m => m.theme).map(m => m.id);
-    TestRunner.assert(themed.length >= 5, 'cemetery monsters are flagged');
-    for (let i = 0; i < 300; i++) {
-      const m = getRandomMonster(1 + (i % 3));
-      TestRunner.assert(themed.indexOf(m.id) === -1, 'dungeon draw returned ' + m.id);
+    ['will_o_wisp', 'banshee', 'pumpkin_man', 'grim_reaper', 'clown'].forEach(function(id) {
+      TestRunner.assert(themed.indexOf(id) !== -1, id + ' is flagged as a cemetery monster');
+    });
+    for (let d = 1; d <= 3; d++) {
+      for (let i = 0; i < 200; i++) {
+        const m = getRandomMonster(d);
+        TestRunner.assert(themed.indexOf(m.id) === -1, 'dungeon draw returned ' + m.id);
+        TestRunner.assertEqual(m.difficulty, d, 'picked at the asked difficulty');
+      }
     }
   });
 });

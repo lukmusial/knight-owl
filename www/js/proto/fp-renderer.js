@@ -2381,7 +2381,9 @@ var FpRenderer = (function() {
     entityHost(roomId).add(sprite);
     var entry = { sprite: sprite, imageId: info.imageId, ready: false, extras: [], model: null, roomId: roomId };
     entities[roomId] = entry;
-    if (kind === 'monster' && typeof FpMonsters !== 'undefined' && FpMonsters.has(info.imageId)) {
+    // monsters, the dragon and the treasure hoard all stand as models when
+    // one exists; only what FpMonsters has no mesh for keeps the billboard
+    if (typeof FpMonsters !== 'undefined' && FpMonsters.has(info.imageId)) {
       FpMonsters.load(info.imageId).then(function(gltf) {
         if (entities[roomId] !== entry) return;
         if (gltf) placeModel(entry, info, gltf, px, pz, ax);
@@ -2585,6 +2587,18 @@ var FpRenderer = (function() {
   }
 
   function hasEntity(roomId) { return !!entities[roomId]; }
+
+  /**
+   * How an entity stands in its chamber: 'model' (a GLB), 'billboard' (the
+   * flat cutout, for anything without a model), 'loading', or null. Read-only;
+   * the smoke tests use it to check the dragon and the treasure are models.
+   */
+  function entityKind(roomId) {
+    var e = entities[roomId];
+    if (!e) return null;
+    if (e.model) return 'model';
+    return e.ready ? 'billboard' : 'loading';
+  }
 
   function stepFades(now) {
     for (var i = fades.length - 1; i >= 0; i--) {
@@ -2864,6 +2878,7 @@ var FpRenderer = (function() {
     removeEntity: removeEntity,
     hideEntity: hideEntity,
     hasEntity: hasEntity,
+    entityKind: entityKind,
     render: render,
     resume: resume,
     pause: pause,

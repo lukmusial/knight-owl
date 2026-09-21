@@ -157,7 +157,11 @@ const context = {
     key(index) { return Object.keys(this.data)[index] || null; }
   },
   // Module exports mock
-  module: { exports: {} }
+  module: { exports: {} },
+  // Tests that check files on disk (CSS rules, painted rooms, sprite sheets)
+  // use these; without them they skipped themselves as if in a browser
+  require,
+  __dirname
 };
 
 // Make context properties available as globals

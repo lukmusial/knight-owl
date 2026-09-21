@@ -192,8 +192,8 @@ const MONSTERS = [
   },
   {
     id: 'ghost',
-    name: 'Dungeon Ghost',
-    namePL: 'Duch Lochów',
+    name: 'Ghost',
+    namePL: 'Duch',
     difficulty: 2,
     description: 'A translucent spirit floating through the air, glowing with pale blue light.',
     descriptionPL: 'Przezroczysty duch unoszący się w powietrzu, świecący bladoniebieskim światłem.',
@@ -534,12 +534,12 @@ const MONSTERS = [
     name: 'Cemetery Clown',
     namePL: 'Cmentarny Klaun',
     difficulty: 3,
-    description: 'A tall clown in a faded striped suit with a red nose and a rusty bicycle horn, juggling glowing skulls.',
-    descriptionPL: 'Wysoki klaun w wyblakłym pasiastym garniturze z czerwonym nosem i zardzewiałą trąbką rowerową, żonglujący świecącymi czaszkami.',
-    imagePrompt: 'A cartoon clown in a faded purple and orange striped suit, big red nose, tiny hat, oversized shoes, juggling three glowing cartoon skulls, standing by an iron cemetery fence under a full moon, fantasy art style, silly and theatrical, not scary, suitable for children',
+    description: 'A clown with a huge round head and a shock of red hair, guarding a crypt with a single red balloon on a string.',
+    descriptionPL: 'Klaun z ogromną okrągłą głową i czupryną rudych włosów, pilnujący krypty z jednym czerwonym balonikiem na sznurku.',
+    imagePrompt: 'A cartoon circus clown with a huge oversized round head and wild bright red hair, bare head with no hat and no head covering, white face paint with a red nose and a wide painted grin, ruffled collar, baggy striped costume, holding a single red balloon on a string in one hand, standing by an iron cemetery fence on a dark night, the balloon well clear of the sky behind it, nothing else beside him, no moon, no pumpkins, no jack-o-lanterns, fantasy art style, mischievous and theatrical, not scary, suitable for children',
     loot: [
       { name: 'Squeaky Nose', namePL: 'Piszczący Nos', value: 24 },
-      { name: 'Juggling Ball', namePL: 'Piłka do Żonglowania', value: 28 },
+      { name: 'Red Balloon', namePL: 'Czerwony Balonik', value: 28 },
       { name: 'Bag of Confetti', namePL: 'Torebka Konfetti', value: 33 }
     ],
     defeatMessage: 'The clown honks his nose, takes a bow and cartwheels away!',

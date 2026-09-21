@@ -28,7 +28,26 @@ tools/art/.venv/bin/python tools/extract-sprites.py --only pumpkin_man,will_o_wi
 (`rembg` pulls `numba`; the pinned `llvmlite` has wheels for Intel Macs.)
 The cemetery monsters stand in busy scenes, so `extract-sprites.py` keeps
 only the character's blob for them (`CENTRAL_ONLY`: central blobs, the
-largest blob, or the glowing one for the wisp).
+largest blob, or the glowing one for the wisp); every cutout then has the
+crumbs of scenery dropped (`drop_specks`, blobs under 1% of the biggest).
+The dark knight was cut with the hoard of gold beside him and without his
+cape, which is why he is on `birefnet-general` and the largest blob. Something
+a character holds away from its body (the clown's balloon, on a string rembg
+does not keep) is linked back in by `LINK_PX`: blobs within that many pixels
+of what has been kept are his, the scenery further off is not.
+
+## Encounter-card backdrops
+
+`generate_backdrops.py` paints the empty rooms the encounter card stands the
+monster in, two variants of each, into `www/assets/proto/backdrops/`:
+
+```
+tools/art/.venv/bin/python tools/art/generate_backdrops.py            # everything missing
+tools/art/.venv/bin/python tools/art/generate_backdrops.py dungeon_hoard --force
+```
+
+The scene list in that script is the source of truth for the names; which
+monster gets which room is `SCENE_FOR` in `www/js/modules/monster-stage.js`.
 
 Licences: FLUX.1-schnell weights are Apache 2.0, Qwen-Image is Apache 2.0.
 The generated illustrations are the project's own.
