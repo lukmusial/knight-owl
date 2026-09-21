@@ -256,6 +256,7 @@ var CemScenes = (function() {
       this.buildStorm();
       this.createPlayer();
       this.buildRain();
+      this.planStorm();                     // the storm follows the rain schedule
       this.spawnMonsters();
       this.setupCamera();
       this.setupInput();
@@ -701,7 +702,10 @@ var CemScenes = (function() {
      */
     buildStorm: function() {
       var seed = ((this.level.seed || 1) * 2654435761 + 97) >>> 0;
-      this.storm = CemStorm.create({ rng: CemModel.makeRng(seed) });
+      this.stormSeed = seed;
+      this.stormRng = CemModel.makeRng(seed);
+      this.storm = null;                  // planned once the rain schedule exists (planStorm)
+      this.stormNext = null;
       this.stormStrike = null;
       // the view flash: additive and pale blue-white, so it brightens the scene instead of greying it
       this.stormFlash = this.add.image(0, 0, 'cem_flash').setScrollFactor(0).setDepth(1e6 + 1)
@@ -716,15 +720,24 @@ var CemScenes = (function() {
         .setTint(0xe4eeff).setScale(2.4, 1.6).setDepth(1e5 + 39).setVisible(false);
       this.litProps = [];
       this.layoutAtmosphere(this.cameras.main.width, this.cameras.main.height);
-      this.armStorm();
     },
 
-    /** Wait for the next strike (the first comes sooner), or for another try after a skipped one */
-    armStorm: function(retry) {
-      if (!this.storm) return;
-      var self = this;
-      var ms = retry ? this.storm.retry() : this.storm.next();
-      this.stormTimer = this.time.addEvent({ delay: ms, callback: function() { self.onStormDue(); } });
+    /**
+     * Tie the storm to the rain: strikes come from the rain schedule
+     * (CemStorm.plan: one announcing strike before each episode, random
+     * ones while it rains, none in a dry spell). Called once the rain
+     * schedule exists, and again by a harness that has wound the clock.
+     * @param {Object} [opts] - overrides of CemStorm.DEFAULTS
+     */
+    planStorm: function(opts) {
+      if (!this.rainSchedule) return;
+      this.storm = CemStorm.plan(this.rainSchedule, this.stormSeed, opts);
+      this.stormNext = null;
+    },
+
+    /** ms on the rain clock, which the storm shares */
+    rainElapsed: function() {
+      return this.time.now - (this.rainT0 || this.time.now);
     },
 
     /** No strikes while a card is up, the game is paused or the scene is not taking input */
@@ -735,10 +748,30 @@ var CemScenes = (function() {
       return !!this.stormStrike;
     },
 
-    onStormDue: function() {
-      if (this.stormBlocked()) { this.armStorm(true); return; }
-      var struck = this.strikeLightning();
-      this.armStorm(!struck);
+    /**
+     * Per frame: when the planned strike is due, fire it, or, blocked, try
+     * again in retryMs while its window lasts. One comparison a frame
+     * otherwise.
+     */
+    tickStormSchedule: function() {
+      if (!this.storm) return;
+      var t = this.rainElapsed();
+      if (!this.stormNext) this.stormNext = CemStorm.nextStrike(this.storm, t);
+      var next = this.stormNext;
+      if (!next || t < next.at) return;
+      if (this.stormBlocked()) { this.stormNext = CemStorm.afterBlocked(this.storm, next, t); return; }
+      var struck = this.strikeLightning(next.kind === 'announce' ? { range: { minDist: 5 } } : null);
+      if (struck) { this.storm.fired++; struck.kind = next.kind; }
+      this.stormNext = CemStorm.nextStrike(this.storm, t);
+    },
+
+    /** For the perf overlay */
+    stormStats: function() {
+      return {
+        fired: this.storm ? this.storm.fired : 0,
+        striking: !!this.stormStrike,
+        schedule: this.storm ? CemStorm.describe(this.storm, this.stormNext, this.rainElapsed()) : 'no rain schedule'
+      };
     },
 
     /**
@@ -752,19 +785,21 @@ var CemScenes = (function() {
      * away it struck. Under reduced motion there is no flash, no shake and
      * no flicker, only a dim bolt and the sound. Returns the strike record,
      * or null when nothing in sight could be hit.
-     * @param {Object} [opts] - { target: {gx, gy}, seed } to replay a strike (harnesses)
+     * @param {Object} [opts] - { target: {gx, gy}, seed } to replay a strike (harnesses);
+     *   { range: { minDist, maxDist } } to pick from a different reach (an announcing strike is far off)
      */
     strikeLightning: function(opts) {
       opts = opts || {};
-      if (!this.storm || this.stormStrike) return null;
-      var cfg = this.storm.cfg;
+      if (this.stormStrike) return null;
+      var cfg = this.storm ? this.storm.cfg : CemStorm.DEFAULTS;
       var L = this.level;
-      var rng = typeof opts.seed === 'number' ? CemModel.makeRng(opts.seed) : this.storm.rng;
+      var rng = typeof opts.seed === 'number' ? CemModel.makeRng(opts.seed) : this.stormRng;
+      var pickCfg = opts.range ? CemStorm.config(opts.range) : cfg;
       var cam = this.cameras.main;
       var view = cam.worldView;
       // no tiles in the top third of the view: the bolt would have no room to fall
       var clear = function(gx, gy) { return IsoModel.gridToIso(gx, gy).y >= view.y + view.height * 0.33; };
-      var target = opts.target ? this.stormTargetAt(opts.target) : CemStorm.pickTarget(L, rng, cfg, clear);
+      var target = opts.target ? this.stormTargetAt(opts.target) : CemStorm.pickTarget(L, rng, pickCfg, clear);
       if (!target) return null;
       var p = IsoModel.gridToIso(target.gx, target.gy);
       var from = CemStorm.origin(rng, p, view.y, 120);
@@ -864,7 +899,7 @@ var CemScenes = (function() {
     /** Show the strike as it is `t` ms in: the fluttering core, the lingering glow and the view flash */
     applyStorm: function(t) {
       var s = this.stormStrike;
-      var cfg = this.storm.cfg;
+      var cfg = this.storm ? this.storm.cfg : CemStorm.DEFAULTS;
       if (REDUCED_MOTION) { this.setBoltAlpha(t < s.seq.totalMs ? 0.35 : 0); return; }
       this.setBoltAlpha(CemStorm.coreAlpha(s.seq, t, cfg), CemStorm.glowAlpha(s.seq, t, cfg));
       var f = CemStorm.flashAlpha(s.seq, t, cfg);
@@ -2155,6 +2190,7 @@ var CemScenes = (function() {
       this.updateOwlLighting();
       this.updateMonsters(time);
       this.updateFog();
+      this.tickStormSchedule();
       if (this.stormStrike) this.tickStorm(Math.min(delta || 16, 100));
       var r0 = this.perf ? performance.now() : 0;
       this.updateRain(time, delta);

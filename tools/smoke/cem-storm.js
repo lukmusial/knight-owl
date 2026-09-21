@@ -97,12 +97,21 @@ async function main() {
     await page.evaluate(() => { ProtoCem.getLevel().graceMs = 1e9; });   // no encounters while measuring
     await wait(2500);                                                     // let the ground bake settle
 
-    // 1. the schedule is armed and the first strike is due in about 15 s
+    // 1. the storm follows the rain schedule: the first strike announces the first episode
     const armed = await page.evaluate(() => {
       const S = ProtoCem.getScene();
-      return { has: !!S.stormTimer, delay: S.stormTimer && S.stormTimer.delay, count: S.storm.count };
+      S.tickStormSchedule();
+      const ep = S.rainSchedule.episodes[0];
+      const n = CemStorm.strikesFor(S.storm, ep)[0];
+      const r = { has: !!n, kind: n && n.kind, lead: n && ep.start - n.at, at: n && n.at, epStart: ep.start, t: S.rainElapsed(), line: S.stormStats().schedule };
+      // park the schedule: the checks below fire their own strikes
+      S.stormNext = { at: 1e12, until: 1e12, kind: 'rain', episode: ep };
+      return r;
     });
-    check(armed.has && armed.delay === CemStormDefault('firstDelayMs') && armed.count === 1, 'first strike scheduled ' + armed.delay + ' ms after boot');
+    const leadOk = (armed.lead >= CemStormDefault('announceMinMs') && armed.lead <= CemStormDefault('announceMaxMs')) ||
+      (armed.at === CemStormDefault('announceFloorMs') && armed.at < armed.epStart);
+    check(armed.has && armed.kind === 'announce' && leadOk,
+      'the first strike announces the rain ' + Math.round(armed.lead) + ' ms before episode 1 (rain at ' + Math.round(armed.epStart) + ' ms); overlay: ' + armed.line);
 
     // 2. a strike: bolt drawn, the leader lit, props brightened; the game is
     // held on the strike's brightest moment (the main stroke) for the
@@ -164,7 +173,7 @@ async function main() {
 
     // 3. it is all put away when the strike ends (the strike clock is the game's
     // frame delta, so under SwiftShader's slow frames it outlasts wall time)
-    await page.waitForFunction(() => !ProtoCem.getScene().stormStrike, { timeout: 30000 });
+    await page.waitForFunction(() => !ProtoCem.getScene().stormStrike, { timeout: 120000 });
     const after = await page.evaluate(() => {
       const S = ProtoCem.getScene();
       const L = ProtoCem.getLevel();
@@ -182,7 +191,7 @@ async function main() {
     // right after them (the boot rebakes and the perf overlay's own redraws
     // make the first seconds after load a poor idle baseline)
     const busy = await page.evaluate(sample, 120, true);
-    await page.waitForFunction(() => !ProtoCem.getScene().stormStrike, { timeout: 30000 });
+    await page.waitForFunction(() => !ProtoCem.getScene().stormStrike, { timeout: 120000 });
     const idle = await page.evaluate(sample, 120, false);
     const line = r => 'update ' + r.updateMs.toFixed(2) + ' ms, render ' + r.renderMs.toFixed(2) + ' ms, draws ' + r.draws.toFixed(1) + ' per frame (' + r.frames + ' frames';
     console.log('  idle   ' + line(idle) + ')');
@@ -216,48 +225,54 @@ async function main() {
     console.log('  draws per frame: ' + drawsDelta.hidden.toFixed(1) + ' without the strike, ' + drawsDelta.shown.toFixed(1) + ' with it');
     check(drawsDelta.shown - drawsDelta.hidden < 12, 'a strike adds ' + (drawsDelta.shown - drawsDelta.hidden).toFixed(1) + ' draw calls per frame');
 
-    // 5. skipped while a card is up: the timer re-arms with the retry delay
+    // 5. a due strike is held back while a card is up or input is off, and retried in retryMs
     const skipped = await page.evaluate(() => {
       const S = ProtoCem.getScene();
+      const t = S.rainElapsed();
+      const due = { at: t - 1, until: t + 60000, kind: 'rain', episode: S.rainSchedule.episodes[0] };
       const origBusy = ProtoCem.isBusy;
       ProtoCem.isBusy = () => true;
-      const countBefore = S.storm.count;
-      S.stormTimer.remove(false);
-      S.onStormDue();
-      const r = { struck: !!S.stormStrike, delay: S.stormTimer.delay, count: S.storm.count - countBefore };
+      S.stormNext = due;
+      S.tickStormSchedule();
+      const r = { struck: !!S.stormStrike, retryIn: S.stormNext.at - t, retried: S.stormNext.retried };
       ProtoCem.isBusy = origBusy;
       S.setInputEnabled(false);
-      S.stormTimer.remove(false);
-      S.onStormDue();
-      r.struckWithoutInput = !!S.stormStrike; r.delay2 = S.stormTimer.delay;
+      S.stormNext = due;
+      S.tickStormSchedule();
+      r.struckWithoutInput = !!S.stormStrike; r.retryIn2 = S.stormNext.at - t;
       S.setInputEnabled(true);
+      // past its window the strike is dropped for the next planned one
+      S.stormNext = { at: t - 1, until: t + 1000, kind: 'rain', episode: S.rainSchedule.episodes[0] };
+      S.setInputEnabled(false); S.tickStormSchedule(); S.setInputEnabled(true);
+      r.dropped = S.stormNext.at > t + 1000 && !S.stormNext.retried;
+      S.stormNext = null;
       return r;
     });
-    check(!skipped.struck && skipped.delay === CemStormDefault('retryMs') && skipped.count === 0,
-      'no strike while a card is up; retried in ' + skipped.delay + ' ms (struck ' + skipped.struck + ', scheduled ' + skipped.count + ')');
-    check(!skipped.struckWithoutInput && skipped.delay2 === CemStormDefault('retryMs'),
-      'no strike while input is off; retried in ' + skipped.delay2 + ' ms (struck ' + skipped.struckWithoutInput + ')');
+    check(!skipped.struck && Math.round(skipped.retryIn) === CemStormDefault('retryMs') && skipped.retried === 1,
+      'no strike while a card is up; retried in ' + Math.round(skipped.retryIn) + ' ms (struck ' + skipped.struck + ')');
+    check(!skipped.struckWithoutInput && Math.round(skipped.retryIn2) === CemStormDefault('retryMs'),
+      'no strike while input is off; retried in ' + Math.round(skipped.retryIn2) + ' ms');
+    check(skipped.dropped, 'a strike blocked past its window is dropped for the next planned one');
 
-    // 6. pausing the game (what AppLifecycle does) freezes the storm timer
+    // 6. pausing the game (what AppLifecycle does) stops the storm: a due strike does not fire until resume
     const paused = await page.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
       const S = ProtoCem.getScene();
       const g = S.sys.game;
-      const e0 = S.stormTimer.getElapsed();
-      await wait(800);
-      const e1 = S.stormTimer.getElapsed();
+      const fired0 = S.storm.fired;
       g.pause();
+      const t = S.rainElapsed();
+      S.stormNext = { at: t - 1, until: t + 600000, kind: 'rain', episode: S.rainSchedule.episodes[0] };
       await wait(800);
-      const e2 = S.stormTimer.getElapsed();
+      const whilePaused = S.storm.fired - fired0;
       g.resume();
-      await wait(800);
-      const e3 = S.stormTimer.getElapsed();
-      return { ran: e1 - e0, frozen: e2 - e1, resumed: e3 - e2 };
+      for (let i = 0; i < 40 && S.storm.fired === fired0; i++) await wait(50);
+      const afterResume = S.storm.fired - fired0;
+      await new Promise(r => { const p = () => { if (!S.stormStrike) r(); else setTimeout(p, 100); }; p(); });
+      return { whilePaused, afterResume };
     });
-    // the timer counts the game's frame delta, which SwiftShader keeps well under wall time
-    check(paused.ran > 0, 'the timer runs while the game runs (+' + Math.round(paused.ran) + ' ms in 800)');
-    check(paused.frozen === 0, 'the timer stops while the game is paused (+' + Math.round(paused.frozen) + ' ms in 800)');
-    check(paused.resumed > 0, 'and runs again after resume (+' + Math.round(paused.resumed) + ' ms in 800)');
+    check(paused.whilePaused === 0, 'no strike fires while the game is paused');
+    check(paused.afterResume === 1, 'the due strike fires once the game resumes');
 
     if (errors.length) { check(false, 'page errors: ' + errors.slice(0, 3).join(' | ')); }
   } finally {
