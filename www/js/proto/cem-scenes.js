@@ -13,6 +13,8 @@ var CemScenes = (function() {
   var FOG_DARK = 0.62;         // how dark the night is away from any light
   var MONSTER_REVEAL_RATE = 2.5;   // a monster's alpha moves toward its reveal at most this much per second
   var GROUND_SPRITE_DEPTH = -250000;   // ground drawn as tile sprites while it is still coming up, under the tomb spills
+  var GROUND_SPRITE_GAP = 0.03;        // a tile sprite bridges the ground only when its peak is this far past the chunk's bake
+  var VIEW_MARGIN = 96;                // world px past the camera's edge inside which a tile counts as in view
   var FOG_ENABLED = false;     // the moving night is off for now; the remembered-tile tint still applies
   // what the light in a tomb doorway means: waiting, taken, sealed
   var DOOR_LIGHT = { gold: 0xffd08a, blue: 0x7fd8ff, red: 0xff5a46 };
@@ -350,8 +352,8 @@ var CemScenes = (function() {
         var p = IsoModel.gridToIso(t.gx, t.gy);
         rt.batchDrawFrame('cem_ground', frame, p.x - rect.left - TILE_W / 2, p.y - rect.top - TILE_H / 2, ga, lerpTint(L.lightMap[idx]));
       }
-      rt.endDraw();
-      // shadows and light pools of everything standing in or near this chunk
+      // shadows and light pools of everything standing in or near this
+      // chunk, stamped in the same batch: one pass per bake, however many
       var stamp = this.bakeStamp;
       var pad = this.world.SHADOW_PAD;
       var r0 = { x0: (chunk % Math.ceil(L.W / this.world.CHUNK)) * this.world.CHUNK, y0: Math.floor(chunk / Math.ceil(L.W / this.world.CHUNK)) * this.world.CHUNK };
@@ -366,7 +368,7 @@ var CemScenes = (function() {
             var lp = IsoModel.gridToIso(gx, gy);
             stamp.setTexture('light_pool').setOrigin(0.5, 0.5).setScale(1.25).setAngle(0)
               .setAlpha(0.5).setTint(0xffd9a0).setBlendMode(Phaser.BlendModes.ADD);
-            rt.draw(stamp, lp.x - rect.left, lp.y - rect.top);
+            rt.batchDraw(stamp, lp.x - rect.left, lp.y - rect.top);
             stamp.setBlendMode(Phaser.BlendModes.NORMAL).clearTint();
           }
           var caster = this.casterFor(tile);
@@ -378,10 +380,11 @@ var CemScenes = (function() {
             var sp = IsoModel.gridToIso(gx, gy);
             stamp.setTexture('cast_shadow').setOrigin(0.12, 0.5).setRotation(sh.angle)
               .setScale(sh.length / 100, sh.width / 26).setAlpha(Math.min(1, sh.alpha / 0.6) * ga);
-            rt.draw(stamp, sp.x - rect.left, sp.y - rect.top);
+            rt.batchDraw(stamp, sp.x - rect.left, sp.y - rect.top);
           }
         }
       }
+      rt.endDraw();
       stamp.setRotation(0).setAlpha(1).setScale(1);
     },
 
@@ -1418,7 +1421,51 @@ var CemScenes = (function() {
       for (var id in this.tombObjs) {
         if (this.tombObjs.hasOwnProperty(id)) this.applyTomb(this.tombObjs[id]);
       }
-      if (this.perf) this.perf.markReveal(performance.now() - t0);
+      if (this.perf) { this.perf.lastReveal = performance.now() - t0; this.perf.markReveal(this.perf.lastReveal); }
+    },
+
+    /**
+     * Every tile any part of which is inside the camera's view (plus a
+     * margin) starts its view fade, as long as the chunk under it is live:
+     * an unpainted chunk bakes when it comes, as nothing for unseen ground,
+     * and the fade lifts the tile from there, so ground never appears before
+     * it is drawn. Runs after the camera has moved and the world has reached
+     * the chunks under the new view, and advances every fade still running.
+     */
+    updateView: function(dtMs) {
+      var L = this.level, R = this.reveal, W = this.world;
+      var v = W.viewRect(VIEW_MARGIN);
+      // the view's corners in grid space bound the tiles worth testing
+      var c = [IsoModel.isoToGridExact(v.left, v.top), IsoModel.isoToGridExact(v.right, v.top),
+               IsoModel.isoToGridExact(v.left, v.bottom), IsoModel.isoToGridExact(v.right, v.bottom)];
+      var gx0 = L.W, gx1 = -1, gy0 = L.H, gy1 = -1;
+      for (var k = 0; k < 4; k++) {
+        gx0 = Math.min(gx0, Math.floor(c[k].gx)); gx1 = Math.max(gx1, Math.ceil(c[k].gx));
+        gy0 = Math.min(gy0, Math.floor(c[k].gy)); gy1 = Math.max(gy1, Math.ceil(c[k].gy));
+      }
+      gx0 = Math.max(0, gx0 - 1); gy0 = Math.max(0, gy0 - 1);
+      gx1 = Math.min(L.W - 1, gx1 + 1); gy1 = Math.min(L.H - 1, gy1 + 1);
+      var hw = TILE_W / 2, hh = TILE_H / 2;
+      var viewed = R.viewed;
+      var chunk = W.CHUNK;
+      for (var gy = gy0; gy <= gy1; gy++) {
+        for (var gx = gx0; gx <= gx1; gx++) {
+          var idx = gy * L.W + gx;
+          if (viewed[idx]) continue;
+          var px = (gx - gy) * hw, py = (gx + gy) * hh;    // IsoModel.gridToIso, inline
+          if (px + hw < v.left || px - hw > v.right || py + hh < v.top || py - hh > v.bottom) continue;
+          if (!W.isLive(Math.floor(gy / chunk) * Math.ceil(L.W / chunk) + Math.floor(gx / chunk))) continue;
+          CemReveal.enterView(R, idx);
+        }
+      }
+      var out = this.revealOut;
+      out.changed.length = 0;
+      CemReveal.advanceView(R, dtMs, out);
+      for (var i = 0; i < out.changed.length; i++) {
+        var ci = out.changed[i];
+        this.applyTile(ci);
+        this.groundPending[ci] = true;
+      }
     },
 
     /**
@@ -1445,9 +1492,12 @@ var CemScenes = (function() {
           this.releaseGround(idx);
           continue;
         }
+        (dirty || (dirty = [])).push(idx);
+        // a bake a few frames behind is a step too small to see; a sprite
+        // only bridges a gap that would show
+        if (target - have < GROUND_SPRITE_GAP && !this.groundSprites[idx]) continue;
         var img = this.groundSprites[idx] || this.acquireGround(idx, t);
         img.setAlpha(have >= 1 ? 0 : 1 - (1 - target) / (1 - have));
-        (dirty || (dirty = [])).push(idx);
       }
       if (dirty) W.markSeen(dirty);
     },
@@ -1487,6 +1537,7 @@ var CemScenes = (function() {
       this.refreshTombs();
       this.refreshMonsters(1e6);            // settle the monsters where they are
       this.world.update(true);
+      this.updateView(0);
       this.updateGround();
     },
 
@@ -1643,7 +1694,10 @@ var CemScenes = (function() {
         else cam.setZoom(Phaser.Math.Clamp(pinch.zoom * (d / pinch.dist), 0.4, 2));
       }
       this.world.update(false);
+      var t1 = this.perf ? performance.now() : 0;
+      this.updateView(delta || 16);
       this.updateGround();
+      if (this.perf) this.perf.markReveal(this.perf.lastReveal + performance.now() - t1);
       if (this.perf) this.perf.frame();
     }
   });

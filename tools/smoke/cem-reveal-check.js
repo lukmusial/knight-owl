@@ -2,7 +2,7 @@
 /**
  * Proves the cemetery's night reveal is gradual.
  *
- *   node tools/smoke/cem-reveal-check.js [--port 8096] [--seconds 40] [--shot out.png]
+ *   node tools/smoke/cem-reveal-check.js [--port 8096] [--seconds 40] [--zoom 1] [--shot out.png]
  *
  * Boots the cemetery in headless Chrome, switches encounters off, puts Mr
  * Owl on a dark lane in the middle of the grounds (a teleport, instant by
@@ -24,7 +24,15 @@
  *    shows for more than 600 ms while the reveal at its feet is below 0.02
  *    (it may still be fading out);
  *  - a ground tile's composite (the chunk's baked alpha under the transition
- *    sprite) differs from what its peak says by more than 0.02.
+ *    sprite) differs from what its peak says by more than 0.05 (a bake a
+ *    frame or two behind is allowed; a sprite bridges anything bigger);
+ *  - a tile inside the camera's view still has a peak of 0 three frames after
+ *    it came into view: a hole in the ground.
+ *
+ * The walk has a tap-to-walk leg (the camera pans after him) and a pinch
+ * (the zoom tweens down to 0.5 and back), so tiles come into view by every
+ * route the game has. `--zoom` sets the camera's zoom for the whole run
+ * (0.8 is what a phone under 600 px wide gets; pinch goes down to 0.4).
  *
  * The chunk repaint throttle is raised to 600 ms for the walk, so the
  * transition sprites carry the ground for many frames between bakes and the
@@ -45,6 +53,7 @@ function opt(name, def) { const i = args.indexOf(name); return i === -1 ? def : 
 const PORT = Number(opt('--port', 8096));
 const SECONDS = Number(opt('--seconds', 40));
 const SHOT = opt('--shot', null);
+const ZOOM = Number(opt('--zoom', 0));
 const FROM_GATE = args.indexOf('--from-gate') !== -1;   // skip the teleport: start at the gate like a player
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -84,7 +93,7 @@ async function main() {
       { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 30000 });
 
-    const out = await page.evaluate(async (seconds, fromGate) => {
+    const out = await page.evaluate(async (seconds, fromGate, zoom) => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
       const L = ProtoCem.getLevel(), S = ProtoCem.getScene(), R = S.reveal;
       L.graceMs = 1e9;                                     // no encounters while measuring
@@ -99,6 +108,9 @@ async function main() {
       }
       if (fromGate) start = null;
       if (start) { ProtoCem.teleport(start.gx, start.gy); await wait(300); }
+      if (zoom) { S.cameras.main.setZoom(zoom); S.world.update(true); await wait(300); }
+      const enteredAt = new Int32Array(L.W * L.H);           // frame a tile came into the camera's view, 0 = never
+      const holes = {};                                     // tile -> frames seen with peak 0 while in view
       const RANGE = 8;
       const track = {};                                    // id -> { kind, hist: [{t, vis, alpha, f}] , darkSince }
       let nextId = 1;
@@ -168,7 +180,7 @@ async function main() {
               const sp = S.groundSprites[idx];
               const comp = sp && sp.visible ? 1 - (1 - baked) * (1 - sp.alpha) : baked;
               const want = CemReveal.alphaAt(R, idx);
-              if (Math.abs(comp - want) > 0.02) fail('ground ' + gx + ',' + gy + ' composite ' + comp.toFixed(3) + ' but peak says ' + want.toFixed(3));
+              if (Math.abs(comp - want) > 0.05) fail('ground ' + gx + ',' + gy + ' composite ' + comp.toFixed(3) + ' but peak says ' + want.toFixed(3));
               sample('ground', 'g' + idx, comp > 0, comp, peak, t.kind);
             }
           }
@@ -183,6 +195,26 @@ async function main() {
           peak = Math.max(peak, R.peak[tomb.door.gy * L.W + tomb.door.gx]);
           rec.objs.concat(rec.lit).forEach((ob, i) => { if (onScreen(ob.x, ob.y)) sample('tomb', id + '#' + i, ob.visible, ob.alpha, peak, null, ob); });
         }
+        // every tile any part of which is inside the view must have begun its reveal
+        const cs = [IsoModel.isoToGridExact(view.x, view.y), IsoModel.isoToGridExact(view.right, view.y),
+                    IsoModel.isoToGridExact(view.x, view.bottom), IsoModel.isoToGridExact(view.right, view.bottom)];
+        let gx0 = L.W, gx1 = -1, gy0 = L.H, gy1 = -1;
+        for (const c of cs) { gx0 = Math.min(gx0, Math.floor(c.gx)); gx1 = Math.max(gx1, Math.ceil(c.gx)); gy0 = Math.min(gy0, Math.floor(c.gy)); gy1 = Math.max(gy1, Math.ceil(c.gy)); }
+        for (let gy = Math.max(0, gy0); gy <= Math.min(L.H - 1, gy1); gy++) {
+          for (let gx = Math.max(0, gx0); gx <= Math.min(L.W - 1, gx1); gx++) {
+            const px = (gx - gy) * 64, py = (gx + gy) * 32;
+            if (px + 64 < view.x || px - 64 > view.right || py + 32 < view.y || py - 32 > view.bottom) continue;
+            const idx = gy * L.W + gx;
+            if (!enteredAt[idx]) enteredAt[idx] = frames;
+            if (R.peak[idx] > 0) { delete holes[idx]; continue; }
+            holes[idx] = (holes[idx] || 0) + 1;
+            if (frames - enteredAt[idx] > 3 && holes[idx] > 3) {
+              fail('tile ' + gx + ',' + gy + ' (' + L.tiles[idx].kind + ') in view for ' + (frames - enteredAt[idx]) + ' frames with no reveal (chunk live: ' +
+                S.world.isLive(S.world.chunkIndexOf(gx, gy)) + ', zoom ' + S.cameras.main.zoom.toFixed(2) + ')');
+              holes[idx] = -1e9;                            // report a tile once
+            }
+          }
+        }
         for (const uid in S.monsters) {
           const st = S.monsters[uid];
           if (st.removed) continue;
@@ -192,13 +224,17 @@ async function main() {
         }
       }
       S.events.on('postupdate', onFrame);
+      // where the frame goes: the scene's update against the whole frame
+      let updMs = 0, updN = 0;
+      const origUpdate = S.sys.sceneUpdate;                 // what Phaser actually calls each step
+      S.sys.sceneUpdate = function(t, d) { const a = performance.now(); origUpdate.call(this, t, d); updMs += performance.now() - a; updN++; };
 
       // the walk: the stick at half along A* routes to lane tiles 10-24 steps
       // away, one after another, so he keeps moving through new ground
       const t0 = performance.now();
       const from = { x: CemModel.owlPos(L).x, y: CemModel.owlPos(L).y };
       let walked = 0, lastX = from.x, lastY = from.y;
-      let target = null, rng = 7;
+      let target = null, rng = 7, legs = 0, tapped = false, pinched = false;
       const lanes = L.tiles.filter(t => t.walk && t.kind !== 'gate');
       while (performance.now() - t0 < seconds * 1000) {
         const o = CemModel.owlPos(L);
@@ -212,6 +248,35 @@ async function main() {
             if (n >= 10 && n <= 24) target = c;
           }
           if (!target) break;
+          legs++;
+        }
+        {
+          const elapsed = performance.now() - t0;
+          if (elapsed > 6000 && !tapped) {
+            // tap-to-walk: the furthest lit tile of the route, the camera pans after him
+            tapped = true;
+            const route = CemModel.pathTo(L, here, target);
+            let pick = null;
+            for (const st of route) if (CemModel.visibilityAt(L, st.gx, st.gy) > 0) pick = st;
+            if (pick) {
+              ProtoCem.setSteer(0, 0);
+              ProtoCem.onTileTap(pick.gx, pick.gy);
+              const until = performance.now() + 6000;
+              while (performance.now() < until && L.owl.path && L.owl.path.length) await wait(100);
+              continue;
+            }
+          }
+          if (elapsed > 14000 && !pinched) {
+            // a pinch: zoom out to 0.5 over a second, hold, and back
+            pinched = true;
+            ProtoCem.setSteer(0, 0);
+            const cam = S.cameras.main, z0 = cam.zoom;
+            S.tweens.add({ targets: cam, zoom: 0.5, duration: 1000, ease: 'Sine.easeInOut' });
+            await wait(2200);
+            S.tweens.add({ targets: cam, zoom: z0, duration: 1000, ease: 'Sine.easeInOut' });
+            await wait(1400);
+            continue;
+          }
         }
         const route = CemModel.pathTo(L, here, target);
         if (route.length && route[0].gx === here.gx && route[0].gy === here.gy) route.shift();   // the route starts on his own tile
@@ -224,8 +289,9 @@ async function main() {
         lastX = o2.x; lastY = o2.y;
       }
       ProtoCem.setSteer(0, 0);
-      await wait(800);
+      await wait(2500);                                    // fades end and the bakes retire their sprites
       S.events.off('postupdate', onFrame);
+      S.sys.sceneUpdate = origUpdate;
       const secs = (performance.now() - t0) / 1000;
       let seen = 0;
       for (let i = 0; i < L.seen.length; i++) if (L.seen[i]) seen++;
@@ -233,15 +299,18 @@ async function main() {
       const bakes = S.world.stats().bakes;
       return {
         bakes: bakes, walked: Number(walked.toFixed(1)), start: start ? start.gx + ',' + start.gy : 'the gate',
+        zoom: S.cameras.main.zoom, tapped: tapped, pinched: pinched, sceneUpdateMs: Number((updMs / Math.max(1, updN)).toFixed(2)), viewedTiles: (() => { let n = 0; for (let i = 0; i < R.viewed.length; i++) if (R.viewed[i]) n++; return n; })(),
         frames: frames, fps: Number((frames / secs).toFixed(1)), samples: samples, tracked: Object.keys(track).length,
         biggestFrameChange: biggest, failures: failures, tilesSeen: seen,
         groundSpritesLive: Object.keys(S.groundSprites).length, groundSpritePool: S.groundFree.length + Object.keys(S.groundSprites).length,
         overlay: overlay ? overlay.text : ''
       };
-    }, SECONDS, FROM_GATE);
+    }, SECONDS, FROM_GATE, ZOOM);
 
-    console.log('frames ' + out.frames + ' (' + out.fps + ' fps), walked ' + out.walked + ' tiles from ' + out.start + ', samples ' + out.samples + ', objects tracked ' + out.tracked + ', tiles seen ' + out.tilesSeen);
-    console.log('ground tile sprites: ' + out.groundSpritesLive + ' live at the end, pool ' + out.groundSpritePool + ', chunk bakes ' + out.bakes);
+    console.log('frames ' + out.frames + ' (' + out.fps + ' fps), zoom ' + out.zoom.toFixed(2) + ', walked ' + out.walked + ' tiles from ' + out.start +
+      (out.tapped ? ', one tap-to-walk leg' : '') + (out.pinched ? ', one pinch' : '') + ', samples ' + out.samples + ', objects tracked ' + out.tracked +
+      ', tiles seen ' + out.tilesSeen + ', viewed ' + out.viewedTiles);
+    console.log('ground tile sprites: ' + out.groundSpritesLive + ' live at the end, pool ' + out.groundSpritePool + ', chunk bakes ' + out.bakes + ', scene update ' + out.sceneUpdateMs + ' ms/frame');
     const b = out.biggestFrameChange;
     console.log('largest single-frame change: ' + b.d.toFixed(3) + (b.what ? ' (' + b.what + ' ' + b.from.toFixed(2) + ' -> ' + b.to.toFixed(2) + ' at frame ' + b.frame + ')' : ''));
     console.log(out.overlay.split('\n').map(l => '  ' + l).join('\n'));

@@ -23,7 +23,9 @@ var CemWorld = (function() {
   var PAD = 320;                  // world px of camera padding before culling
   var GROUND_DEPTH = -100000;
   var CULL_MS = 200;
-  var BAKE_MIN_MS = 150;          // a chunk whose ground keeps brightening is repainted at most this often
+  var BAKE_MIN_MS = 250;          // a chunk whose ground keeps brightening is repainted at most this often; tile sprites bridge the gap
+  var ACQUIRE_BUDGET = 8;         // chunks the camera may reach per frame (a chunk of unseen ground bakes as nothing)
+  var REBAKE_BUDGET = 2;          // live chunks repainted per frame, so walking never stutters
   var SHADOW_PAD = 2;             // tiles past a chunk's edge whose prop shadows are baked into it (see bakeChunk)
 
   function bandOf(gx, gy) {
@@ -71,6 +73,7 @@ var CemWorld = (function() {
     var dirty = {};                // chunk index -> true
     var frameCounter = 0;
     var bakes = 0;
+    var bakeCursor = 0;            // where the dirty scan starts, so no chunk starves when many are dirty at once
     var bakeFn = null;             // set by the scene: bakeFn(rt, chunkIndex, rect)
 
     function chunkIndexOf(gx, gy) {
@@ -207,35 +210,56 @@ var CemWorld = (function() {
     var cullAt = 0;
     var visibleCells = 0;
 
+    /**
+     * The world rectangle the camera shows, from its scroll and zoom rather
+     * than `worldView`, which is only refreshed when it renders: the scene
+     * moves the camera before calling this and needs the chunks under the
+     * new view live this frame, not the next.
+     */
+    function viewRect(margin) {
+      var cam = scene.cameras.main;
+      var cx = cam.scrollX + cam.width / 2, cy = cam.scrollY + cam.height / 2;
+      var hw = cam.width / cam.zoom / 2, hh = cam.height / cam.zoom / 2;
+      margin = margin || 0;
+      return { left: cx - hw - margin, right: cx + hw + margin, top: cy - hh - margin, bottom: cy + hh + margin };
+    }
+
     function update(force) {
       frameCounter++;
-      var budget = force ? 99 : 2;   // chunks repainted per frame, so walking never stutters
-      var cam = scene.cameras.main;
-      var view = cam.worldView;
-      var left = view.x - PAD, right = view.right + PAD, top = view.y - PAD, bottom = view.bottom + PAD;
+      var acquires = force ? 99 : ACQUIRE_BUDGET;
+      var budget = force ? 99 : REBAKE_BUDGET;
+      var v = viewRect(PAD);
+      var left = v.left, right = v.right, top = v.top, bottom = v.bottom;
       var now = scene.time.now;
 
-      // chunks: acquire what the camera can see, release what it left behind
-      for (var ci = 0; ci < chunkRect.length; ci++) {
+      // chunks: acquire what the camera can see, release what it left behind.
+      // The scan starts where the last one stopped baking, round robin: with
+      // the first chunks always first, the last ones would never get their
+      // turn while walking keeps dirtying the first
+      var n = chunkRect.length;
+      var lastBaked = -1;
+      for (var k = 0; k < n; k++) {
+        var ci = (bakeCursor + k) % n;
         var r = chunkRect[ci];
         var near = r.left < right && r.left + r.w > left && r.top < bottom && r.top + r.h > top;
         var slot = byChunk[ci] !== undefined ? pool[byChunk[ci]] : null;
         if (near) {
           if (!slot) {
-            if (budget <= 0) continue;
+            if (acquires <= 0) continue;
             slot = acquire(ci);
-            budget--;
+            acquires--;
           }
           slot.used = frameCounter;
           // the reveal brightens ground every frame while he walks; the dirty
-          // flag waits, so a chunk is repainted at most every BAKE_MIN_MS
-          if (dirty[ci] && budget > 0 && (force || now - (slot.bakedAt || 0) >= api.bakeMinMs)) { bake(slot); budget--; }
+          // flag waits, so a chunk is repainted at most every bakeMinMs
+          if (dirty[ci] && budget > 0 && (force || now - (slot.bakedAt || 0) >= api.bakeMinMs)) { bake(slot); budget--; lastBaked = ci; }
         } else if (slot && frameCounter - slot.used > 600) {
           slot.rt.setVisible(false);
           slot.chunk = -1;
           delete byChunk[ci];
         }
       }
+      if (lastBaked !== -1) bakeCursor = (lastBaked + 1) % n;
 
       if (!force && scene.time.now < cullAt) return;
       cullAt = scene.time.now + CULL_MS;
@@ -299,6 +323,7 @@ var CemWorld = (function() {
       setPropShown: setPropShown,
       markSeen: markSeen,
       isLive: isLive,
+      viewRect: viewRect,
       rebakeAll: rebakeAll,
       update: update,
       stats: stats
@@ -306,7 +331,7 @@ var CemWorld = (function() {
     return api;
   }
 
-  return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK, SHADOW_PAD: SHADOW_PAD, BAKE_MIN_MS: BAKE_MIN_MS };
+  return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK, SHADOW_PAD: SHADOW_PAD, BAKE_MIN_MS: BAKE_MIN_MS, PAD: PAD };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
