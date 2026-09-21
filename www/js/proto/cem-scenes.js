@@ -11,6 +11,9 @@ var CemScenes = (function() {
   // how fast a monster swings its heading around (radians per second)
   var TURN_RATE = Math.PI * 1.6;
   var FOG_DARK = 0.62;         // how dark the night is away from any light
+  var MONSTER_REVEAL_RATE = 2.5;   // a monster's alpha moves toward its reveal at most this much per second
+  var GROUND_SPRITE_DEPTH = -250000;   // ground drawn as tile sprites while it is still coming up, under the tomb spills
+  var GROUND_SPRITE_GAP = 0.03;        // a tile sprite bridges the ground only when its peak is this far past the chunk's bake
   var FOG_ENABLED = false;     // the moving night is off for now; the remembered-tile tint still applies
   // what the light in a tomb doorway means: waiting, taken, sealed
   var DOOR_LIGHT = { gold: 0xffd08a, blue: 0x7fd8ff, red: 0xff5a46 };
@@ -94,6 +97,21 @@ var CemScenes = (function() {
     var g = Math.round(DARK.g + (LIT.g - DARK.g) * k);
     var b = Math.round(DARK.b + (LIT.b - DARK.b) * k);
     return (r << 16) | (g << 8) | b;
+  }
+
+  /** Blend two packed tints: k = 0 gives a, 1 gives b */
+  function mixTint(a, b, k) {
+    if (k <= 0) return a;
+    if (k >= 1) return b;
+    var r = Math.round(((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * k);
+    var g = Math.round(((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * k);
+    var bb = Math.round((a & 255) + ((b & 255) - (a & 255)) * k);
+    return (r << 16) | (g << 8) | bb;
+  }
+
+  /** A prop's tint at a tile: remembered blue warming to the lantern light as the reveal factor rises */
+  function propTint(level, idx, lit) {
+    return mixTint(SEEN_TINT, lerpTint(level.lightMap[idx]), lit);
   }
 
   /** Ids of the monsters in this level (plus the reaper) */
@@ -239,16 +257,26 @@ var CemScenes = (function() {
       this.tileProps = [];      // tile index -> [prop images] (tinted by light)
       this.tileLights = [];     // tile index -> [game objects] only when fully visible (flames, pools, shadows)
       this.tombObjs = {};       // tomb id -> { sprite, door, lock, glow, objs: [] }
-      this.lastVis = [];
       this.monsters = {};       // uid -> state
       this.inputEnabled = true;
       this.bossRevealed = false;
       this.cullAt = 0;
       for (var i = 0; i < this.level.tiles.length; i++) {
-        this.tileObjs.push([]); this.tileProps.push([]); this.tileLights.push([]); this.lastVis.push(-1);
+        this.tileObjs.push([]); this.tileProps.push([]); this.tileLights.push([]);
       }
       this.world = CemWorld.attach(this, this.level);
       this.world.setBakeFn(this.bakeChunk.bind(this));
+      // how far out of the night each tile has come (see CemReveal); the
+      // ground bake and every prop, light, tomb and monster read it
+      this.reveal = CemReveal.create(this.level, { instant: REDUCED_MOTION });
+      this.revealOut = { changed: [] };
+      // ground: a chunk is baked with the alpha each tile had at the time
+      // (groundBaked); a tile that has come up since is drawn as a tile
+      // sprite on top until the chunk is repainted, so the ground never steps
+      this.groundBaked = new Float32Array(this.level.tiles.length);
+      this.groundPending = {};      // tile index -> true while its sprite may be needed
+      this.groundSprites = {};      // tile index -> image
+      this.groundFree = [];
       this.buildFence();
       this.buildProps();
       this.buildTombs();
@@ -270,8 +298,7 @@ var CemScenes = (function() {
         };
       }
       this.placeOwl(this.level.owl, true);
-      this.refreshVisibility(true);
-      this.fadeReveals = true;              // from now on, reveals fade in
+      this.refreshVisibility();
       // repaint the ground twice after boot: the first bakes on a slow
       // device can land before its textures are uploaded and come out blank
       var self2 = this;
@@ -310,34 +337,39 @@ var CemScenes = (function() {
      */
     bakeChunk: function(rt, chunk, rect) {
       var L = this.level;
+      var R = this.reveal;
       var tiles = this.world.chunkTiles(chunk);
-      var i, t, idx;
+      var i, t, idx, ga;
+      var baked = this.groundBaked;
       rt.beginDraw();
       for (i = 0; i < tiles.length; i++) {
         idx = tiles[i];
-        if (!L.seen[idx]) continue;
+        ga = CemReveal.alphaAt(R, idx);         // the most this tile has ever been revealed
+        baked[idx] = ga;
+        if (ga <= 0) continue;
         t = L.tiles[idx];
         var frame = (t.kind === 'path' || t.kind === 'tomb_door' || t.kind === 'gate') ? 'path_' + (t.variant % 3) : 'grass_' + (t.variant % 4);
         if (t.tombId && t.kind !== 'tomb_door') frame = 'path_2';
         var p = IsoModel.gridToIso(t.gx, t.gy);
-        rt.batchDrawFrame('cem_ground', frame, p.x - rect.left - TILE_W / 2, p.y - rect.top - TILE_H / 2, 1, lerpTint(L.lightMap[idx]));
+        rt.batchDrawFrame('cem_ground', frame, p.x - rect.left - TILE_W / 2, p.y - rect.top - TILE_H / 2, ga, lerpTint(L.lightMap[idx]));
       }
-      rt.endDraw();
-      // shadows and light pools of everything standing in or near this chunk
+      // shadows and light pools of everything standing in or near this
+      // chunk, stamped in the same batch: one pass per bake, however many
       var stamp = this.bakeStamp;
-      var pad = 2;
+      var pad = this.world.SHADOW_PAD;
       var r0 = { x0: (chunk % Math.ceil(L.W / this.world.CHUNK)) * this.world.CHUNK, y0: Math.floor(chunk / Math.ceil(L.W / this.world.CHUNK)) * this.world.CHUNK };
       for (var gy = r0.y0 - pad; gy < r0.y0 + this.world.CHUNK + pad; gy++) {
         for (var gx = r0.x0 - pad; gx < r0.x0 + this.world.CHUNK + pad; gx++) {
           var tile = CemModel.tileAt(L, gx, gy);
           if (!tile) continue;
           idx = CemModel.index(L, gx, gy);
-          if (!L.seen[idx]) continue;
+          ga = CemReveal.alphaAt(R, idx);
+          if (ga <= 0) continue;
           if (tile.kind === 'lantern') {
             var lp = IsoModel.gridToIso(gx, gy);
             stamp.setTexture('light_pool').setOrigin(0.5, 0.5).setScale(1.25).setAngle(0)
               .setAlpha(0.5).setTint(0xffd9a0).setBlendMode(Phaser.BlendModes.ADD);
-            rt.draw(stamp, lp.x - rect.left, lp.y - rect.top);
+            rt.batchDraw(stamp, lp.x - rect.left, lp.y - rect.top);
             stamp.setBlendMode(Phaser.BlendModes.NORMAL).clearTint();
           }
           var caster = this.casterFor(tile);
@@ -348,11 +380,12 @@ var CemScenes = (function() {
             if (!sh) continue;
             var sp = IsoModel.gridToIso(gx, gy);
             stamp.setTexture('cast_shadow').setOrigin(0.12, 0.5).setRotation(sh.angle)
-              .setScale(sh.length / 100, sh.width / 26).setAlpha(Math.min(1, sh.alpha / 0.6));
-            rt.draw(stamp, sp.x - rect.left, sp.y - rect.top);
+              .setScale(sh.length / 100, sh.width / 26).setAlpha(Math.min(1, sh.alpha / 0.6) * ga);
+            rt.batchDraw(stamp, sp.x - rect.left, sp.y - rect.top);
           }
         }
       }
+      rt.endDraw();
       stamp.setRotation(0).setAlpha(1).setScale(1);
     },
 
@@ -418,6 +451,7 @@ var CemScenes = (function() {
           var p = IsoModel.gridToIso(t.gx, t.gy);
           var web = this.add.image(p.x, p.y - 64, t.variant ? 'cem_web_small' : 'cem_web').setOrigin(0, 0)
             .setAlpha(0.7).setScale(0.75).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.token) + 0.5);
+          web.cemBase = 0.7;
           if (hash(t.gx, t.gy) < 0.5) { web.setFlipX(true); web.setOrigin(1, 0); }
           this.tileObjs[i].push(web); this.tileProps[i].push(web);
           this.world.addProp(web, t.gx, t.gy);
@@ -436,9 +470,10 @@ var CemScenes = (function() {
           var pp = IsoModel.gridToIso(t.gx, t.gy);
           var glow = this.add.image(pp.x, pp.y - 10, 'glow_warm').setScale(0.45).setAlpha(0.5)
             .setBlendMode(Phaser.BlendModes.ADD).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.token) + 0.2);
+          glow.cemBase = 0.5;      // its alpha follows the reveal, so the candle breathes by size instead
           this.tileObjs[i].push(glow); this.tileLights[i].push(glow);
           this.world.addProp(glow, t.gx, t.gy, { light: true });
-          if (!REDUCED_MOTION) this.tweens.add({ targets: glow, alpha: 0.75, duration: 900 + hash(t.gy, t.gx) * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+          if (!REDUCED_MOTION) this.tweens.add({ targets: glow, scale: 0.58, duration: 900 + hash(t.gy, t.gx) * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
       }
     },
@@ -448,7 +483,8 @@ var CemScenes = (function() {
       for (var i = 0; i < L.tombs.length; i++) {
         var tomb = L.tombs[i];
         var entry = CemTextures.sprite(this, tomb.size === 'large' ? 'tomb_large' : 'tomb_small');
-        var rec = { tomb: tomb, sprite: null, door: null, lock: null, glow: null, objs: [], lit: [] };
+        var rec = { tomb: tomb, sprite: null, door: null, lock: null, glow: null, objs: [], lit: [],
+          breath: { k: 1 }, glowAlpha: 0 };   // the door light breathes through `breath`; its alpha is set each frame from the reveal
         if (entry) {
           rec.sprite = this.placeSprite(entry, tomb.x0, tomb.y0);
           rec.sprite.castSpec = tomb.size === 'large' ? CASTERS.tomb_large : CASTERS.tomb_small;
@@ -537,19 +573,57 @@ var CemScenes = (function() {
           rec.spill.setTint(tint);
           rec.glowTint = tint;
           if (!REDUCED_MOTION) {
-            // the light breathes, and the spill on the ground breathes with it
+            // the light breathes, and the spill on the ground breathes with
+            // it; applyTomb multiplies the breath into the alpha each frame
             if (rec.glowTween) rec.glowTween.stop();
-            rec.glow.setAlpha(alpha);
+            rec.breath.k = 1;
             rec.glowTween = this.tweens.add({
-              targets: [rec.glow, rec.spill], alpha: { from: alpha * 0.72, to: alpha },
+              targets: rec.breath, k: { from: 0.72, to: 1 },
               duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
             });
           }
         }
         rec.glowAlpha = alpha;
-        if (REDUCED_MOTION) { rec.glow.setAlpha(alpha); rec.spill.setAlpha(alpha * 0.8); }
         if (rec.lock) { rec.lockOn = !CemModel.hasAllKeyParts(L); rec.lock.visible = rec.lockOn && rec.lock.cemShown !== false; }
+        this.applyTomb(rec);
       }
+    },
+
+    /**
+     * A tomb comes out of the night with the most revealed of its tiles: the
+     * crypt and its door light solid as far as he has ever come, the tint
+     * warming while he is near.
+     */
+    applyTomb: function(rec) {
+      var L = this.level, R = this.reveal;
+      var tomb = rec.tomb;
+      var peak = 0, live = 0, idx;
+      for (var yy = tomb.y0; yy < tomb.y0 + tomb.h; yy++) {
+        for (var xx = tomb.x0; xx < tomb.x0 + tomb.w; xx++) {
+          idx = this.idx(xx, yy);
+          if (R.peak[idx] > peak) peak = R.peak[idx];
+          var f = CemReveal.factor(R, idx);
+          if (f > live) live = f;
+        }
+      }
+      var doorIdx = this.idx(tomb.door.gx, tomb.door.gy);
+      if (R.peak[doorIdx] > peak) peak = R.peak[doorIdx];
+      var fd = CemReveal.factor(R, doorIdx);
+      if (fd > live) live = fd;
+      var alpha = CemReveal.alphaOf(peak, R.cfg, R.instant);
+      var lit = CemReveal.litOf(live, R.cfg, R.instant);
+      var shown = alpha > 0;
+      var k;
+      for (k = 0; k < rec.objs.length; k++) this.world.setPropShown(rec.objs[k], shown);
+      for (k = 0; k < rec.lit.length; k++) this.world.setPropShown(rec.lit[k], shown);
+      if (rec.lock) rec.lock.visible = !!rec.lockOn && shown && rec.lock.cemShown !== false;
+      if (!shown) return;
+      if (rec.sprite) rec.sprite.setAlpha(alpha).setTint(propTint(L, doorIdx, lit));
+      var breath = REDUCED_MOTION ? 1 : rec.breath.k;
+      rec.glow.setAlpha(rec.glowAlpha * breath * alpha);
+      rec.spill.setAlpha(rec.glowAlpha * breath * alpha * (REDUCED_MOTION ? 0.8 : 1));
+      if (rec.door) rec.door.setAlpha(alpha);
+      if (rec.lock) rec.lock.setAlpha(alpha);
     },
 
     buildLanterns: function() {
@@ -572,6 +646,7 @@ var CemScenes = (function() {
         }
         var depth = IsoModel.depthKey(t.gx, t.gy, LAYERS.token);
         var glow = this.add.image(flameX, flameY - 6, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(0.8);
+        glow.cemTweened = true;    // a lantern tile is lit from the start; the flicker tween owns this alpha
         var flame = this.add.sprite(flameX, flameY + 6, 'flame_0').setOrigin(0.5, 0.92).setScale(0.42).setDepth(depth + 0.2);
         var pool = this.add.image(p.x, p.y, 'light_pool').setDepth(POOL_BAND + IsoModel.depthKey(t.gx, t.gy, 0))
           .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.5).setScale(1.25).setTint(0xffd9a0);
@@ -901,7 +976,7 @@ var CemScenes = (function() {
         // grid heading: where it is pointing now, and where it wants to point
         gdir: { x: 1, y: 1 }, gdirTo: { x: 1, y: 1 }, facings: sheetFacings,
         actions: { lunge: 0, flinch: 0, appear: 0, exit: 0 }, exitStyle: CemMonsters.exitOf(m.id),
-        shown: false, removed: false, tween: null,
+        shown: false, removed: false, tween: null, reveal: 0, revealTarget: 0,
         anim: animated, animScale: animScale, lastClip: null, lastFacing: null
       };
       this.monsters[m.uid] = state;
@@ -921,21 +996,55 @@ var CemScenes = (function() {
       }
     },
 
-    /** Show monsters standing on lit tiles only */
-    refreshMonsters: function() {
-      var L = this.level;
+    /**
+     * How far a monster has come out of the dark: the reveal factor of the
+     * tile it stands on, so it fades up as Mr Owl approaches instead of
+     * popping in at a fixed distance. The Reaper once risen, and anything on
+     * its way out, stays fully shown.
+     */
+    monsterReveal: function(st) {
+      if (st.keepShown || st.actions.exit) return 1;
+      if (st.m.defeated) return 0;
+      var L = this.level, R = this.reveal;
+      // from where the figure is drawn, not the tile it is walking to, and
+      // from Mr Owl's float position: continuous in both
+      var g = IsoModel.isoToGridExact(st.bx, st.by - 12);
+      var o = CemModel.owlPos(L);
+      var tx = Math.max(0, Math.min(L.W - 1, Math.round(g.gx)));
+      var ty = Math.max(0, Math.min(L.H - 1, Math.round(g.gy)));
+      var nearIdx = (L.nearLights && L.nearLights[this.idx(tx, ty)]) || [];
+      var near = st.nearLights || (st.nearLights = []);
+      near.length = 0;
+      for (var i = 0; i < nearIdx.length; i++) near.push(L.lights[nearIdx[i]]);
+      return CemReveal.pointFactor(R, o.x, o.y, g.gx, g.gy, near);
+    },
+
+    /** Show the monsters that are at least a little revealed, hide the rest */
+    refreshMonsters: function(dtMs) {
       for (var uid in this.monsters) {
         if (!this.monsters.hasOwnProperty(uid)) continue;
         var st = this.monsters[uid];
         if (st.removed) continue;
-        var lit = (L.vis[this.idx(st.gx, st.gy)] === 2 || st.keepShown) && !st.m.defeated;
-        if (st.actions.exit) lit = true;
-        if (lit !== st.shown) {
-          st.shown = lit;
-          st.sprite.setVisible(lit);
-          st.contact.setVisible(lit);
-          if (st.glow) st.glow.setVisible(lit);
-        }
+        this.showMonster(st, this.monsterReveal(st), dtMs);
+      }
+    },
+
+    /**
+     * Ease a monster's shown alpha toward its reveal: the target is already
+     * continuous in space, the rate keeps a spawn, a respawn or a snapped
+     * step from ever jumping.
+     */
+    showMonster: function(st, target, dtMs) {
+      st.revealTarget = target;
+      var snap = REDUCED_MOTION || st.keepShown || st.actions.exit || st.reveal === undefined;
+      st.reveal = snap ? target : CemReveal.approach(st.reveal, target, MONSTER_REVEAL_RATE, dtMs || 16, false);
+      var reveal = st.reveal;
+      var lit = reveal > 0;
+      if (lit !== st.shown) {
+        st.shown = lit;
+        st.sprite.setVisible(lit);
+        st.contact.setVisible(lit);
+        if (st.glow) st.glow.setVisible(lit);
       }
     },
 
@@ -1207,7 +1316,8 @@ var CemScenes = (function() {
           rec.glow.setTint(DOOR_LIGHT.gold);
           rec.spill.setTint(DOOR_LIGHT.gold);
           rec.glowTint = DOOR_LIGHT.gold;
-          t.add({ targets: [rec.glow, rec.spill], alpha: 0.95, duration: 1200, ease: 'Sine.easeOut' });
+          rec.breath.k = 1;
+          t.add({ targets: rec, glowAlpha: 0.95, duration: 1200, ease: 'Sine.easeOut' });
         }
         self.time.delayedCall(1500, function() { glow.destroy(); ring.destroy(); if (onDone) onDone(); });
       }
@@ -1220,7 +1330,9 @@ var CemScenes = (function() {
       for (var uid in this.monsters) {
         if (!this.monsters.hasOwnProperty(uid)) continue;
         var st = this.monsters[uid];
-        if (st.removed || !st.shown) continue;
+        if (st.removed) continue;
+        this.showMonster(st, this.monsterReveal(st), this.game.loop.delta || 16);
+        if (!st.shown) continue;
         var A = CemMonsters.ACTIONS;
         var ev = {
           walking: st.walking, dir: st.dir, exitStyle: st.exitStyle,
@@ -1250,6 +1362,7 @@ var CemScenes = (function() {
         o.sy *= st.animScale || 1;
         if (st.lockScale) { o.sx *= st.lockScale.x; o.sy *= st.lockScale.y; }
         if (st.collapse) { o.sx *= st.collapse.sx; o.sy *= st.collapse.sy; o.dy += st.collapse.dy; o.alpha *= st.collapse.alpha; }
+        o.alpha *= st.reveal;      // out of the dark as Mr Owl comes near
         st.sprite.setPosition(st.bx + o.dx, st.by + o.dy - hoverOf(st.m.id)).setScale(o.sx, o.sy).setAlpha(o.alpha).setFlipX(st.flip);
         if (!st.pulse || !st.pulse.isPlaying()) st.sprite.setRotation(o.rot);
         st.contact.setPosition(st.bx, st.by).setAlpha(0.5 * o.alpha);
@@ -1260,53 +1373,128 @@ var CemScenes = (function() {
     // --- Visibility, light and culling -------------------------------------------------
 
     /**
-     * Apply the model's visibility to the sprites: hidden tiles draw nothing,
-     * remembered tiles are dim and blue, lit tiles take the lantern light.
+     * Put a tile's sprites where its reveal says: props as solid as the tile
+     * has ever been revealed (so what he has walked past stays), their tint
+     * warming from the remembered blue to lantern light while he is near,
+     * and the lights on the tile only while he is near.
      */
-    /** A prop just revealed rises out of the dark instead of popping in */
-    fadeIn: function(obj) {
-      if (obj.cemFading) return;
-      var a = obj.alpha;
-      obj.cemFading = true;
-      obj.setAlpha(0);
-      this.tweens.add({ targets: obj, alpha: a, duration: 900, ease: 'Sine.easeOut',
-        onComplete: function() { obj.cemFading = false; } });
+    applyTile: function(i) {
+      var objs = this.tileObjs[i];
+      if (!objs.length) return;
+      var L = this.level, R = this.reveal;
+      var alpha = CemReveal.alphaAt(R, i);
+      var shown = alpha > 0;
+      var live = CemReveal.factor(R, i);
+      var lights = this.tileLights[i], props = this.tileProps[i];
+      var o;
+      for (o = 0; o < props.length; o++) this.world.setPropShown(props[o], shown);
+      for (o = 0; o < lights.length; o++) this.world.setPropShown(lights[o], shown && live > 0);
+      if (!shown) return;
+      var tint = propTint(L, i, CemReveal.litAt(R, i));
+      for (o = 0; o < props.length; o++) {
+        var p = props[o];
+        p.setTint(tint);
+        p.setAlpha(p.cemBase === undefined ? alpha : p.cemBase * alpha);
+      }
+      if (live > 0) {
+        for (o = 0; o < lights.length; o++) {
+          var l = lights[o];
+          if (l.cemTweened) continue;
+          l.setAlpha((l.cemBase === undefined ? 1 : l.cemBase) * live);
+        }
+      }
     },
 
-    refreshVisibility: function() {
-      var L = this.level;
-      for (var i = 0; i < L.tiles.length; i++) {
-        var v = L.vis[i];
-        if (v === this.lastVis[i]) continue;
-        var objs = this.tileObjs[i], lights = this.tileLights[i], props = this.tileProps[i];
-        var shown = v > 0;
-        var fresh = shown && this.lastVis[i] === 0 && !REDUCED_MOTION && this.fadeReveals;
-        for (var o = 0; o < objs.length; o++) {
-          this.world.setPropShown(objs[o], shown);
-          if (fresh) this.fadeIn(objs[o]);
-        }
-        if (shown) {
-          for (var l = 0; l < lights.length; l++) this.world.setPropShown(lights[l], v === 2);
-          var tint = v === 2 ? lerpTint(L.lightMap[i]) : SEEN_TINT;
-          for (var p = 0; p < props.length; p++) props[p].setTint(tint);
-        }
-        this.lastVis[i] = v;
+    /**
+     * Every frame: move the reveal window with Mr Owl and touch only the
+     * tiles whose factor moved, the tombs, and the chunks whose ground
+     * brightened a step.
+     */
+    updateReveal: function() {
+      var t0 = this.perf ? performance.now() : 0;
+      var o = CemModel.owlPos(this.level);
+      var out = CemReveal.update(this.reveal, o.x, o.y, this.revealOut);
+      for (var i = 0; i < out.changed.length; i++) {
+        var idx = out.changed[i];
+        this.applyTile(idx);
+        this.groundPending[idx] = true;     // its peak may have risen past what its chunk holds
       }
       for (var id in this.tombObjs) {
-        if (!this.tombObjs.hasOwnProperty(id)) continue;
-        var rec = this.tombObjs[id];
-        var best = 0;
-        for (var yy = rec.tomb.y0; yy < rec.tomb.y0 + rec.tomb.h; yy++) {
-          for (var xx = rec.tomb.x0; xx < rec.tomb.x0 + rec.tomb.w; xx++) best = Math.max(best, L.vis[this.idx(xx, yy)]);
-        }
-        best = Math.max(best, L.vis[this.idx(rec.tomb.door.gx, rec.tomb.door.gy)]);
-        for (var k = 0; k < rec.objs.length; k++) this.world.setPropShown(rec.objs[k], best > 0);
-        for (var k2 = 0; k2 < rec.lit.length; k2++) this.world.setPropShown(rec.lit[k2], best > 0);
-        if (rec.sprite) rec.sprite.setTint(best === 2 ? lerpTint(L.lightMap[CemModel.index(L, rec.tomb.door.gx, rec.tomb.door.gy)]) : SEEN_TINT);
+        if (this.tombObjs.hasOwnProperty(id)) this.applyTomb(this.tombObjs[id]);
       }
+      if (this.perf) { this.perf.lastReveal = performance.now() - t0; this.perf.markReveal(this.perf.lastReveal); }
+    },
+
+    /**
+     * Ground that has come up since its chunk was baked is drawn as a tile
+     * sprite over the chunk, at the alpha that composites to what the tile
+     * should show now (both are the same picture, so coverage
+     * 1 - (1 - baked)(1 - sprite) = peak). The chunk is marked for a repaint
+     * and, once it holds the new value, the sprite goes. Runs after the
+     * world has baked this frame, so the two never disagree on a frame.
+     */
+    updateGround: function() {
+      var L = this.level, R = this.reveal, W = this.world;
+      var baked = this.groundBaked;
+      var pending = this.groundPending;
+      var dirty = null;
+      for (var key in pending) {
+        if (!pending.hasOwnProperty(key)) continue;
+        var idx = +key;
+        var t = L.tiles[idx];
+        var target = CemReveal.alphaAt(R, idx);
+        var have = W.isLive(W.chunkIndexOf(t.gx, t.gy)) ? baked[idx] : target;   // an unpainted chunk bakes the current value when it comes
+        if (target <= have + 1e-4) {
+          delete pending[key];
+          this.releaseGround(idx);
+          continue;
+        }
+        (dirty || (dirty = [])).push(idx);
+        // a bake a few frames behind is a step too small to see; a sprite
+        // only bridges a gap that would show
+        if (target - have < GROUND_SPRITE_GAP && !this.groundSprites[idx]) continue;
+        var img = this.groundSprites[idx] || this.acquireGround(idx, t);
+        img.setAlpha(have >= 1 ? 0 : 1 - (1 - target) / (1 - have));
+      }
+      if (dirty) W.markSeen(dirty);
+    },
+
+    acquireGround: function(idx, t) {
+      var img = this.groundFree.pop();
+      var frame = (t.kind === 'path' || t.kind === 'tomb_door' || t.kind === 'gate') ? 'path_' + (t.variant % 3) : 'grass_' + (t.variant % 4);
+      if (t.tombId && t.kind !== 'tomb_door') frame = 'path_2';
+      var p = IsoModel.gridToIso(t.gx, t.gy);
+      if (!img) {
+        img = this.add.image(p.x, p.y, 'cem_ground', frame).setOrigin(0.5, 0.5);
+        this.world.floorLayer.add(img);
+      } else {
+        img.setTexture('cem_ground', frame).setPosition(p.x, p.y).setVisible(true);
+      }
+      img.setDepth(GROUND_SPRITE_DEPTH + IsoModel.depthKey(t.gx, t.gy, 0)).setTint(lerpTint(this.level.lightMap[idx]));
+      this.groundSprites[idx] = img;
+      return img;
+    },
+
+    releaseGround: function(idx) {
+      var img = this.groundSprites[idx];
+      if (!img) return;
+      delete this.groundSprites[idx];
+      img.setVisible(false);
+      this.groundFree.push(img);
+    },
+
+    /**
+     * Apply the reveal to every sprite in the level: boot, and the moments
+     * the flow wants everything settled (a monster gone, a respawn).
+     */
+    refreshVisibility: function() {
+      var L = this.level;
+      this.updateReveal();
+      for (var i = 0; i < L.tiles.length; i++) this.applyTile(i);
       this.refreshTombs();
-      this.refreshMonsters();
+      this.refreshMonsters(1e6);            // settle the monsters where they are
       this.world.update(true);
+      this.updateGround();
     },
 
     // --- Camera and input ----------------------------------------------------------
@@ -1357,10 +1545,14 @@ var CemScenes = (function() {
       this.inputEnabled = !!enabled;
     },
 
-    /** Newly revealed tiles: show their ground and props */
-    onTilesRevealed: function(indices) {
-      if (indices && indices.length && this.world) this.world.markSeen(indices);
-      this.refreshVisibility();
+    /**
+     * Mr Owl crossed onto another tile (or was put on one): bring the reveal
+     * up to date now rather than at the next frame. The model's list of
+     * tiles it just remembered is not needed: the reveal window brightens
+     * the ground on its own as he approaches.
+     */
+    onTilesRevealed: function() {
+      this.updateReveal();
     },
 
     /** Brief ring on a tapped tile */
@@ -1440,6 +1632,7 @@ var CemScenes = (function() {
       var step = cb.onFrame ? cb.onFrame(Math.min(delta || 16, 50)) : null;
       if (this.perf) this.perf.mark(performance.now() - t0);
       this.syncOwl(step ? step.vx : 0, step ? step.vy : 0);
+      this.updateReveal();
       this.updateOwlLighting();
       this.updateMonsters(time);
       this.updateFog();
@@ -1457,6 +1650,9 @@ var CemScenes = (function() {
         else cam.setZoom(Phaser.Math.Clamp(pinch.zoom * (d / pinch.dist), 0.4, 2));
       }
       this.world.update(false);
+      var t1 = this.perf ? performance.now() : 0;
+      this.updateGround();
+      if (this.perf) this.perf.markReveal(this.perf.lastReveal + performance.now() - t1);
       if (this.perf) this.perf.frame();
     }
   });
