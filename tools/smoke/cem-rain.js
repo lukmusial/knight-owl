@@ -83,14 +83,18 @@ async function main() {
         RAIN_RAMP_MS: 200, PUDDLE_FILL_MS: 200, PUDDLE_STAGGER_MS: 0 });
       S.rainT0 = S.time.now - 1000;
       await wait(300);
-      let rainMs = 0, frames = 0, maxRings = 0, maxPuddles = 0, splashes = 0;
+      let rainMs = 0, frames = 0, maxRings = 0, maxPuddles = 0, splashes = 0, inViewWetSum = 0, dtSum = 0;
+      const ringsBefore = S.ringsSpawned || 0;
       const upd = S.updateRain;
       S.updateRain = function(t, d) {
         const t0 = performance.now();
         upd.call(S, t, d);
         rainMs += performance.now() - t0; frames++;
+        dtSum += Math.min(d || 16, 100);          // the simulated time the rain integrated (headless Phaser hands slow frames a 16.7 ms delta)
         maxRings = Math.max(maxRings, S.rings.length);
         maxPuddles = Math.max(maxPuddles, S.puddles.length);
+        const v = S.cameras.main.worldView;
+        inViewWetSum += S.puddles.filter(p => p.img.visible && p.img.alpha >= 0.2 && p.x > v.x && p.x < v.right && p.y > v.y && p.y < v.bottom).length;
       };
       let emitMs = 0, emitFrames = 0;
       if (S.rainEmitter) {
@@ -130,6 +134,9 @@ async function main() {
       while (Date.now() < legEnd) { await wait(100); if (S.owlPuddle) inPuddle++; }
       ProtoCem.setSteer(0, 0);
       await wait(800);
+      const walkSec = dtSum / 1000;
+      const ringsSpawned = (S.ringsSpawned || 0) - ringsBefore;
+      const ringsPerPuddleSec = ringsSpawned / Math.max(0.1, walkSec) / Math.max(1, inViewWetSum / Math.max(1, frames));
       const overlay = S.children.list.find(o => o.type === 'Text' && o.depth === 1e7);
       const shown = S.puddles.filter(p => p.img.visible).length;
       const full = S.puddles.filter(p => p.wet >= 0.99).length;
@@ -141,6 +148,7 @@ async function main() {
         rainMsPerFrame: Number((rainMs / Math.max(1, frames)).toFixed(3)),
         emitterMsPerFrame: Number((emitMs / Math.max(1, emitFrames)).toFixed(3)),
         frames, maxRings, maxPuddles, splashes, inPuddleSamples: inPuddle,
+        ringsSpawned, ringsPerPuddleSec: Number(ringsPerPuddleSec.toFixed(2)), avgWetInView: Number((inViewWetSum / Math.max(1, frames)).toFixed(1)),
         emitterAlive: S.rainEmitter ? S.rainEmitter.getAliveParticleCount() : -1,
         cfg: CemRain.CFG
       };
@@ -153,7 +161,8 @@ async function main() {
       rainMsPerFrame: out.rainMsPerFrame, emitterMsPerFrame: out.emitterMsPerFrame, frames: out.frames,
       mirrored: out.mirrored, liveMirrored: out.owlMirrored, bakes: out.after.bakes, msPerBake: Number((out.after.bakeMs / Math.max(1, out.after.bakes)).toFixed(3)),
       composes: out.after.composes, schedule: out.after.schedule, maxRings: out.maxRings, maxPuddles: out.maxPuddles,
-      splashes: out.splashes, inPuddleSamples: out.inPuddleSamples, emitterAlive: out.emitterAlive
+      splashes: out.splashes, inPuddleSamples: out.inPuddleSamples, emitterAlive: out.emitterAlive,
+      ringsSpawned: out.ringsSpawned, ringsPerPuddleSec: out.ringsPerPuddleSec, avgWetInView: out.avgWetInView
     }, null, 2));
     check(out.after.puddles > 0, 'puddles were laid (' + out.after.puddles + ')');
     check(out.maxPuddles <= out.cfg.MAX_PUDDLES, 'never more than MAX_PUDDLES');
@@ -170,6 +179,7 @@ async function main() {
     } else {
       check(out.emitterAlive > 0, 'streaks are falling (' + out.emitterAlive + ')');
       check(out.after.strength === 1, 'the rain reached full strength');
+      check(out.ringsPerPuddleSec >= out.cfg.RING_RATE * 0.6, 'drops hit every wet puddle in view (' + out.ringsPerPuddleSec + ' rings a second each, ' + out.avgWetInView + ' puddles in view)');
     }
     if (SHOT) {
       fs.mkdirSync(path.dirname(SHOT), { recursive: true });

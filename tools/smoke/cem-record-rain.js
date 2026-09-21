@@ -113,7 +113,6 @@ async function main() {
     // no monster interrupts the walk
     await page.evaluate(() => {
       const S = ProtoCem.getScene(), L = ProtoCem.getLevel();
-      CemRain.CFG.RING_RATE = 10;
       L.graceMs = 1e9;
       S.rainSchedule = CemRain.schedule(L.seed || 1, {
         FIRST_GAP_MIN_MS: 3000, FIRST_GAP_MAX_MS: 3000, EPISODE_MIN_MS: 22000, EPISODE_MAX_MS: 22000,
