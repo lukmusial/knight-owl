@@ -638,17 +638,25 @@ var CemTextures = (function() {
   // Registration
   // ---------------------------------------------------------------------------
 
-  function fallback(name, key, w, h, baseX, baseY, footprint, extra) {
+  /**
+   * Register a procedural stand-in for a kit sprite. `draw` paints it, but
+   * only when `sprite()` first asks for it and the kit image is not there:
+   * with the kit loaded none of the thirty stand-ins is ever painted.
+   */
+  function fallback(name, key, w, h, baseX, baseY, footprint, extra, draw) {
     var entry = { key: key, w: w, h: h, anchor: { x: baseX / w, y: baseY / h }, footprint: footprint || { w: 1, h: 1 }, procedural: true };
     if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) entry[k] = extra[k];
+    entry.make = function(scene) { canvasTexture(scene, key, w, h, draw); };
     fallbacks[name] = entry;
     return entry;
   }
 
   /**
-   * Paint every procedural texture and stand-in sprite (idempotent)
+   * Paint every procedural texture and register the stand-in sprites (idempotent)
+   * @param {Object} [opts] - { fog: true } also paints the night sheet and its soft light
    */
-  function generate(scene) {
+  function generate(scene, opts) {
+    opts = opts || {};
     // ground on one canvas atlas so the 780 floor tiles batch together
     if (!scene.textures.exists('cem_ground')) {
       var cols = 7;
@@ -669,8 +677,7 @@ var CemTextures = (function() {
     }
     canvasTexture(scene, 'cem_web', 96, 96, function(ctx) { drawWeb(ctx, 96, false); });
     canvasTexture(scene, 'cem_web_small', 48, 48, function(ctx) { drawWeb(ctx, 48, true); });
-    canvasTexture(scene, 'cem_moon', 96, 96, function(ctx) { drawMoon(ctx); });
-    canvasTexture(scene, 'cem_moon_glow', 256, 256, function(ctx) { T().drawGlow(ctx, 256, 'rgba(230,225,200,0.35)'); });
+    // no moon (it read as a stray disc), so `drawMoon` is not painted
     canvasTexture(scene, 'cem_wisp_glow', 64, 64, function(ctx) { T().drawGlow(ctx, 64, 'rgba(157,245,208,0.7)'); });
     canvasTexture(scene, 'cem_vignette', 512, 512, function(ctx) { drawVignette(ctx, 512); });
     canvasTexture(scene, 'cem_mist', 256, 96, function(ctx) { drawMist(ctx, 256, 96); });
@@ -680,59 +687,48 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_lock', 40, 40, function(ctx) { drawLock(ctx, 40); });
     canvasTexture(scene, 'cem_glow_green', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(120,255,170,0.4)'); });
     canvasTexture(scene, 'cem_glow_red', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(255,70,50,0.55)'); });
-    canvasTexture(scene, 'cem_soft_light', 256, 128, function(ctx) { drawSoftLight(ctx, 256, 128); });
-    canvasTexture(scene, 'cem_dark_ring', 1024, 1024, function(ctx) { drawDarkRing(ctx, 1024, 160); });
+    if (opts.fog) {
+      // 4 MB of texture that only the moving night uses
+      canvasTexture(scene, 'cem_soft_light', 256, 128, function(ctx) { drawSoftLight(ctx, 256, 128); });
+      canvasTexture(scene, 'cem_dark_ring', 1024, 1024, function(ctx) { drawDarkRing(ctx, 1024, 160); });
+    }
 
-    // stand-in props
+    // stand-in props: registered here, painted on first use (see `fallback`)
     for (var gv = 0; gv < 6; gv++) {
       (function(v) {
-        canvasTexture(scene, 'cem_fb_grave_' + v, 64, 84, function(ctx) { drawGrave(ctx, v); });
-        fallback('grave_' + v, 'cem_fb_grave_' + v, 64, 84, 32, 76);
+        fallback('grave_' + v, 'cem_fb_grave_' + v, 64, 84, 32, 76, null, null, function(ctx) { drawGrave(ctx, v); });
       })(gv);
     }
     for (var tv = 0; tv < 4; tv++) {
       (function(v) {
-        canvasTexture(scene, 'cem_fb_tree_' + v, 128, 180, function(ctx) { drawTree(ctx, v); });
-        fallback('tree_' + v, 'cem_fb_tree_' + v, 128, 180, 64, 168);
+        fallback('tree_' + v, 'cem_fb_tree_' + v, 128, 180, 64, 168, null, null, function(ctx) { drawTree(ctx, v); });
       })(tv);
     }
-    canvasTexture(scene, 'cem_fb_fence_n', 128, 76, function(ctx) { drawFenceSegment(ctx, 'n', false); });
-    canvasTexture(scene, 'cem_fb_fence_w', 128, 76, function(ctx) { drawFenceSegment(ctx, 'w', false); });
-    canvasTexture(scene, 'cem_fb_gate_n', 128, 76, function(ctx) { drawFenceSegment(ctx, 'n', true); });
     // fence pieces are anchored on the diamond centre (64, 60)
-    fallback('fence_n', 'cem_fb_fence_n', 128, 76, 64, 60);
-    fallback('fence_w', 'cem_fb_fence_w', 128, 76, 64, 60);
-    fallback('gate_n', 'cem_fb_gate_n', 128, 76, 64, 60);
-    canvasTexture(scene, 'cem_fb_post', 32, 80, function(ctx) { drawFencePost(ctx); });
-    fallback('fence_post', 'cem_fb_post', 32, 80, 16, 72);
-    canvasTexture(scene, 'cem_fb_lantern', 48, 120, function(ctx) { drawLanternPost(ctx); });
-    fallback('lantern_post', 'cem_fb_lantern', 48, 120, 24, 112, null, { light: { x: 0.5, y: 30 / 120 } });
+    fallback('fence_n', 'cem_fb_fence_n', 128, 76, 64, 60, null, null, function(ctx) { drawFenceSegment(ctx, 'n', false); });
+    fallback('fence_w', 'cem_fb_fence_w', 128, 76, 64, 60, null, null, function(ctx) { drawFenceSegment(ctx, 'w', false); });
+    fallback('gate_n', 'cem_fb_gate_n', 128, 76, 64, 60, null, null, function(ctx) { drawFenceSegment(ctx, 'n', true); });
+    fallback('fence_post', 'cem_fb_post', 32, 80, 16, 72, null, null, function(ctx) { drawFencePost(ctx); });
+    fallback('lantern_post', 'cem_fb_lantern', 48, 120, 24, 112, null, { light: { x: 0.5, y: 30 / 120 } }, function(ctx) { drawLanternPost(ctx); });
     for (var pv = 0; pv < 3; pv++) {
       (function(v) {
-        canvasTexture(scene, 'cem_fb_pumpkin_' + v, 48, 40, function(ctx) { drawPumpkin(ctx, v); });
-        fallback('pumpkin_' + v, 'cem_fb_pumpkin_' + v, 48, 40, 24, 36);
+        fallback('pumpkin_' + v, 'cem_fb_pumpkin_' + v, 48, 40, 24, 36, null, null, function(ctx) { drawPumpkin(ctx, v); });
       })(pv);
     }
-    canvasTexture(scene, 'cem_fb_bench', 96, 64, function(ctx) { drawBench(ctx); });
-    fallback('bench', 'cem_fb_bench', 96, 64, 48, 56);
+    fallback('bench', 'cem_fb_bench', 96, 64, 48, 56, null, null, function(ctx) { drawBench(ctx); });
     for (var rv = 0; rv < 2; rv++) {
       (function(v) {
-        canvasTexture(scene, 'cem_fb_rock_' + v, 64, 44, function(ctx) { drawRock(ctx, v); });
-        fallback('rock_' + v, 'cem_fb_rock_' + v, 64, 44, 32, 40);
+        fallback('rock_' + v, 'cem_fb_rock_' + v, 64, 44, 32, 40, null, null, function(ctx) { drawRock(ctx, v); });
       })(rv);
     }
     for (var sv = 0; sv < 3; sv++) {
       (function(v) {
-        canvasTexture(scene, 'cem_fb_statue_' + v, 64, 132, function(ctx) { drawStatueProp(ctx, v); });
-        fallback('statue_' + v, 'cem_fb_statue_' + v, 64, 132, 32, 124);
+        fallback('statue_' + v, 'cem_fb_statue_' + v, 64, 132, 32, 124, null, null, function(ctx) { drawStatueProp(ctx, v); });
       })(sv);
     }
-    canvasTexture(scene, 'cem_fb_tomb_small', 256, 200, function(ctx) { drawTomb(ctx, false); });
-    fallback('tomb_small', 'cem_fb_tomb_small', 256, 200, 128, 200 - 64, { w: 2, h: 2 }, { door: { x: 0.5 - 0.43 * 0.5, y: (200 - 64 + 64 * 0.43 * 0.5) / 200 } });
-    canvasTexture(scene, 'cem_fb_tomb_large', 384, 290, function(ctx) { drawTomb(ctx, true); });
-    fallback('tomb_large', 'cem_fb_tomb_large', 384, 290, 192, 290 - 96, { w: 3, h: 3 }, { door: { x: 0.5 - 0.43 * 0.5, y: (290 - 96 + 96 * 0.43 * 0.5) / 290 } });
-    canvasTexture(scene, 'cem_fb_bones', 64, 32, function(ctx) { drawBones(ctx); });
-    fallback('bones', 'cem_fb_bones', 64, 32, 32, 28);
+    fallback('tomb_small', 'cem_fb_tomb_small', 256, 200, 128, 200 - 64, { w: 2, h: 2 }, { door: { x: 0.5 - 0.43 * 0.5, y: (200 - 64 + 64 * 0.43 * 0.5) / 200 } }, function(ctx) { drawTomb(ctx, false); });
+    fallback('tomb_large', 'cem_fb_tomb_large', 384, 290, 192, 290 - 96, { w: 3, h: 3 }, { door: { x: 0.5 - 0.43 * 0.5, y: (290 - 96 + 96 * 0.43 * 0.5) / 290 } }, function(ctx) { drawTomb(ctx, true); });
+    fallback('bones', 'cem_fb_bones', 64, 32, 32, 28, null, null, function(ctx) { drawBones(ctx); });
   }
 
   // ---------------------------------------------------------------------------
@@ -773,7 +769,11 @@ var CemTextures = (function() {
       return { key: 'kit_' + name, w: s.w, h: s.h, anchor: s.anchor, footprint: s.footprint || { w: 1, h: 1 }, light: s.light || null, door: s.door || null,
         portal: s.portal || null, procedural: false, name: name };
     }
-    if (fallbacks[name] && scene.textures.exists(fallbacks[name].key)) return fallbacks[name];
+    var fb = fallbacks[name];
+    if (fb) {
+      if (!scene.textures.exists(fb.key) && fb.make) fb.make(scene);
+      if (scene.textures.exists(fb.key)) return fb;
+    }
     return null;
   }
 

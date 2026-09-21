@@ -24,6 +24,23 @@ var CemMonsters = (function() {
   var MOTIONS = ['shamble', 'hover', 'waddle', 'bounce', 'skitter', 'glide'];
   // action durations (ms)
   var ACTIONS = { appear: 900, lunge: 700, flinch: 500, exit: 1100 };
+  // How tall the map draws a monster at zoom 1: MAP_H px times its MAP_SCALE
+  // (a spider or a rat is not as big as a zombie); the Reaper stands BOSS_H.
+  // tools/monsters3d/shrink_iso_sheets.py reads these to size the sheets.
+  var MAP_H = 110;
+  var BOSS_H = 236;
+  var MAP_SCALE = {
+    spider: 0.36, giant_rat: 0.34, bat_swarm: 0.42,
+    ghost: 0.5, lost_soul: 0.52, will_o_wisp: 0.45,
+    pumpkin_man: 0.85, banshee: 0.9, skeleton: 0.95, zombie: 0.95, clown: 1.14
+  };
+
+  /** Height in px a monster stands on the map at zoom 1 */
+  function mapHeight(id, role) {
+    if (role === 'boss' || id === 'grim_reaper') return BOSS_H;
+    var k = Object.prototype.hasOwnProperty.call(MAP_SCALE, id) ? MAP_SCALE[id] : 1;
+    return MAP_H * k;
+  }
   // tile-to-tile walk duration by motion (ms)
   var WALK_MS = { shamble: 720, hover: 460, waddle: 660, bounce: 560, skitter: 400, glide: 600 };
   var LUNGE_PX = 42;
@@ -234,6 +251,10 @@ var CemMonsters = (function() {
     ACTIONS: ACTIONS,
     WALK_MS: WALK_MS,
     LUNGE_PX: LUNGE_PX,
+    MAP_H: MAP_H,
+    BOSS_H: BOSS_H,
+    MAP_SCALE: MAP_SCALE,
+    mapHeight: mapHeight,
     FACING_ORDER: FACING_ORDER,
     MIRRORED: MIRRORED,
     facingFor: facingFor,

@@ -120,4 +120,39 @@ TestRunner.suite('CemMonsters', () => {
     var lungeAnim = CemMonsters.pose('shamble', 0, 0, { lunge: 0.5, dir: dir, animated: true });
     TestRunner.assert(Math.abs(lungeAnim.dy - lungePlain.dy) < 1e-6, 'the lunge still reaches Mr Owl');
   });
+
+  TestRunner.test('map heights: small kinds stand shorter than a zombie, the Reaper tallest', () => {
+    TestRunner.assert(CemMonsters.mapHeight('spider') < CemMonsters.mapHeight('zombie'), 'spider shorter than zombie');
+    TestRunner.assert(CemMonsters.mapHeight('giant_rat') < CemMonsters.mapHeight('ghost'), 'rat shorter than ghost');
+    TestRunner.assertEqual(CemMonsters.mapHeight('zombie'), CemMonsters.MAP_H * CemMonsters.MAP_SCALE.zombie, 'MAP_H times MAP_SCALE');
+    TestRunner.assertEqual(CemMonsters.mapHeight('unknown_kind'), CemMonsters.MAP_H, 'an unknown kind stands MAP_H');
+    TestRunner.assertEqual(CemMonsters.mapHeight('grim_reaper'), CemMonsters.BOSS_H, 'the Reaper by id');
+    TestRunner.assertEqual(CemMonsters.mapHeight('anything', 'boss'), CemMonsters.BOSS_H, 'the Reaper by role');
+  });
+
+  TestRunner.test('map sprite sheets are sized for the map, not the card', () => {
+    if (typeof require === 'undefined') return;   // node only: reads the sheets on disk
+    var fs = require('fs'), path = require('path');
+    var dir = path.join(__dirname, '..', 'www', 'assets', 'proto', 'iso', 'monsters');
+    var index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8')).monsters;
+    TestRunner.assert(index.length > 0, 'index lists sheets');
+    var HEADROOM = 1.5;   // shrink_iso_sheets.py: sharp up to zoom 1.5
+    var decoded = 0;
+    index.forEach(function(id) {
+      var sheet = JSON.parse(fs.readFileSync(path.join(dir, id + '.json'), 'utf8'));
+      var meta = sheet.meta;
+      var want = CemMonsters.mapHeight(id) * HEADROOM;
+      // a sheet may be smaller than the map wants (the render is what it is) but never bigger
+      TestRunner.assert(meta.figureHeight <= want + 1, id + ' figure ' + meta.figureHeight + ' px for a map height of ' + (want / HEADROOM));
+      var png = fs.readFileSync(path.join(dir, id + '.png'));
+      var w = png.readUInt32BE(16), h = png.readUInt32BE(20);
+      TestRunner.assertEqual(w + 'x' + h, meta.size.w + 'x' + meta.size.h, id + ' json size matches the png');
+      Object.keys(sheet.frames).forEach(function(name) {
+        var f = sheet.frames[name].frame;
+        TestRunner.assert(f.x + f.w <= w && f.y + f.h <= h, id + ' frame ' + name + ' inside the sheet');
+      });
+      decoded += w * h * 4;
+    });
+    TestRunner.assert(decoded < 70 * 1048576, 'all map sheets decode to under 70 MB (' + Math.round(decoded / 1048576) + ' MB)');
+  });
 });

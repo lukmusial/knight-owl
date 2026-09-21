@@ -181,6 +181,16 @@ var SFX = (function() {
     return !!ctx && ctx.state === 'running';
   }
 
+  /**
+   * Build the AudioContext and the noise buffer now (some 300 ms on a phone)
+   * instead of inside the frame that plays the first sound. Call it while a
+   * loading screen is up. The context may come up suspended until the first
+   * gesture; the unlock listeners resume it as before.
+   */
+  function warm() {
+    return !!ensureContext();
+  }
+
   function onUnlocked() {
     if (!unlockListenersArmed || typeof document === 'undefined') return;
     for (var i = 0; i < UNLOCK_EVENTS.length; i++) {
@@ -495,6 +505,7 @@ var SFX = (function() {
 
   return {
     init: init,
+    warm: warm,
     play: play,
     unlock: unlock,
     setMuted: setMuted,

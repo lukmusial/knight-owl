@@ -140,6 +140,8 @@ var ProtoCem = (function() {
     setLoadingText('Entering a haunted cemetery\u2026', 'Wchodzisz na nawiedzony cmentarz\u2026');
     showLoading(true);
     startMusic();
+    // the first footstep used to build the AudioContext inside its frame: a 300 ms hitch
+    if (typeof SFX !== 'undefined' && SFX.warm) SFX.warm();
 
     game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -194,9 +196,10 @@ var ProtoCem = (function() {
     if (!level || !gameInProgress || busy) return null;
     var r = CemModel.tickOwl(level, steer, dt);
     if (r.tileChanged) {
-      if (level.newlySeen.length) {
-        if (scene) scene.onTilesRevealed(level.newlySeen);
+      if (level.newlySeen.length || level.visChanged.length) {
+        if (scene) scene.onTilesRevealed(level.newlySeen, level.visChanged);
         level.newlySeen.length = 0;
+        level.visChanged.length = 0;
       }
       updateRibbon();
       saveDirty = true;

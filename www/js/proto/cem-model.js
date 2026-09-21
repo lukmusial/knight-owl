@@ -395,6 +395,7 @@ var CemModel = (function() {
       vis: [],
       seenVersion: 0,
       newlySeen: [],
+      visChanged: [],             // tiles whose visibility value changed in the last update (drained by the renderer)
       clockMs: 0,
       lockedToastAt: 0,
       lightMap: null,
@@ -1600,13 +1601,22 @@ var CemModel = (function() {
   // Night visibility
   // ---------------------------------------------------------------------------
 
+  /**
+   * Recompute `vis` for every tile. The new values are built in a scratch
+   * array and compared with the old ones, so `visChanged` lists only the
+   * tiles that actually changed: the renderer touches those instead of
+   * walking the whole grid on every step.
+   */
   function updateVisibility(level) {
     var cfg = level.cfg;
     var n = level.W * level.H;
-    for (var i = 0; i < n; i++) level.vis[i] = level.seen[i] ? 1 : 0;
+    var vis = level.vis;
+    var next = level._visNext;
+    if (!next || next.length !== n) next = level._visNext = new Array(n);
+    for (var i = 0; i < n; i++) next[i] = level.seen[i] ? 1 : 0;
     function light(gx, gy) {
       var idx = index(level, gx, gy);
-      level.vis[idx] = 2;
+      next[idx] = 2;
       if (!level.seen[idx]) {
         level.seen[idx] = 1;
         level.seenVersion++;
@@ -1617,7 +1627,7 @@ var CemModel = (function() {
       var idx = index(level, gx, gy);
       if (level.seen[idx]) return;
       level.seen[idx] = 1;
-      level.vis[idx] = Math.max(level.vis[idx], 1);
+      next[idx] = Math.max(next[idx], 1);
       level.seenVersion++;
       level.newlySeen.push(idx);
     }
@@ -1646,6 +1656,10 @@ var CemModel = (function() {
           if (inside(level, ggx, ggy)) light(ggx, ggy);
         }
       }
+    }
+    var changed = level.visChanged;
+    for (var c = 0; c < n; c++) {
+      if (next[c] !== vis[c]) { vis[c] = next[c]; changed.push(c); }
     }
   }
 

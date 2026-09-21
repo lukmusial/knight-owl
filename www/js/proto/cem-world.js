@@ -17,7 +17,7 @@ var CemWorld = (function() {
   var TILE_W = 128, TILE_H = 64;
   var CHUNK = 8;                  // tiles per chunk side
   var CHUNK_POOL = 18;            // render textures the pool starts with
-  var CHUNK_POOL_MAX = 48;        // and may grow to, before it starts recycling chunks still in view
+  var CHUNK_POOL_MAX = 28;        // and may grow to, before it starts recycling chunks still in view (each is 1024x696, 2.85 MB on the GPU)
   var BAND_TILES = 4;             // tiles per depth band (gx + gy)
   var CELL_COLS = 8;              // tiles per cull column (gx - gy)
   var PAD = 320;                  // world px of camera padding before culling
@@ -151,6 +151,25 @@ var CemWorld = (function() {
     // --- cells -------------------------------------------------------------
     var cells = {};                // key -> { objs, minX, maxX, minY, maxY, shown }
 
+    /**
+     * Show or hide a registered object and stop whatever it was doing while
+     * it is not drawn: Phaser advances a sprite's animation and a tween's
+     * target whether the object is visible or not, and the cemetery has
+     * dozens of flames and glows off screen at any moment.
+     */
+    function setActive(obj, on) {
+      obj.visible = on;
+      if (obj.anims && obj.anims.isPlaying !== undefined) {
+        if (on) { if (obj.anims.isPaused) obj.anims.resume(); }
+        else if (obj.anims.isPlaying) obj.anims.pause();
+      }
+      var tw = obj.cemTween;
+      if (tw) {
+        if (on) { if (tw.isPaused && tw.isPaused()) tw.resume(); }
+        else if (tw.isPlaying && tw.isPlaying()) tw.pause();
+      }
+    }
+
     function cellFor(gx, gy) {
       var key = cellKey(gx, gy);
       var c = cells[key];
@@ -242,7 +261,7 @@ var CemWorld = (function() {
         c.shown = show;
         for (var i = 0; i < c.objs.length; i++) {
           var o = c.objs[i];
-          o.visible = show && o.cemShown !== false;
+          setActive(o, show && o.cemShown !== false);
         }
       }
     }
@@ -250,7 +269,7 @@ var CemWorld = (function() {
     /** A prop's own visibility (fog) without fighting the culler */
     function setPropShown(obj, shown) {
       obj.cemShown = shown;
-      obj.visible = shown && (!obj.cemCell || obj.cemCell.shown);
+      setActive(obj, shown && (!obj.cemCell || obj.cemCell.shown));
     }
 
     /**
@@ -283,6 +302,7 @@ var CemWorld = (function() {
       placeDynamic: placeDynamic,
       removeDynamic: removeDynamic,
       setPropShown: setPropShown,
+      setActive: setActive,
       markSeen: markSeen,
       rebakeAll: rebakeAll,
       update: update,
@@ -290,7 +310,7 @@ var CemWorld = (function() {
     };
   }
 
-  return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK };
+  return { attach: attach, bandOf: bandOf, cellKey: cellKey, CHUNK: CHUNK, CHUNK_POOL_MAX: CHUNK_POOL_MAX };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -1140,58 +1140,76 @@ var IsoTextures = (function() {
   /**
    * Generate every fallback texture that no real file provided
    */
-  function generateFallbacks(scene, palette, decorPalette) {
+  /**
+   * @param {Phaser.Scene} scene
+   * @param {Object} palette
+   * @param {Object} decorPalette
+   * @param {string[]} [only] - texture keys (or key prefixes ending in '_')
+   *   to build; the rest are skipped. The cemetery uses a dozen of these
+   *   sixty textures and this saves it painting the dungeon's walls and lava.
+   */
+  function generateFallbacks(scene, palette, decorPalette, only) {
     palette = palette || FALLBACK_PALETTE;
     var dp = decorPalette || palette;
+    var gen = canvasTexture;
+    if (only) {
+      gen = function(sc, key, w, h, draw) {
+        for (var i = 0; i < only.length; i++) {
+          var want = only[i];
+          if (key === want || (want.charAt(want.length - 1) === '_' && key.indexOf(want) === 0)) return canvasTexture(sc, key, w, h, draw);
+        }
+        return null;
+      };
+    }
     [0, 1, 2].forEach(function(v) {
-      canvasTexture(scene, 'floor_' + v, TILE_W, TILE_H, function(ctx) { drawFloor(ctx, palette, v); });
-      canvasTexture(scene, 'lava_' + v, TILE_W, TILE_H, function(ctx) { drawLava(ctx, v); });
-      canvasTexture(scene, 'wall_n_' + v, TILE_W, 96, function(ctx) { drawWall(ctx, palette, 'n', v); });
-      canvasTexture(scene, 'wall_w_' + v, TILE_W, 96, function(ctx) { drawWall(ctx, palette, 'w', v); });
-      canvasTexture(scene, 'pool_water_' + v, TILE_W, TILE_H, function(ctx) { drawPool(ctx, dp, 'water', v); });
-      canvasTexture(scene, 'pool_lava_' + v, TILE_W, TILE_H, function(ctx) { drawPool(ctx, dp, 'lava', v); });
+      gen(scene, 'floor_' + v, TILE_W, TILE_H, function(ctx) { drawFloor(ctx, palette, v); });
+      gen(scene, 'lava_' + v, TILE_W, TILE_H, function(ctx) { drawLava(ctx, v); });
+      gen(scene, 'wall_n_' + v, TILE_W, 96, function(ctx) { drawWall(ctx, palette, 'n', v); });
+      gen(scene, 'wall_w_' + v, TILE_W, 96, function(ctx) { drawWall(ctx, palette, 'w', v); });
+      gen(scene, 'pool_water_' + v, TILE_W, TILE_H, function(ctx) { drawPool(ctx, dp, 'water', v); });
+      gen(scene, 'pool_lava_' + v, TILE_W, TILE_H, function(ctx) { drawPool(ctx, dp, 'lava', v); });
     });
-    canvasTexture(scene, 'decor_pit', TILE_W, TILE_H, function(ctx) { drawPit(ctx, dp); });
-    canvasTexture(scene, 'decor_mushrooms', 64, 52, function(ctx) { drawMushrooms(ctx, false); });
-    canvasTexture(scene, 'decor_mushrooms_big', 84, 100, function(ctx) { drawMushrooms(ctx, true); });
-    canvasTexture(scene, 'decor_plants', 72, 56, function(ctx) { drawPlants(ctx, dp); });
-    canvasTexture(scene, 'decor_statue', 64, 132, function(ctx) { drawStatue(ctx, dp); });
-    canvasTexture(scene, 'decor_cavein', 120, 84, function(ctx) { drawCaveIn(ctx, dp); });
-    canvasTexture(scene, 'glow_cyan', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(120,230,255,0.45)'); });
-    canvasTexture(scene, 'glow_violet', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(170,120,255,0.45)'); });
-    canvasTexture(scene, 'corridor', TILE_W, TILE_H, function(ctx) { drawCorridor(ctx, palette); });
-    canvasTexture(scene, 'arch_n', TILE_W, 96, function(ctx) { drawArch(ctx, palette, 'n'); });
-    canvasTexture(scene, 'arch_w', TILE_W, 96, function(ctx) { drawArch(ctx, palette, 'w'); });
-    canvasTexture(scene, 'rim_s', TILE_W, 44, function(ctx) { drawRim(ctx, palette, 's'); });
-    canvasTexture(scene, 'rim_e', TILE_W, 44, function(ctx) { drawRim(ctx, palette, 'e'); });
-    canvasTexture(scene, 'post', 16, 44, function(ctx) { drawPost(ctx, palette); });
-    canvasTexture(scene, 'rim_n', TILE_W, 44, function(ctx) { drawRimBack(ctx, palette, 'n'); });
-    canvasTexture(scene, 'rim_w', TILE_W, 44, function(ctx) { drawRimBack(ctx, palette, 'w'); });
-    canvasTexture(scene, 'torch_bracket', 16, 30, function(ctx) { drawTorchBracket(ctx); });
-    canvasTexture(scene, 'glow_warm', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(255,170,60,0.55)'); });
-    canvasTexture(scene, 'glow_lava', 200, 200, function(ctx) { drawGlow(ctx, 200, 'rgba(255,90,20,0.45)'); });
-    canvasTexture(scene, 'glow_gold', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(255,220,100,0.5)'); });
-    canvasTexture(scene, 'glow_purple', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(200,120,255,0.5)'); });
-    canvasTexture(scene, 'pillar', 40, 110, function(ctx) { drawPillar(ctx, palette); });
-    canvasTexture(scene, 'bones', 60, 34, function(ctx) { drawBones(ctx); });
-    canvasTexture(scene, 'rubble', 60, 34, function(ctx) { drawRubble(ctx, palette); });
-    canvasTexture(scene, 'gold_pile', 80, 44, function(ctx) { drawGoldPile(ctx); });
-    canvasTexture(scene, 'crystal', 44, 70, function(ctx) { drawCrystal(ctx); });
+    gen(scene, 'decor_pit', TILE_W, TILE_H, function(ctx) { drawPit(ctx, dp); });
+    gen(scene, 'decor_mushrooms', 64, 52, function(ctx) { drawMushrooms(ctx, false); });
+    gen(scene, 'decor_mushrooms_big', 84, 100, function(ctx) { drawMushrooms(ctx, true); });
+    gen(scene, 'decor_plants', 72, 56, function(ctx) { drawPlants(ctx, dp); });
+    gen(scene, 'decor_statue', 64, 132, function(ctx) { drawStatue(ctx, dp); });
+    gen(scene, 'decor_cavein', 120, 84, function(ctx) { drawCaveIn(ctx, dp); });
+    gen(scene, 'glow_cyan', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(120,230,255,0.45)'); });
+    gen(scene, 'glow_violet', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(170,120,255,0.45)'); });
+    gen(scene, 'corridor', TILE_W, TILE_H, function(ctx) { drawCorridor(ctx, palette); });
+    gen(scene, 'arch_n', TILE_W, 96, function(ctx) { drawArch(ctx, palette, 'n'); });
+    gen(scene, 'arch_w', TILE_W, 96, function(ctx) { drawArch(ctx, palette, 'w'); });
+    gen(scene, 'rim_s', TILE_W, 44, function(ctx) { drawRim(ctx, palette, 's'); });
+    gen(scene, 'rim_e', TILE_W, 44, function(ctx) { drawRim(ctx, palette, 'e'); });
+    gen(scene, 'post', 16, 44, function(ctx) { drawPost(ctx, palette); });
+    gen(scene, 'rim_n', TILE_W, 44, function(ctx) { drawRimBack(ctx, palette, 'n'); });
+    gen(scene, 'rim_w', TILE_W, 44, function(ctx) { drawRimBack(ctx, palette, 'w'); });
+    gen(scene, 'torch_bracket', 16, 30, function(ctx) { drawTorchBracket(ctx); });
+    gen(scene, 'glow_warm', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(255,170,60,0.55)'); });
+    gen(scene, 'glow_lava', 200, 200, function(ctx) { drawGlow(ctx, 200, 'rgba(255,90,20,0.45)'); });
+    gen(scene, 'glow_gold', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(255,220,100,0.5)'); });
+    gen(scene, 'glow_purple', 160, 160, function(ctx) { drawGlow(ctx, 160, 'rgba(200,120,255,0.5)'); });
+    gen(scene, 'pillar', 40, 110, function(ctx) { drawPillar(ctx, palette); });
+    gen(scene, 'bones', 60, 34, function(ctx) { drawBones(ctx); });
+    gen(scene, 'rubble', 60, 34, function(ctx) { drawRubble(ctx, palette); });
+    gen(scene, 'gold_pile', 80, 44, function(ctx) { drawGoldPile(ctx); });
+    gen(scene, 'crystal', 44, 70, function(ctx) { drawCrystal(ctx); });
     // banner hangs on a north wall: shear it along the wall's 2:1 slope
-    canvasTexture(scene, 'banner', 36, 98, function(ctx) { ctx.setTransform(1, 0.5, 0, 1, 0, 0); drawBanner(ctx); ctx.setTransform(1, 0, 0, 1, 0, 0); });
-    canvasTexture(scene, 'entrance', 128, 110, function(ctx) { drawStairs(ctx, palette); });
-    canvasTexture(scene, 'treasure_chest', 64, 56, function(ctx) { drawChest(ctx, false); });
-    canvasTexture(scene, 'treasure_open', 64, 56, function(ctx) { drawChest(ctx, true); });
-    canvasTexture(scene, 'highlight_ring', TILE_W, TILE_H, function(ctx) { drawRing(ctx, '#ffd97a', false); });
-    canvasTexture(scene, 'reach_ring', TILE_W, TILE_H, function(ctx) { drawRing(ctx, 'rgba(255,217,122,0.55)', true); });
-    canvasTexture(scene, 'marker_unknown', 56, 64, function(ctx) { drawUnknownMarker(ctx, palette); });
-    canvasTexture(scene, 'portal', 96, 96, function(ctx) { drawPortal(ctx); });
+    gen(scene, 'banner', 36, 98, function(ctx) { ctx.setTransform(1, 0.5, 0, 1, 0, 0); drawBanner(ctx); ctx.setTransform(1, 0, 0, 1, 0, 0); });
+    gen(scene, 'entrance', 128, 110, function(ctx) { drawStairs(ctx, palette); });
+    gen(scene, 'treasure_chest', 64, 56, function(ctx) { drawChest(ctx, false); });
+    gen(scene, 'treasure_open', 64, 56, function(ctx) { drawChest(ctx, true); });
+    gen(scene, 'highlight_ring', TILE_W, TILE_H, function(ctx) { drawRing(ctx, '#ffd97a', false); });
+    gen(scene, 'reach_ring', TILE_W, TILE_H, function(ctx) { drawRing(ctx, 'rgba(255,217,122,0.55)', true); });
+    gen(scene, 'marker_unknown', 56, 64, function(ctx) { drawUnknownMarker(ctx, palette); });
+    gen(scene, 'portal', 96, 96, function(ctx) { drawPortal(ctx); });
 
     for (var fi = 0; fi < FLAME_FRAMES; fi++) {
-      (function(v) { canvasTexture(scene, 'flame_' + v, 40, 64, function(ctx) { drawFlame(ctx, v); }); })(fi);
+      (function(v) { gen(scene, 'flame_' + v, 40, 64, function(ctx) { drawFlame(ctx, v); }); })(fi);
     }
-    canvasTexture(scene, 'light_pool', 256, 128, function(ctx) { drawLightPool(ctx); });
-    canvasTexture(scene, 'cast_shadow', 128, 48, function(ctx) { drawCastShadow(ctx); });
+    gen(scene, 'light_pool', 256, 128, function(ctx) { drawLightPool(ctx); });
+    gen(scene, 'cast_shadow', 128, 48, function(ctx) { drawCastShadow(ctx); });
     if (!scene.anims.exists('flame')) {
       scene.anims.create({
         key: 'flame',
