@@ -16,6 +16,7 @@ var CemTextures = (function() {
   var TILE_W = 128, TILE_H = 64;
   var KIT_DIR = 'assets/proto/iso/cemetery/';
   var KIT_JSON = 'cem_kit';
+  var PUDDLE_W = 112, PUDDLE_H = 56;   // a puddle texture, inside one tile diamond
   var kit = null;          // manifest { ppt, sprites: { name: {...} } }
   var fallbacks = {};      // name -> { key, w, h, anchor, footprint, light?, door? }
 
@@ -242,6 +243,191 @@ var CemTextures = (function() {
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, size, size);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rain and puddles
+  // ---------------------------------------------------------------------------
+
+  /** An irregular blob inside an ellipse of rx by ry, as a path; `wobble` is how uneven */
+  function blobPath(ctx, cx, cy, rx, ry, r, wobble) {
+    var n = 14;
+    var pts = [];
+    for (var i = 0; i < n; i++) {
+      var a = i / n * Math.PI * 2;
+      var k = 1 - wobble * r();
+      pts.push({ x: cx + Math.cos(a) * rx * k, y: cy + Math.sin(a) * ry * k });
+    }
+    ctx.beginPath();
+    for (var j = 0; j < n; j++) {
+      var p = pts[j], q = pts[(j + 1) % n];
+      var mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+      if (j === 0) ctx.moveTo((pts[n - 1].x + p.x) / 2, (pts[n - 1].y + p.y) / 2);
+      ctx.quadraticCurveTo(p.x, p.y, mx, my);
+    }
+    ctx.closePath();
+  }
+
+  /** The water's outline of one puddle shape, at a fraction `k` of its full size */
+  function puddleBlob(ctx, w, h, variant, k) {
+    blobPath(ctx, w / 2, h / 2, w * 0.42 * k, h * 0.4 * k, rng(701 + variant * 37), 0.22 + variant * 0.06);
+  }
+
+  /**
+   * A puddle in an iso tile comes in three parts, because the reflection of
+   * what stands around it is composited between them on the CPU
+   * (cem-scenes.js `bakeReflection`): the base is the wet dark halo and the
+   * water, laid down three times for a soft edge; the mask is the water's
+   * shape, which the reflection is clipped to; the sheen is the
+   * sky-coloured gradient, the gleam and the bright far rim that lie on top
+   * of the reflection so the water still reads as a mirror of the night sky.
+   */
+  function drawPuddleBase(ctx, w, h, variant) {
+    puddleBlob(ctx, w, h, variant, 1.18);
+    ctx.fillStyle = 'rgba(12,16,26,0.32)';
+    ctx.fill();
+    var shades = ['rgba(24,32,56,0.45)', 'rgba(28,38,66,0.55)', 'rgba(32,44,76,0.65)'];
+    for (var pass = 0; pass < 3; pass++) {
+      puddleBlob(ctx, w, h, variant, 1 - pass * 0.07);
+      ctx.fillStyle = shades[pass];
+      ctx.fill();
+    }
+  }
+
+  function drawPuddleMask(ctx, w, h, variant) {
+    // a graded edge: the outer band is half transparent, the middle solid
+    puddleBlob(ctx, w, h, variant, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fill();
+    puddleBlob(ctx, w, h, variant, 0.93);
+    ctx.fillStyle = 'rgba(0,0,0,1)';
+    ctx.fill();
+  }
+
+  function drawPuddleSheen(ctx, w, h, variant) {
+    var cx = w / 2, cy = h / 2;
+    var rx = w * 0.42, ry = h * 0.4;
+    ctx.save();
+    puddleBlob(ctx, w, h, variant, 1);
+    ctx.clip();
+    var sheen = ctx.createLinearGradient(cx - rx * 0.6, cy - ry, cx + rx * 0.3, cy + ry * 0.6);
+    sheen.addColorStop(0, 'rgba(176,198,236,0.3)');
+    sheen.addColorStop(0.45, 'rgba(150,176,222,0.12)');
+    sheen.addColorStop(1, 'rgba(120,150,200,0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 0, w, h);
+    var gx = cx - rx * 0.3, gy = cy - ry * 0.35;
+    var gleam = ctx.createRadialGradient(gx, gy, 0, gx, gy, rx * 0.4);
+    gleam.addColorStop(0, 'rgba(220,232,255,0.38)');
+    gleam.addColorStop(1, 'rgba(220,232,255,0)');
+    ctx.fillStyle = gleam;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+    ctx.save();
+    puddleBlob(ctx, w, h, variant, 0.97);
+    ctx.strokeStyle = 'rgba(190,210,245,0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  var puddleCache = {};
+
+  function offscreen(w, h, draw) {
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    draw(c.getContext('2d'));
+    return c;
+  }
+
+  /**
+   * The three canvases of one puddle shape (0..3), drawn once and shared:
+   * { base, mask, sheen, w, h }. Plain canvases, not textures: the scene
+   * composites them with the reflection into each puddle's own texture.
+   */
+  function puddleParts(variant) {
+    var v = variant % 4;
+    if (!puddleCache[v]) {
+      puddleCache[v] = {
+        w: PUDDLE_W, h: PUDDLE_H,
+        base: offscreen(PUDDLE_W, PUDDLE_H, function(ctx) { drawPuddleBase(ctx, PUDDLE_W, PUDDLE_H, v); }),
+        mask: offscreen(PUDDLE_W, PUDDLE_H, function(ctx) { drawPuddleMask(ctx, PUDDLE_W, PUDDLE_H, v); }),
+        sheen: offscreen(PUDDLE_W, PUDDLE_H, function(ctx) { drawPuddleSheen(ctx, PUDDLE_W, PUDDLE_H, v); })
+      };
+    }
+    return puddleCache[v];
+  }
+
+  /**
+   * An elliptical ring, the trace of a drop landing in water: a bright thin
+   * rim with a faint dark line inside it, so it reads against the water at
+   * map scale even when only a dozen pixels wide.
+   */
+  function drawDropRing(ctx, w, h) {
+    var cx = w / 2, cy = h / 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, h / w);
+    ctx.beginPath();
+    ctx.arc(0, 0, w * 0.4 - 2.5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(10,16,40,0.45)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, w * 0.4, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(232,242,255,0.98)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /**
+   * The ring of a raindrop hitting a puddle, drawn at the size it is seen
+   * (a dozen pixels), so its rim stays a crisp pixel and a half wide: white
+   * outside, a dark line inside for contrast on lit water.
+   */
+  function drawPlipRing(ctx, w, h) {
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(1, h / w);
+    ctx.beginPath();
+    ctx.arc(0, 0, w / 2 - 2.6, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(8,12,34,0.6)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, w / 2 - 1.2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(240,248,255,1)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** One raindrop as a slanted-later streak: a thin line, bright at the head */
+  function drawRainStreak(ctx, w, h) {
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(200,220,255,0)');
+    g.addColorStop(0.7, 'rgba(210,226,255,0.55)');
+    g.addColorStop(1, 'rgba(235,242,255,0.9)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(w / 2 - 0.6, 0);
+    ctx.lineTo(w / 2 + 0.6, 0);
+    ctx.lineTo(w / 2 + 1.1, h);
+    ctx.lineTo(w / 2 - 1.1, h);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** A splash droplet */
+  function drawDroplet(ctx, size) {
+    var c = size / 2;
+    var g = ctx.createRadialGradient(c - 1, c - 1, 0, c, c, c);
+    g.addColorStop(0, 'rgba(235,245,255,0.95)');
+    g.addColorStop(0.6, 'rgba(180,205,245,0.7)');
+    g.addColorStop(1, 'rgba(180,205,245,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
   }
 
   /**
@@ -682,6 +868,13 @@ var CemTextures = (function() {
     canvasTexture(scene, 'cem_glow_red', 160, 160, function(ctx) { T().drawGlow(ctx, 160, 'rgba(255,70,50,0.55)'); });
     canvasTexture(scene, 'cem_soft_light', 256, 128, function(ctx) { drawSoftLight(ctx, 256, 128); });
     canvasTexture(scene, 'cem_dark_ring', 1024, 1024, function(ctx) { drawDarkRing(ctx, 1024, 160); });
+    // the lightning flash over the whole view: a white square, tinted and stretched by the scene
+    canvasTexture(scene, 'cem_flash', 8, 8, function(ctx) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 8, 8); });
+    // rain: a droplet ring, a streak and a splash drop (the puddles are composited per puddle, see puddleParts)
+    canvasTexture(scene, 'cem_drop_ring', 64, 32, function(ctx) { drawDropRing(ctx, 64, 32); });
+    canvasTexture(scene, 'cem_plip_ring', 16, 8, function(ctx) { drawPlipRing(ctx, 16, 8); });
+    canvasTexture(scene, 'cem_rain_streak', 4, 30, function(ctx) { drawRainStreak(ctx, 4, 30); });
+    canvasTexture(scene, 'cem_droplet', 10, 10, function(ctx) { drawDroplet(ctx, 10); });
 
     // stand-in props
     for (var gv = 0; gv < 6; gv++) {
@@ -782,6 +975,9 @@ var CemTextures = (function() {
   return {
     makeDoorLights: makeDoorLights,
     TILE_W: TILE_W,
+    PUDDLE_W: PUDDLE_W,
+    PUDDLE_H: PUDDLE_H,
+    puddleParts: puddleParts,
     TILE_H: TILE_H,
     KIT_DIR: KIT_DIR,
     generate: generate,
