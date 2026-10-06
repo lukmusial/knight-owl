@@ -17,7 +17,7 @@ var CemWorld = (function() {
   var TILE_W = 128, TILE_H = 64;
   var CHUNK = 8;                  // tiles per chunk side
   var CHUNK_POOL = 18;            // render textures the pool starts with
-  var CHUNK_POOL_MAX = 28;        // and may grow to, before it starts recycling chunks still in view (each is 1024x696, 2.85 MB on the GPU)
+  var CHUNK_POOL_MAX = 28;        // and may grow to (each is 1024x696, 2.85 MB on the GPU); past it only while more chunks than this are on screen, which are never recycled
   var BAND_TILES = 4;             // tiles per depth band (gx + gy)
   var CELL_COLS = 8;              // tiles per cull column (gx - gy)
   var PAD = 320;                  // world px of camera padding before culling
@@ -55,6 +55,13 @@ var CemWorld = (function() {
       bands.push(scene.add.layer().setDepth(b));
     }
     var lightsLayer = scene.add.layer().setDepth(maxBand + 10);
+    // Additive light lives in two layers of its own, one on the floor and one
+    // over everything, so the renderer changes blend mode a couple of times a
+    // frame instead of at every glow scattered among the props. Each switch
+    // flushes the batch and, in Chrome on a Mac (WebGL through Metal), costs
+    // a pipeline change: two dozen of them held the cemetery at 14 fps.
+    var floorGlowLayer = scene.add.layer().setDepth(GROUND_DEPTH + 2);
+    var glowLayer = scene.add.layer().setDepth(maxBand + 11);
 
     // --- chunks ------------------------------------------------------------
     var chunkRect = [];            // chunk index -> { left, top, w, h, cx, cy }
@@ -90,35 +97,38 @@ var CemWorld = (function() {
       delete dirty[slot.chunk];
     }
 
-    function acquire(chunk) {
+    function newSlot(chunk) {
+      var rect0 = chunkRect[chunk];
+      var rt = scene.add.renderTexture(0, 0, Math.ceil(rect0.w), Math.ceil(rect0.h)).setOrigin(0, 0);
+      groundLayer.add(rt);
+      pool.push({ rt: rt, chunk: -1, used: 0 });
+      return pool.length - 1;
+    }
+
+    /**
+     * A render texture for a chunk the camera wants. A free slot first, then
+     * a new one while the pool is under `cap`, then the slot of a chunk the
+     * camera no longer wants, the one it left longest ago. Never a wanted
+     * chunk's: handing an on-screen chunk's texture to another left the first
+     * black until it got one back, and with more chunks in view than the pool
+     * held they took turns every frame - black patches flickering round Mr
+     * Owl on a 1920x1080 window, 4700 bakes in 16 s.
+     * @returns {Object|null} the slot, or null when every slot is wanted
+     */
+    function acquire(chunk, wanted, cap) {
       if (byChunk[chunk] !== undefined) return pool[byChunk[chunk]];
       var slot = -1;
       for (var i = 0; i < pool.length; i++) {
         if (pool[i].chunk === -1) { slot = i; break; }
       }
-      if (slot === -1 && pool.length < CHUNK_POOL) {
-        var rect0 = chunkRect[chunk];
-        var rt = scene.add.renderTexture(0, 0, Math.ceil(rect0.w), Math.ceil(rect0.h)).setOrigin(0, 0);
-        groundLayer.add(rt);
-        pool.push({ rt: rt, chunk: -1, used: 0 });
-        slot = pool.length - 1;
-      }
+      if (slot === -1 && pool.length < cap) slot = newSlot(chunk);
       if (slot === -1) {
-        // recycle the chunk the camera has ignored the longest; but never one
-        // it is looking at right now, that blanks a screenful of ground for a
-        // frame and flickers as it bakes back. Grow the pool instead.
-        var oldest = 0;
-        for (var j = 1; j < pool.length; j++) if (pool[j].used < pool[oldest].used) oldest = j;
-        if (pool[oldest].used >= frameCounter - 1 && pool.length < CHUNK_POOL_MAX) {
-          var rect1 = chunkRect[chunk];
-          var rt1 = scene.add.renderTexture(0, 0, Math.ceil(rect1.w), Math.ceil(rect1.h)).setOrigin(0, 0);
-          groundLayer.add(rt1);
-          pool.push({ rt: rt1, chunk: -1, used: 0 });
-          slot = pool.length - 1;
-        } else {
-          slot = oldest;
-          delete byChunk[pool[slot].chunk];
+        for (var j = 0; j < pool.length; j++) {
+          if (wanted[pool[j].chunk]) continue;
+          if (slot === -1 || pool[j].used < pool[slot].used) slot = j;
         }
+        if (slot === -1) return null;
+        delete byChunk[pool[slot].chunk];
       }
       var s = pool[slot];
       s.chunk = chunk;
@@ -192,11 +202,14 @@ var CemWorld = (function() {
      * @param {number} gx - tile it stands on
      * @param {number} gy
      * @param {Object} opts - { light: true to put it in the lights layer,
-     *   ground: true to lay it on the floor, over the ground chunks and under everything that stands }
+     *   ground: true to lay it on the floor, over the ground chunks and under everything that stands,
+     *   glow: true for an additive light over everything, floorGlow: true for one on the floor }
      */
     function addProp(obj, gx, gy, opts) {
       opts = opts || {};
-      if (opts.light) lightsLayer.add(obj);
+      if (opts.glow) glowLayer.add(obj);
+      else if (opts.floorGlow) floorGlowLayer.add(obj);
+      else if (opts.light) lightsLayer.add(obj);
       else if (opts.ground) floorLayer.add(obj);
       else bands[Math.min(bands.length - 1, Math.max(0, bandOf(gx, gy)))].add(obj);
       var c = cellFor(gx, gy);
@@ -271,32 +284,59 @@ var CemWorld = (function() {
       var left = v.left, right = v.right, top = v.top, bottom = v.bottom;
       var now = scene.time.now;
 
-      // chunks: acquire what the camera can see, release what it left behind.
-      // The scan starts where the last one stopped baking, round robin: with
-      // the first chunks always first, the last ones would never get their
-      // turn while walking keeps dirtying the first
+      // chunks: the camera wants every chunk near its view, nearest the
+      // middle first. The pool holds CHUNK_POOL_MAX of them, or as many as
+      // are actually on screen when that is more; past that, the farthest
+      // (out in the padding, off screen) wait rather than take a texture
+      // from one in view
+      var vis = viewRect(0);
+      var midX = (vis.left + vis.right) / 2, midY = (vis.top + vis.bottom) / 2;
       var n = chunkRect.length;
-      var lastBaked = -1;
-      for (var k = 0; k < n; k++) {
-        var ci = (bakeCursor + k) % n;
-        var r = chunkRect[ci];
+      var want = [];
+      var onScreen = 0;
+      var ci, r, slot;
+      for (ci = 0; ci < n; ci++) {
+        r = chunkRect[ci];
         var near = r.left < right && r.left + r.w > left && r.top < bottom && r.top + r.h > top;
-        var slot = byChunk[ci] !== undefined ? pool[byChunk[ci]] : null;
-        if (near) {
-          if (!slot) {
-            if (acquires <= 0) continue;
-            slot = acquire(ci);
-            acquires--;
+        slot = byChunk[ci] !== undefined ? pool[byChunk[ci]] : null;
+        if (!near) {
+          if (slot && frameCounter - slot.used > 600) {
+            slot.rt.setVisible(false);
+            slot.chunk = -1;
+            delete byChunk[ci];
           }
-          slot.used = frameCounter;
-          // the reveal brightens ground every frame while he walks; the dirty
-          // flag waits, so a chunk is repainted at most every bakeMinMs
-          if (dirty[ci] && budget > 0 && (force || now - (slot.bakedAt || 0) >= api.bakeMinMs)) { bake(slot); budget--; lastBaked = ci; }
-        } else if (slot && frameCounter - slot.used > 600) {
-          slot.rt.setVisible(false);
-          slot.chunk = -1;
-          delete byChunk[ci];
+          continue;
         }
+        if (r.left < vis.right && r.left + r.w > vis.left && r.top < vis.bottom && r.top + r.h > vis.top) onScreen++;
+        var dx = r.left + r.w / 2 - midX, dy = r.top + r.h / 2 - midY;
+        want.push({ ci: ci, d: dx * dx + dy * dy });
+      }
+      want.sort(function(a, b) { return a.d - b.d; });
+      var cap = Math.min(n, Math.max(api.poolMax, onScreen + 2));
+      if (want.length > cap) want.length = cap;
+      var wanted = {};
+      for (var w = 0; w < want.length; w++) wanted[want[w].ci] = true;
+      for (w = 0; w < want.length; w++) {
+        ci = want[w].ci;
+        slot = byChunk[ci] !== undefined ? pool[byChunk[ci]] : null;
+        if (!slot) {
+          if (acquires <= 0) continue;
+          slot = acquire(ci, wanted, cap);
+          if (!slot) continue;
+          acquires--;
+        }
+        slot.used = frameCounter;
+      }
+      // repaint dirty chunks, round robin from where the last pass stopped:
+      // with the first chunks always first, the last ones would never get
+      // their turn while walking keeps dirtying the first. The dirty flag
+      // waits, so a chunk is repainted at most every bakeMinMs
+      var lastBaked = -1;
+      for (var k = 0; k < n && budget > 0; k++) {
+        ci = (bakeCursor + k) % n;
+        if (!dirty[ci] || !wanted[ci] || byChunk[ci] === undefined) continue;
+        slot = pool[byChunk[ci]];
+        if (force || now - (slot.bakedAt || 0) >= api.bakeMinMs) { bake(slot); budget--; lastBaked = ci; }
       }
       if (lastBaked !== -1) bakeCursor = (lastBaked + 1) % n;
 
@@ -348,9 +388,12 @@ var CemWorld = (function() {
       CHUNK: CHUNK,
       SHADOW_PAD: SHADOW_PAD,
       bakeMinMs: BAKE_MIN_MS,      // settable: the reveal check raises it to stress the tile-sprite handoff
+      poolMax: CHUNK_POOL_MAX,     // settable: test:cem:perf lowers it so more chunks are in view than the pool holds
       groundLayer: groundLayer,
       floorLayer: floorLayer,
       lightsLayer: lightsLayer,
+      glowLayer: glowLayer,
+      floorGlowLayer: floorGlowLayer,
       bands: bands,
       bandOf: bandOf,
       setBakeFn: function(fn) { bakeFn = fn; },
