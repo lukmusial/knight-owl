@@ -4,7 +4,48 @@ Figures the game was last known good at, and how each was taken. Append a new
 dated section when re-baselining; never overwrite an old one, they are the
 history.
 
-## 2026-09-21 (cemetery pass) - phone-minded cemetery optimisation (BASELINE going forward)
+## 2026-10-05 (glow layers) - additive glows gathered out of the props (BASELINE going forward)
+
+The cemetery ran at 10-14 fps in desktop Chrome on this Mac (Intel UHD 630,
+WebGL through ANGLE/Metal), at any canvas size, with the main thread 95% idle:
+the cost was on the GPU side and fixed per frame. Hiding the camera gave 51
+fps, turning the 24-26 additive glows to normal blending 52, hiding them 60.
+They were scattered among the props (lantern heads and pumpkin candles in the
+lights layer between the flames, monster glows hopping through the depth
+bands, door spills among the puddles), so the frame changed blend mode 40-odd
+times, each change a batch flush and a Metal pipeline change. Measured with a
+GPU-backed headless Chrome (`--enable-gpu --use-angle=metal`, 1440x900 at
+DPR 2, script kept outside the repo) and `npm run test:cem:perf`.
+
+Changes: additive light lives in two layers of its own (`floorGlowLayer` on
+the floor, `glowLayer` over everything); the lantern-head halos are baked into
+the ground chunks; a crypt's door light sits in the crypt's band just over its
+sprite (it used to sit in the lights layer and wash over whoever stood at the
+door). `test:cem:perf` now prints `blendSwitchesPerFrame` and `doorLightUnder`
+and fails over 12 switches or when the door light is drawn over Mr Owl.
+
+| figure | now | before |
+|---|---|---|
+| fps, GPU headless 1440x900 DPR 2 (idle / walking / walking in rain) | 60 / 60 / 60 | 11 / 10 / 10 |
+| draw calls, same run (`?perf=1`) | 5-7 | 35-50 |
+| blend-mode switches a frame (`test:cem:perf`) | 8.8 | 43.6 |
+| draw calls (`test:cem:perf`, SwiftShader) | 20 | 77 |
+| unit suite | 518/518 | 518/518 |
+| `npm run test:cem` | pass | pass |
+
+Also in this pass: the chunk pool no longer hands an on-screen chunk's
+texture to another. With more chunks near the view than the pool's 28 (a
+1920x1080 window, depending on the level) it used to, every frame, and the
+chunks took turns being black: 3600-4750 bakes in a 16 s walk instead of
+about 200. Chunks are now wanted nearest the view's middle first, the pool
+grows to the on-screen count when that is more, and `test:cem:perf` cuts the
+pool to 6 and counts frames with an on-screen chunk left black (old logic at
+12: 23 of 27 frames; now 0).
+
+`npm run test:cem:reveal` is flaky on both (a monster fading in over 2-3
+frames counts as a pop; the old code failed 3 runs of 4, the new 1 of 4).
+
+## 2026-09-21 (cemetery pass) - phone-minded cemetery optimisation (superseded by the glow-layer pass above)
 
 Same machine and Chrome as below. This pass came out of a phone-viewport
 probe (390x844, DPR 3, 4x CPU throttle, headed Chrome with a real GPU, script

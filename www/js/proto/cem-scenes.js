@@ -52,6 +52,9 @@ var CemScenes = (function() {
   var FLOOR_BAND = -300000;
   var POOL_BAND = -200000;     // the ground light of a lightning strike; the lantern pools that shared it are baked into the chunks now
   var SHADOW_BAND = -100000;
+  // the halo round a lantern's lamp, baked into the ground chunks
+  var LANTERN_GLOW_ALPHA = 0.82;
+  var LANTERN_GLOW_SCALE = 0.88;
   var SEEN_TINT = 0x4b5578;    // remembered but unlit tiles
   var STORM_LIT_TINT = 0xf2f6ff;   // props in the light of a lightning strike
   var DARK = { r: 0x9e, g: 0xaa, b: 0xd4 };   // night sky light, no lantern
@@ -393,6 +396,20 @@ var CemScenes = (function() {
           }
         }
       }
+      // lamp halos: any lantern whose glow reaches this chunk, which may
+      // stand a few rows below it (the halo hangs well above its tile)
+      var lg = this.lanternGlows || [];
+      var half = 80 * LANTERN_GLOW_SCALE;
+      for (var g = 0; g < lg.length; g++) {
+        var h = lg[g];
+        if (h.x + half < rect.left || h.x - half > rect.left + rect.w || h.y + half < rect.top || h.y - half > rect.top + rect.h) continue;
+        ga = CemReveal.alphaAt(R, h.idx);
+        if (ga <= 0) continue;
+        stamp.setTexture('glow_warm').setOrigin(0.5, 0.5).setRotation(0).setScale(LANTERN_GLOW_SCALE)
+          .setAlpha(LANTERN_GLOW_ALPHA * ga).setBlendMode(Phaser.BlendModes.ADD);
+        rt.batchDraw(stamp, h.x - rect.left, h.y - rect.top);
+        stamp.setBlendMode(Phaser.BlendModes.NORMAL);
+      }
       rt.endDraw();
       stamp.setRotation(0).setAlpha(1).setScale(1);
     },
@@ -480,7 +497,7 @@ var CemScenes = (function() {
             .setBlendMode(Phaser.BlendModes.ADD).setDepth(IsoModel.depthKey(t.gx, t.gy, LAYERS.token) + 0.2);
           glow.cemBase = 0.5;      // its alpha follows the reveal, so the candle breathes by size instead
           this.tileObjs[i].push(glow); this.tileLights[i].push(glow);
-          this.world.addProp(glow, t.gx, t.gy, { light: true });
+          this.world.addProp(glow, t.gx, t.gy, { glow: true });
           if (!REDUCED_MOTION) glow.cemTween = this.tweens.add({ targets: glow, scale: 0.58, duration: 900 + hash(t.gy, t.gx) * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
       }
@@ -535,11 +552,18 @@ var CemScenes = (function() {
             .setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(spillDepth);
           rec.arch = { x: wall.x, y: wall.y - doorH * 0.5 };
           rec.lit.push(rec.door);
-          this.world.addProp(rec.door, tomb.door.gx, tomb.door.gy, { light: true });
+          this.world.addProp(rec.door, tomb.door.gx, tomb.door.gy);
         }
         rec.lit.push(rec.glow, rec.spill);
-        this.world.addProp(rec.glow, tomb.door.gx, tomb.door.gy, { light: true });
-        this.world.addProp(rec.spill, tomb.door.gx, tomb.door.gy, { ground: true });   // on the floor, under whoever stands in it
+        // the door light is part of the crypt: it sits in the crypt's depth
+        // band just over its sprite, so whoever stands in front of the door
+        // covers it (in the lights layer it shone through them). The one
+        // additive sprite left among the props; there are five crypts.
+        // drawn straight after the crypt itself: anyone the crypt does not hide
+        // (whoever stands at its door) is drawn after the light too
+        if (rec.sprite) rec.glow.setDepth(rec.sprite.depth + 0.001);
+        this.world.addProp(rec.glow, tomb.x0 + tomb.w - 1, tomb.y0 + tomb.h - 1);
+        this.world.addProp(rec.spill, tomb.door.gx, tomb.door.gy, { floorGlow: true });   // on the floor, under whoever stands in it
         if (tomb.size === 'large') {
           rec.lock = this.add.image(rec.arch.x, rec.arch.y, 'cem_lock').setDepth(depth + 0.1);
           rec.lit.push(rec.lock);
@@ -636,6 +660,7 @@ var CemScenes = (function() {
 
     buildLanterns: function() {
       var L = this.level;
+      this.lanternGlows = [];      // { x, y, idx }: lamp halos the ground bake stamps
       var entry = CemTextures.sprite(this, 'lantern_post');
       for (var i = 0; i < L.tiles.length; i++) {
         var t = L.tiles[i];
@@ -656,20 +681,21 @@ var CemScenes = (function() {
           }
         }
         var depth = IsoModel.depthKey(t.gx, t.gy, LAYERS.token);
-        var glow = this.add.image(flameX, flameY, 'glow_warm').setDepth(depth + 0.1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(0.8);
-        glow.cemTweened = true;    // a lantern tile is lit from the start; the flicker tween owns this alpha
+        // the halo round the lamp is baked into the ground chunks (bakeChunk,
+        // this.lanternGlows): forty live additive glows among the props cost
+        // more than the rest of the frame. This image is never drawn; the
+        // puddles read it to mirror the lamp's light (reflectStatics).
+        var glow = this.make.image({ x: flameX, y: flameY, key: 'glow_warm', add: false })
+          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(LANTERN_GLOW_ALPHA).setScale(LANTERN_GLOW_SCALE);
+        glow.cemTweened = true;    // a lantern tile is lit from the start; its alpha is fixed
+        this.lanternGlows.push({ x: flameX, y: flameY, idx: i });
         // the flame tongue is 50 px of its 64 px frame: at FLAME_SCALE it is 16 px tall,
         // standing from just under the glass centre to just under its top, inside the lamp
         var flame = this.add.sprite(flameX, flameY + FLAME_LIFT, 'flame_0').setOrigin(0.5, 0.92).setScale(FLAME_SCALE).setDepth(depth + 0.2);
         // the warm floor pool is baked into the ground chunk (bakeChunk), so there is no pool object here
-        if (!REDUCED_MOTION) {
-          flame.play({ key: 'flame', startFrame: Math.floor(hash(t.gx, t.gy) * 8) });
-          var dur = 380 + hash(t.gy, t.gx) * 240;
-          glow.cemTween = this.tweens.add({ targets: glow, alpha: 0.95, scale: 0.95, duration: dur, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-        }
+        if (!REDUCED_MOTION) flame.play({ key: 'flame', startFrame: Math.floor(hash(t.gx, t.gy) * 8) });
         this.tileObjs[i].push(glow, flame);
         this.tileLights[i].push(glow, flame);
-        this.world.addProp(glow, t.gx, t.gy, { light: true });
         this.world.addProp(flame, t.gx, t.gy, { light: true });
       }
     },
@@ -1587,6 +1613,7 @@ var CemScenes = (function() {
         .setAlpha(0.42).setScale(1.5).setTint(0xffd9a0).setDepth(-99000).setVisible(false);
       this.owlLamp = this.add.image(0, 0, 'glow_warm').setBlendMode(Phaser.BlendModes.ADD)
         .setAlpha(0.35).setScale(0.8).setTint(0xffe2b0).setDepth(-98999).setVisible(false);
+      this.world.floorGlowLayer.add([this.owlPool, this.owlLamp]);
       if (!REDUCED_MOTION) {
         this.tweens.add({ targets: this.owlPool, alpha: 0.5, scale: 1.62, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
@@ -1789,7 +1816,8 @@ var CemScenes = (function() {
       if (this.world) {
         this.world.placeDynamic(st.sprite, st.gx, st.gy);
         this.world.placeDynamic(st.contact, st.gx, st.gy);
-        if (st.glow) this.world.placeDynamic(st.glow, st.gx, st.gy);
+        // additive: with the other glows over everything, not among the props
+        if (st.glow && !st.glowPlaced) { this.world.glowLayer.add(st.glow); st.glowPlaced = true; }
       }
     },
 
