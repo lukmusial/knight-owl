@@ -108,6 +108,9 @@ const Game = (function() {
     if (typeof Matching !== 'undefined') {
       Matching.init();
     }
+    if (typeof Sentences !== 'undefined') {
+      Sentences.init();
+    }
 
     // Bind UI event handlers
     UI.bindHandlers({
@@ -307,12 +310,14 @@ const Game = (function() {
     if (!gameInProgress) return;
 
     var matchingUsedIds = (typeof Matching !== 'undefined') ? Matching.getUsedIds() : [];
+    var sentenceUsedIds = (typeof Sentences !== 'undefined') ? Sentences.getUsedIds() : [];
     Save.saveGame(
       Player.exportState(),
       Dungeon.getState(),
       Questions.getUsedIds(),
       DungeonMap.getState(),
-      matchingUsedIds
+      matchingUsedIds,
+      { usedSentences: sentenceUsedIds }
     );
 
     // Also save profile progress
@@ -352,6 +357,9 @@ const Game = (function() {
     if (typeof Matching !== 'undefined') {
       Matching.init();
       Matching.resetUsed();
+    }
+    if (typeof Sentences !== 'undefined') {
+      Sentences.init();
     }
     Player.create(playerName);
     DungeonMap.init();
@@ -417,6 +425,10 @@ const Game = (function() {
         Matching.setUsedIds(saveData.usedMatchingQuestions);
       }
     }
+    if (typeof Sentences !== 'undefined') {
+      Sentences.init();
+      Sentences.setUsedIds(saveData.usedSentenceQuestions || []);
+    }
     if (saveData.mapState) {
       DungeonMap.loadState(saveData.mapState);
     } else {
@@ -473,8 +485,11 @@ const Game = (function() {
 
     // Check for monster encounter
     if (Dungeon.hasMonsterEncounter(roomId)) {
-      if (room.encounterType === 'matching' && typeof Matching !== 'undefined') {
+      var kind = Combat.encounterKind(room.encounterType, room.monster);
+      if (kind === 'matching' && typeof Matching !== 'undefined') {
         startMatchingEncounter(room.monster, room.depth, room.matchingCategory);
+      } else if (kind === 'sentence' && typeof Sentences !== 'undefined') {
+        startSentenceEncounter(room.monster, room.depth);
       } else {
         startCombat(room.monster, room.depth);
       }
@@ -724,6 +739,30 @@ const Game = (function() {
   }
 
   /**
+   * Start a sentence-builder encounter with a monster
+   * @param {Object} monster - Monster object
+   * @param {number} depth - Room depth for difficulty
+   */
+  function startSentenceEncounter(monster, depth) {
+    var question = Sentences.getSentence(Dungeon.getDepthDifficulty(depth));
+    if (!question) {
+      startCombat(monster, depth);
+      return;
+    }
+    UI.showSentenceModal({ monster: monster, question: question }, function(success) {
+      UI.hideSentenceModal();
+      var result = Combat.resolveChallenge(monster, success, {
+        questionId: question.id,
+        explanation: question.explanation,
+        correctAnswer: Sentences.canonical(question),
+        category: 'sentence',
+        dungeon: true
+      });
+      UI.showResultModal(result, handleResultContinue);
+    });
+  }
+
+  /**
    * Handle continuing after result modal
    * @param {Object} result - The combat result
    */
@@ -780,6 +819,9 @@ const Game = (function() {
     Questions.setWeightFunction(null);
     if (typeof Matching !== 'undefined') {
       Matching.resetUsed();
+    }
+    if (typeof Sentences !== 'undefined') {
+      Sentences.resetUsed();
     }
     if (typeof UserProfile !== 'undefined') {
       UserProfile.reset();

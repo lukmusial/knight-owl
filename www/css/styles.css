@@ -1158,6 +1158,160 @@ body {
 }
 
 /* ============================================ */
+/* SENTENCE BUILDER MODAL */
+/* ============================================ */
+
+.sentence-content {
+  text-align: center;
+}
+
+.sentence-instruction {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.sentence-prompt {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* The sentence being built: a lined strip the tiles sit on */
+.sentence-slots {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 56px;
+  padding: 6px 8px;
+  border-bottom: 2px dashed currentColor;
+}
+
+.sentence-placeholder {
+  opacity: 0.6;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+.sentence-stop {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-left: -4px;
+}
+
+.sentence-feedback {
+  min-height: 1.4em;
+  margin: 6px 0 0;
+  font-weight: bold;
+}
+.sentence-feedback.near { color: #b26a00; }
+.sentence-feedback.wrong { color: var(--color-error); }
+
+.sentence-pool {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px auto 10px;
+  max-width: 520px;
+}
+
+.sentence-tile {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 14px;
+  font-size: 1.1rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 2px solid var(--color-bg-lighter);
+  border-radius: var(--border-radius);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s, opacity 0.15s, border-color 0.15s;
+}
+.sentence-tile.first { text-transform: capitalize; }
+.sentence-tile:disabled { cursor: default; }
+/* a placed tile leaves its outline in the pool so the others do not jump */
+.sentence-tile.used {
+  opacity: 0.18;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+}
+.sentence-tile.dragging { opacity: 0.3; }
+.sentence-ghost {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  margin: 0;
+  transform: scale(1.08) rotate(-2deg);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
+  cursor: grabbing;
+}
+
+.sentence-tile.mark-wrong {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px var(--color-error), 0 0 10px rgba(244, 67, 54, 0.7);
+}
+.sentence-tile.mark-misplaced {
+  border-color: #ff9800;
+  box-shadow: 0 0 0 2px #ff9800, 0 0 10px rgba(255, 152, 0, 0.7);
+}
+
+/* where a word is missing */
+.sentence-gap {
+  display: inline-block;
+  width: 34px;
+  height: 40px;
+  border: 2px dashed #ff9800;
+  border-radius: 6px;
+  animation: sentenceGapPulse 1s ease-in-out infinite;
+}
+@keyframes sentenceGapPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* insertion point while a tile is dragged over the strip */
+.sentence-caret {
+  position: absolute;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-primary);
+  box-shadow: 0 0 6px var(--color-primary);
+  pointer-events: none;
+}
+
+.sentence-slots.correct .sentence-tile {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 2px var(--color-success), 0 0 10px rgba(76, 175, 80, 0.7);
+}
+.sentence-slots.nudge { animation: sentenceNudge 0.4s ease; }
+@keyframes sentenceNudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.sentence-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.sentence-actions .btn { min-width: 120px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sentence-gap,
+  .sentence-slots.nudge { animation: none; }
+  .sentence-ghost { transform: none; }
+}
+
+/* ============================================ */
 /* TREASURE MODAL */
 /* ============================================ */
 

@@ -696,3 +696,41 @@ body.on-game #victory-screen {
 .cem-map-dot.great { background: #8a5cc7; border-radius: 2px; }
 .cem-map-dot.monster { background: #e14b4b; }
 .cem-map-hint { flex-basis: 100%; opacity: 0.85; }
+
+/* Sentence builder tiles: bronze word plaques on the parchment */
+body.proto .sentence-tile,
+body.on-game .sentence-tile {
+  font-family: var(--hud-font-title);
+  color: var(--hud-parchment);
+  background: linear-gradient(180deg, var(--hud-bronze-light), var(--hud-bronze) 55%, #4a3114);
+  border: 2px solid var(--hud-gold);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.5), 0 3px 6px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 2px #000;
+}
+body.proto .sentence-tile.mark-wrong,
+body.on-game .sentence-tile.mark-wrong { border-color: #ff5a4a; box-shadow: 0 0 0 2px #ff5a4a, 0 0 12px rgba(255, 90, 74, 0.8); }
+body.proto .sentence-tile.mark-misplaced,
+body.on-game .sentence-tile.mark-misplaced { border-color: #ffa726; box-shadow: 0 0 0 2px #ffa726, 0 0 12px rgba(255, 167, 38, 0.8); }
+body.proto .sentence-slots.correct .sentence-tile,
+body.on-game .sentence-slots.correct .sentence-tile { border-color: #7ddc6f; box-shadow: 0 0 0 2px #7ddc6f, 0 0 12px rgba(125, 220, 111, 0.8); }
+body.proto .sentence-section,
+body.on-game .sentence-section { color: var(--hud-ink); }
+body.proto .sentence-prompt,
+body.on-game .sentence-prompt { color: var(--hud-ink); }
+body.proto .sentence-instruction .label-en,
+body.on-game .sentence-instruction .label-en,
+body.proto .sentence-placeholder .label-en,
+body.on-game .sentence-placeholder .label-en,
+body.proto .sentence-feedback .label-en,
+body.on-game .sentence-feedback .label-en { color: var(--hud-ink); text-shadow: none; }
+body.proto .sentence-instruction .label-pl,
+body.on-game .sentence-instruction .label-pl,
+body.proto .sentence-placeholder .label-pl,
+body.on-game .sentence-placeholder .label-pl,
+body.proto .sentence-feedback .label-pl,
+body.on-game .sentence-feedback .label-pl { color: #6b4a1a; text-shadow: none; }
+body.proto .sentence-feedback.near .label-en,
+body.on-game .sentence-feedback.near .label-en { color: #8a4b00; }
+body.proto .sentence-feedback.wrong .label-en,
+body.on-game .sentence-feedback.wrong .label-en { color: #7a1f1f; }

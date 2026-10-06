@@ -138,6 +138,7 @@ var ProtoSession = (function() {
       Matching.init();
       Matching.resetUsed();
     }
+    if (typeof Sentences !== 'undefined') Sentences.init();
     Player.reset();
     Player.create(name);
     DungeonMap.init();
@@ -188,6 +189,10 @@ var ProtoSession = (function() {
       Matching.init();
       if (data.usedMatchingQuestions) Matching.setUsedIds(data.usedMatchingQuestions);
     }
+    if (typeof Sentences !== 'undefined') {
+      Sentences.init();
+      Sentences.setUsedIds(data.usedSentenceQuestions || []);
+    }
     if (level === 'cemetery') {
       currentLevel = 'cemetery';
       DungeonMap.init();
@@ -234,6 +239,7 @@ var ProtoSession = (function() {
     if (typeof Save === 'undefined') return false;
     var matchingIds = (typeof Matching !== 'undefined' && Matching.getUsedIds) ? Matching.getUsedIds() : [];
     var extra = { level: currentLevel };
+    if (typeof Sentences !== 'undefined') extra.usedSentences = Sentences.getUsedIds();
     if (currentLevel === 'cemetery' && cemeteryLevel) extra.cemetery = CemModel.exportState(cemeteryLevel);
     Save.saveGame(Player.exportState(), Dungeon.getState(), Questions.getUsedIds(), DungeonMap.getState(), matchingIds, extra);
     if (typeof UserProfile !== 'undefined') UserProfile.save();

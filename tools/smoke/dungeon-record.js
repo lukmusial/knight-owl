@@ -8,11 +8,12 @@
  *   node tools/smoke/dungeon-record.js --view iso     [--out docs/videos/iso-dragon.mp4]
  *
  * It plays with the controls a player has: the classic page's direction
- * buttons, the isometric view's room taps, and the quiz, matching and
+ * buttons, the isometric view's room taps, and the quiz, matching, sentence and
  * treasure cards answered on screen. Frames come over the DevTools
  * screencast with their own timestamps, so the encode keeps real time.
  * Chrome stays headless and renders on the GPU through Metal; pass
- * --software where that is unavailable. No sound.
+ * --software where that is unavailable. No sound. --enc sentence (or quiz,
+ * matching) opens every encounter as that card.
  */
 const path = require('path');
 const fs = require('fs');
@@ -31,6 +32,8 @@ const CRF = opt('--crf', '31');
 const OUT = path.resolve(ROOT, opt('--out', 'docs/videos/' + VIEW + '-dragon.mp4'));
 const SOFTWARE = args.indexOf('--software') !== -1;
 const KEEP = args.indexOf('--keep-frames') !== -1;
+// --enc quiz|matching|sentence opens every encounter as that kind of card
+const ENC = opt('--enc', '');
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const log = (...m) => console.log(...m);
@@ -66,7 +69,7 @@ async function state(page) {
       busy = !bar || bar.classList.contains('hidden') || !bar.querySelector('.dir-btn:not([disabled])');
     }
     return {
-      quiz: vis('quiz-modal'), matching: vis('matching-modal'), result: vis('result-modal'),
+      quiz: vis('quiz-modal'), matching: vis('matching-modal'), sentence: vis('sentence-modal'), result: vis('result-modal'),
       treasure: vis('treasure-modal'), victory: vis('victory-screen'),
       room: typeof Player !== 'undefined' ? Player.getCurrentRoom() : null,
       busy: busy
@@ -74,7 +77,7 @@ async function state(page) {
   }, VIEW);
 }
 
-function anyCard(s) { return s.quiz || s.matching || s.result || s.treasure; }
+function anyCard(s) { return s.quiz || s.matching || s.sentence || s.result || s.treasure; }
 
 /** True once a quiz question is fully painted and clickable */
 async function quizReady(page) {
@@ -96,6 +99,31 @@ async function playCard(page, timeoutMs) {
   while (Date.now() < deadline) {
     const s = await state(page);
     if (s.victory) return 'victory';
+    if (s.sentence) {
+      // build the sentence tile by tile, then confirm it
+      const words = await page.evaluate(() => {
+        const q = Sentences.getCurrent();
+        const st = Sentences.getState();
+        return q && !st.finished && st.placed.length === 0 ? q.answers[0] : null;
+      });
+      if (!words) { await wait(400); continue; }
+      for (const w of words) {
+        await page.evaluate(w => {
+          const b = Array.from(document.querySelectorAll('#sentence-pool button.sentence-tile'))
+            .find(e => e.textContent.trim() === w);
+          if (b && !b.disabled) b.click();
+        }, w);
+        await wait(450);
+      }
+      await wait(700);
+      await page.evaluate(() => {
+        const b = document.getElementById('sentence-confirm-btn');
+        if (b && !b.disabled) b.click();
+      });
+      answered++;
+      await wait(900);
+      continue;
+    }
     if (s.matching) {
       const pairs = await page.evaluate(() =>
         Array.from(document.querySelectorAll('#matching-modal .matching-item[data-side="left"]:not(.matched)'))
@@ -220,13 +248,13 @@ async function moveTo(page, roomId) {
 
 async function start(page) {
   if (VIEW === 'iso') {
-    await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Owl&action=new&level=dungeon&music=none',
+    await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Owl&action=new&level=dungeon&music=none' + (ENC ? '&enc=' + ENC : ''),
       { waitUntil: 'load' });
     await page.waitForFunction(() => typeof ProtoIso !== 'undefined' && ProtoIso.getScene() && !ProtoIso.isBusy(),
       { timeout: 60000 });
     return;
   }
-  await page.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'load' });
+  await page.goto('http://localhost:' + PORT + '/index.html' + (ENC ? '?enc=' + ENC : ''), { waitUntil: 'load' });
   await page.waitForSelector('#new-game-btn', { visible: true, timeout: 30000 });
   await page.evaluate(() => {
     const card = document.querySelector('.view-card[data-view="classic"]');

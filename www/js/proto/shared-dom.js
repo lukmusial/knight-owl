@@ -2,7 +2,7 @@
  * ProtoSharedDom
  * Shared modal markup for the standalone prototype pages (www/proto/*.html).
  * Mirrors the modal/victory markup of www/index.html so the prototypes can
- * reuse UI.showQuizModal / showResultModal / showMatchingModal /
+ * reuse UI.showQuizModal / showResultModal / showMatchingModal / showSentenceModal /
  * showTreasureModal / showVictoryScreen unchanged. Injected as a JS string
  * (no fetch) so it works on file://, capacitor:// and http alike.
  *
@@ -61,6 +61,40 @@ var ProtoSharedDom = (function() {
     "      <div id=\"matching-right\" class=\"matching-column\">",
     "        <!-- Right column items -->",
     "      </div>",
+    "    </div>",
+    "  </div>",
+    "</div>",
+    "",
+    "<!-- Sentence Builder Modal -->",
+    "<div id=\"sentence-modal\" class=\"modal hidden\">",
+    "  <div class=\"modal-content sentence-content\">",
+    "    <div class=\"monster-display\">",
+    "      <img id=\"sentence-monster-image\" src=\"assets/placeholder.svg\" alt=\"Monster\">",
+    "      <h2 id=\"sentence-monster-name\">Monster</h2>",
+    "      <p id=\"sentence-monster-description\" class=\"monster-description\">Description</p>",
+    "    </div>",
+    "",
+    "    <div class=\"question-section sentence-section\">",
+    "      <p class=\"sentence-instruction\">",
+    "        <span class=\"label-en\">Say it in Polish:</span>",
+    "        <span class=\"label-pl\">Powiedz to po polsku:</span>",
+    "      </p>",
+    "      <p id=\"sentence-prompt\" class=\"sentence-prompt\">Prompt</p>",
+    "      <div id=\"sentence-slots\" class=\"sentence-slots\"></div>",
+    "      <p id=\"sentence-feedback\" class=\"sentence-feedback\"></p>",
+    "    </div>",
+    "",
+    "    <div id=\"sentence-pool\" class=\"sentence-pool\"></div>",
+    "",
+    "    <div class=\"sentence-actions\">",
+    "      <button id=\"sentence-clear-btn\" class=\"btn sentence-clear\">",
+    "        <span class=\"btn-en\">Clear</span>",
+    "        <span class=\"btn-pl\">Wyczyść</span>",
+    "      </button>",
+    "      <button id=\"sentence-confirm-btn\" class=\"btn btn-primary sentence-confirm\" disabled>",
+    "        <span class=\"btn-en\">Confirm</span>",
+    "        <span class=\"btn-pl\">Zatwierdź</span>",
+    "      </button>",
     "    </div>",
     "  </div>",
     "</div>",
@@ -128,7 +162,7 @@ var ProtoSharedDom = (function() {
   var SFX_TOGGLE_HTML = '<button id="sfx-toggle" class="sfx-toggle" type="button" aria-label="Sound on/off" aria-pressed="false">&#x1f50a;</button>';
 
   // Every id ui.js caches for the modals and victory screen
-  var REQUIRED_IDS = ["quiz-modal", "monster-image", "monster-name", "monster-description", "dragon-progress", "question-text", "speak-word-btn", "sentence-text", "hint-text", "answers-container", "matching-modal", "matching-monster-image", "matching-monster-name", "matching-monster-description", "matching-instruction", "matching-left", "matching-right", "result-modal", "result-title", "result-message", "result-explanation", "loot-container", "continue-btn", "treasure-modal", "treasure-image", "treasure-title", "treasure-description", "treasure-loot-container", "treasure-continue-btn", "victory-screen", "victory-stats", "play-again-btn"];
+  var REQUIRED_IDS = ["quiz-modal", "monster-image", "monster-name", "monster-description", "dragon-progress", "question-text", "speak-word-btn", "sentence-text", "hint-text", "answers-container", "matching-modal", "matching-monster-image", "matching-monster-name", "matching-monster-description", "matching-instruction", "matching-left", "matching-right", "sentence-modal", "sentence-monster-image", "sentence-monster-name", "sentence-monster-description", "sentence-prompt", "sentence-slots", "sentence-feedback", "sentence-pool", "sentence-clear-btn", "sentence-confirm-btn", "result-modal", "result-title", "result-message", "result-explanation", "loot-container", "continue-btn", "treasure-modal", "treasure-image", "treasure-title", "treasure-description", "treasure-loot-container", "treasure-continue-btn", "victory-screen", "victory-stats", "play-again-btn"];
 
   /**
    * Inject the shared markup into a container and initialize the UI module

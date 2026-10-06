@@ -716,6 +716,29 @@ TestRunner.suite('CemModel', () => {
     });
   });
 
+  TestRunner.test('sentence encounters only turn quizzes into sentences, the Reaper stays a quiz', () => {
+    let sentences = 0, quizzes = 0;
+    [17, 18, 19, 20, 22, 31, 42, 57, 63, 77].forEach(function(seed) {
+      const none = gen(seed, { SENTENCE_SHARE: 0 });
+      const some = gen(seed);
+      TestRunner.assertEqual(kinds(some), kinds(none), 'same ground for seed ' + seed);
+      some.monsters.forEach(function(m, i) {
+        const o = none.monsters[i];
+        TestRunner.assert(m.uid === o.uid && m.id === o.id && m.gx === o.gx && m.gy === o.gy && m.difficulty === o.difficulty,
+          'seed ' + seed + ' ' + m.uid + ' is the same monster in the same place');
+        if (o.encounterType === 'matching') {
+          TestRunner.assertEqual(m.encounterType, 'matching', 'matching encounters are untouched');
+        } else {
+          TestRunner.assert(m.encounterType === 'quiz' || m.encounterType === 'sentence', m.uid + ' quiz or sentence');
+          if (m.encounterType === 'sentence') sentences++; else quizzes++;
+        }
+      });
+      TestRunner.assertEqual(some.monstersByUid.boss.encounterType, 'quiz', 'the Reaper asks quiz questions');
+    });
+    TestRunner.assert(sentences > 0, 'some monsters ask for a sentence (' + sentences + ')');
+    TestRunner.assert(quizzes > sentences, 'most of the rest still quiz (' + quizzes + ' vs ' + sentences + ')');
+  });
+
   TestRunner.test('the far ring can hold a stray from right by the gate', () => {
     let fromGate = 0;
     [17, 18, 19, 20, 22, 31, 42, 57, 63, 77].forEach(function(seed) {

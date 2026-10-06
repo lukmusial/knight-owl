@@ -189,6 +189,7 @@ loadScript('www/js/data/vocabulary-reverse.js');
 loadScript('www/js/data/grammar.js');
 loadScript('www/js/data/matching.js');
 loadScript('www/js/data/pronoun-matching.js');
+loadScript('www/js/data/sentences.js');
 loadScript('www/js/data/monsters.js');
 
 // Maze generator library
@@ -216,6 +217,7 @@ loadScript('www/js/platform-init.js');
 loadScript('www/js/modules/profile.js');
 loadScript('www/js/modules/questions.js');
 loadScript('www/js/modules/matching.js');
+loadScript('www/js/modules/sentences.js');
 loadScript('www/js/modules/player.js');
 loadScript('www/js/modules/save.js');
 loadScript('www/js/modules/descriptions.js');
@@ -254,6 +256,8 @@ loadScript('tests/bdd-extensions.js');
 loadScript('tests/profile.test.js');
 loadScript('tests/matching.test.js');
 loadScript('tests/matching-data.test.js');
+loadScript('tests/sentences.test.js');
+loadScript('tests/sentences-data.test.js');
 loadScript('tests/questions.test.js');
 loadScript('tests/player.test.js');
 loadScript('tests/save.test.js');

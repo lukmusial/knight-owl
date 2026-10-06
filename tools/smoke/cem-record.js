@@ -58,7 +58,7 @@ async function state(page) {
     const vis = id => { const el = document.getElementById(id); return !!el && !el.classList.contains('hidden'); };
     const L = typeof ProtoCem !== 'undefined' && ProtoCem.getLevel();
     return {
-      quiz: vis('quiz-modal'), matching: vis('matching-modal'), result: vis('result-modal'), victory: vis('victory-screen'),
+      quiz: vis('quiz-modal'), matching: vis('matching-modal'), sentence: vis('sentence-modal'), result: vis('result-modal'), victory: vis('victory-screen'),
       busy: typeof ProtoCem !== 'undefined' ? ProtoCem.isBusy() : true,
       owl: L ? { gx: L.owl.gx, gy: L.owl.gy } : null,
       keys: L ? CemModel.keyPartCount(L) : 0,
@@ -79,7 +79,7 @@ async function quizReady(page) {
 
 /**
  * Play out whatever encounter is on screen, correctly, at a watchable pace:
- * quiz cards, matching boards and the Reaper's three in a row all end the
+ * quiz cards, matching boards, sentence cards and the Reaper's three in a row all end the
  * same way, on the result card and its continue button.
  */
 async function playEncounter(page, timeoutMs) {
@@ -88,6 +88,31 @@ async function playEncounter(page, timeoutMs) {
   while (Date.now() < deadline) {
     const st = await state(page);
     if (st.victory) return 'victory';
+    if (st.sentence) {
+      // build the sentence tile by tile, then confirm it
+      const words = await page.evaluate(() => {
+        const q = Sentences.getCurrent();
+        const st = Sentences.getState();
+        return q && !st.finished && st.placed.length === 0 ? q.answers[0] : null;
+      });
+      if (!words) { await wait(400); continue; }
+      for (const w of words) {
+        await page.evaluate(w => {
+          const b = Array.from(document.querySelectorAll('#sentence-pool button.sentence-tile'))
+            .find(e => e.textContent.trim() === w);
+          if (b && !b.disabled) b.click();
+        }, w);
+        await wait(450);
+      }
+      await wait(700);
+      await page.evaluate(() => {
+        const b = document.getElementById('sentence-confirm-btn');
+        if (b && !b.disabled) b.click();
+      });
+      answered++;
+      await wait(900);
+      continue;
+    }
     if (st.matching) {
       const pairs = await page.evaluate(() =>
         Array.from(document.querySelectorAll('#matching-modal .matching-item[data-side="left"]:not(.matched)'))
@@ -137,7 +162,7 @@ async function playEncounter(page, timeoutMs) {
     }
     if (!st.busy) { await wait(500); const s2 = await state(page);
       if (s2.victory) return 'victory';
-      if (!s2.busy && !s2.quiz && !s2.matching && !s2.result) return answered ? 'done' : 'none'; }
+      if (!s2.busy && !s2.quiz && !s2.matching && !s2.sentence && !s2.result) return answered ? 'done' : 'none'; }
     await wait(400);
   }
   return 'timeout';
@@ -148,7 +173,7 @@ async function encounterStarts(page, ms) {
   const deadline = Date.now() + ms;
   while (Date.now() < deadline) {
     const st = await state(page);
-    if (st.quiz || st.matching || st.result) return true;
+    if (st.quiz || st.matching || st.sentence || st.result) return true;
     await wait(250);
   }
   return false;
@@ -161,7 +186,7 @@ async function walkTo(page, target, label) {
   let quiet = false;
   while (Date.now() < deadline) {
     const st = await state(page);
-    if (st.quiz || st.matching || st.result) return 'encounter';
+    if (st.quiz || st.matching || st.sentence || st.result) return 'encounter';
     if (st.owl.gx === target.gx && st.owl.gy === target.gy) return 'arrived';
     const step = await page.evaluate(t => {
       const L = ProtoCem.getLevel();
@@ -196,7 +221,7 @@ async function walkTo(page, target, label) {
       const s2 = await page.evaluate(p => {
         const vis = id => { const el = document.getElementById(id); return !!el && !el.classList.contains('hidden'); };
         const L = ProtoCem.getLevel();
-        return { hit: vis('quiz-modal') || vis('matching-modal') || vis('result-modal'),
+        return { hit: vis('quiz-modal') || vis('matching-modal') || vis('sentence-modal') || vis('result-modal'),
           there: L.owl.gx === p.gx && L.owl.gy === p.gy, walking: !!(L.owl.path && L.owl.path.length) };
       }, step);
       if (s2.hit) return 'encounter';
@@ -294,7 +319,7 @@ async function main() {
         .catch(() => {});
       await wait(900);
       const at = await state(page);
-      if (at.quiz || at.matching || at.result) { await playEncounter(page); continue; }
+      if (at.quiz || at.matching || at.sentence || at.result) { await playEncounter(page); continue; }
       await page.evaluate(d => ProtoCem.onTileTap(d.gx, d.gy), plan.big.door);
       opened = await page.waitForFunction(
         () => !document.getElementById('quiz-modal').classList.contains('hidden'), { timeout: 15000 })
