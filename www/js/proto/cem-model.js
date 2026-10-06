@@ -39,6 +39,8 @@ var CemModel = (function() {
     REVEAL_RADIUS: 4,          // tiles from the great tomb's door at which the Reaper rises
     LOCKED_TOAST_MS: 1500,
     MATCHING_SHARE: 0.3,
+    // share of the quiz encounters that build a sentence from word tiles instead
+    SENTENCE_SHARE: 0.25,
     // share of middle- and far-ring wanderers that are strays from a nearer ring
     STRAY_SHARE: 0.2,
     MAX_ATTEMPTS: 20,
@@ -927,10 +929,13 @@ var CemModel = (function() {
     // 12. monsters
     var roster = rosterOf(opts);
     var cyclers = { 1: makeCycler(rng, poolFor(roster, 1)), 2: makeCycler(rng, poolFor(roster, 2)), 3: makeCycler(rng, poolFor(roster, 3)) };
+    // the sentence draw has a stream of its own, so the rest of a seed's level is unchanged
+    var sentenceRng = makeRng(mixSeed(seed, attempt) + 104729);
     function encounterTypeFor() {
       if (rng() < cfg.MATCHING_SHARE) {
         return { encounterType: 'matching', matchingCategory: rng() < 0.5 ? 'matching' : 'pronoun_matching' };
       }
+      if (sentenceRng() < cfg.SENTENCE_SHARE) return { encounterType: 'sentence', matchingCategory: null };
       return { encounterType: 'quiz', matchingCategory: null };
     }
     var homeCands = [];

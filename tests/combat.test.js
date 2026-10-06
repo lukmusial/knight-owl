@@ -673,4 +673,37 @@ TestRunner.suite('Combat Module', () => {
     const dr = Combat.submitAnswer(wrong2);
     TestRunner.assert(dr.message.en.indexOf('dragon') !== -1, 'dragon retreat text kept');
   });
+
+  TestRunner.test('resolveChallenge: a passed sentence defeats the monster and clears the room', () => {
+    setup();
+    var monster = { id: 'goblin', name: 'Goblin', loot: [{ name: 'Coin', namePL: 'Moneta', value: 3 }] };
+    var before = Player.getMonstersDefeated();
+    var room = Dungeon.getEntranceId();
+    Player.moveTo(room);
+    var r = Combat.resolveChallenge(monster, true, {
+      questionId: 'sent_001', explanation: 'x', correctAnswer: 'Kot pije mleko.', category: 'sentence', dungeon: true
+    });
+    TestRunner.assert(r.success && r.defeated, 'success and defeated');
+    TestRunner.assertEqual(Player.getMonstersDefeated(), before + 1, 'counts the defeat');
+    TestRunner.assertEqual(r.loot.length, 1, 'carries the loot');
+    TestRunner.assert(Dungeon.getRoom(room).cleared, 'room cleared');
+    TestRunner.assertEqual(r.sentence.replace('___', r.correctAnswer), 'Kot pije mleko.', 'result card reads the whole sentence');
+    TestRunner.assertEqual(r.category, 'sentence', 'category passed through');
+  });
+
+  TestRunner.test('resolveChallenge: a failed sentence pushes back and records a wrong answer', () => {
+    setup();
+    var stats = Player.getQuestionStats();
+    var r = Combat.resolveChallenge({ id: 'goblin', name: 'Goblin', loot: [] }, false, { dungeon: true });
+    TestRunner.assert(!r.success && r.pushedBack, 'failure pushes back');
+    TestRunner.assertEqual(Player.getQuestionStats().total, stats.total + 1, 'attempt recorded');
+    TestRunner.assertEqual(Player.getQuestionStats().correct, stats.correct, 'not counted correct');
+  });
+
+  TestRunner.test('encounterKind keeps the model type and puts bosses on the quiz', () => {
+    TestRunner.assertEqual(Combat.encounterKind('sentence', { id: 'goblin' }), 'sentence', 'sentence kept');
+    TestRunner.assertEqual(Combat.encounterKind('matching', { id: 'goblin' }), 'matching', 'matching kept');
+    TestRunner.assertEqual(Combat.encounterKind(undefined, { id: 'goblin' }), 'quiz', 'default quiz');
+    TestRunner.assertEqual(Combat.encounterKind('sentence', { id: 'reaper', boss: true }), 'quiz', 'boss quiz');
+  });
 });

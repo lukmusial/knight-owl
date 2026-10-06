@@ -13,6 +13,9 @@ const Dungeon = (function() {
     MAX_CONNECTIONS: 4
   };
 
+  // Share of the non-matching monster rooms that are sentence-builder encounters
+  const SENTENCE_SHARE = 0.25;
+
   // Current dungeon state
   let rooms = {};
   let entranceId = null;
@@ -236,6 +239,9 @@ const Dungeon = (function() {
         room.encounterType = 'matching';
         room.matchingCategory = (matchingCount % 2 === 0) ? 'matching' : 'pronoun_matching';
         matchingCount++;
+      } else if (typeof Sentences !== 'undefined' && Math.random() < SENTENCE_SHARE) {
+        // a quarter of the rest build a sentence from word tiles
+        room.encounterType = 'sentence';
       } else {
         room.encounterType = 'quiz';
       }

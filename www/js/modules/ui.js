@@ -299,6 +299,18 @@ const UI = (function() {
       matchingLeft: document.getElementById('matching-left'),
       matchingRight: document.getElementById('matching-right'),
 
+      // Sentence builder modal elements
+      sentenceModal: document.getElementById('sentence-modal'),
+      sentenceMonsterImage: document.getElementById('sentence-monster-image'),
+      sentenceMonsterName: document.getElementById('sentence-monster-name'),
+      sentenceMonsterDescription: document.getElementById('sentence-monster-description'),
+      sentencePrompt: document.getElementById('sentence-prompt'),
+      sentenceSlots: document.getElementById('sentence-slots'),
+      sentenceFeedback: document.getElementById('sentence-feedback'),
+      sentencePool: document.getElementById('sentence-pool'),
+      sentenceClearBtn: document.getElementById('sentence-clear-btn'),
+      sentenceConfirmBtn: document.getElementById('sentence-confirm-btn'),
+
       // Sound toggle
       sfxToggle: document.getElementById('sfx-toggle')
     };
@@ -1589,6 +1601,319 @@ const UI = (function() {
     if (typeof MonsterStage !== 'undefined') MonsterStage.release(elements.matchingMonsterImage);
   }
 
+  // ---- Sentence Builder Modal ----
+
+  // A press that moves farther than this is a drag, anything shorter a tap
+  var SENTENCE_DRAG_PX = 6;
+  // How long the marked tiles stay up before the monster strikes on a final miss
+  var SENTENCE_WRONG_HOLD_MS = 1400;
+  var sentenceSession = null;   // { onComplete, busy, drag, suppressClickUntil }
+
+  function escapeTileText(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /**
+   * Show the sentence builder for an encounter
+   * @param {Object} encounter - { monster, question } (question from Sentences.getSentence)
+   * @param {Function} onComplete - Called with (success, verdict) once the sentence is judged for good
+   */
+  function showSentenceModal(encounter, onComplete) {
+    var monster = encounter.monster;
+    var q = encounter.question;
+    if (!elements.sentenceModal || !q || typeof Sentences === 'undefined') return;
+
+    var img = elements.sentenceMonsterImage;
+    if (img) {
+      if (hasFx()) FX.resetMonster(img);
+      if (typeof MonsterStage !== 'undefined' && monster.id) MonsterStage.show(img, monster.id);
+      else {
+        img.onerror = function() {
+          img.onerror = null;
+          img.src = 'assets/placeholder.svg';
+        };
+        img.src = (monster.id ? 'assets/' + monster.id + '.jpg' : 'assets/placeholder.svg');
+      }
+    }
+    if (elements.sentenceMonsterName) {
+      elements.sentenceMonsterName.innerHTML =
+        '<span class="label-en">' + (monster.name || 'Monster') + '</span>' +
+        '<span class="label-pl">' + (monster.namePL || monster.name || 'Potwór') + '</span>';
+    }
+    if (elements.sentenceMonsterDescription) {
+      elements.sentenceMonsterDescription.innerHTML =
+        '<span class="desc-en">' + (monster.description || '') + '</span>' +
+        '<span class="desc-pl">' + (monster.descriptionPL || '') + '</span>';
+    }
+    if (elements.sentencePrompt) elements.sentencePrompt.textContent = q.prompt;
+
+    Sentences.start(q);
+    sentenceSession = { onComplete: onComplete, busy: false, drag: null, suppressClickUntil: 0 };
+    wireSentenceModal();
+    if (elements.sentenceSlots) elements.sentenceSlots.classList.remove('correct', 'nudge');
+    setSentenceFeedback(null);
+    renderSentence();
+
+    hideDirectionBar();
+    elements.sentenceModal.classList.remove('hidden');
+    playSfx('reveal');
+  }
+
+  /** Draw the sentence strip and the word pool from the Sentences state */
+  function renderSentence() {
+    if (!elements.sentenceSlots || !elements.sentencePool || typeof Sentences === 'undefined') return;
+    var st = Sentences.getState();
+    var words = {};
+    st.tiles.forEach(function(t) { words[t.id] = t.word; });
+    var locked = st.finished || !sentenceSession || sentenceSession.busy;
+    var gapAt = {};
+    st.gaps.forEach(function(i) { gapAt[i] = true; });
+    var gapHtml = '<span class="sentence-gap" aria-label="missing word"></span>';
+
+    var html = '';
+    if (st.placed.length === 0) {
+      html = '<span class="sentence-placeholder">' +
+        '<span class="label-en">Tap or drag the words here</span>' +
+        '<span class="label-pl">Stuknij lub przeciągnij słowa tutaj</span></span>';
+    } else {
+      st.placed.forEach(function(id, i) {
+        if (gapAt[i]) html += gapHtml;
+        var cls = 'sentence-tile' + (i === 0 ? ' first' : '') + (st.marks[id] ? ' mark-' + st.marks[id] : '');
+        html += '<button type="button" class="' + cls + '" data-tile="' + id + '"' + (locked ? ' disabled' : '') + '>' +
+          escapeTileText(words[id]) + '</button>';
+      });
+      if (gapAt[st.placed.length]) html += gapHtml;
+      html += '<span class="sentence-stop">.</span>';
+    }
+    html += '<span class="sentence-caret hidden"></span>';
+    elements.sentenceSlots.innerHTML = html;
+
+    elements.sentencePool.innerHTML = st.tiles.map(function(t) {
+      if (t.placed) return '<span class="sentence-tile used" aria-hidden="true">' + escapeTileText(t.word) + '</span>';
+      return '<button type="button" class="sentence-tile" data-tile="' + t.id + '"' + (locked ? ' disabled' : '') + '>' +
+        escapeTileText(t.word) + '</button>';
+    }).join('');
+
+    var empty = st.placed.length === 0;
+    if (elements.sentenceConfirmBtn) elements.sentenceConfirmBtn.disabled = locked || empty;
+    if (elements.sentenceClearBtn) elements.sentenceClearBtn.disabled = locked || empty;
+  }
+
+  /** @param {string|null} kind - 'near', 'wrong' or null to clear */
+  function setSentenceFeedback(kind) {
+    var el = elements.sentenceFeedback;
+    if (!el) return;
+    var text = {
+      near: ['Almost! Fix the marked words.', 'Prawie! Popraw zaznaczone słowa.'],
+      wrong: ['Not quite...', 'Nie całkiem...']
+    }[kind];
+    el.className = 'sentence-feedback' + (kind ? ' ' + kind : '');
+    el.innerHTML = text
+      ? '<span class="label-en">' + text[0] + '</span><span class="label-pl">' + text[1] + '</span>'
+      : '';
+  }
+
+  /** Bind the modal's handlers once per DOM (UI.init may run again on the same markup) */
+  function wireSentenceModal() {
+    var modal = elements.sentenceModal;
+    if (!modal || modal.dataset.wired === '1') return;
+    modal.dataset.wired = '1';
+
+    modal.addEventListener('click', function(e) {
+      var tile = e.target.closest ? e.target.closest('button.sentence-tile') : null;
+      if (!tile || !sentenceSession || sentenceSession.busy) return;
+      if (Date.now() < sentenceSession.suppressClickUntil) return;
+      var id = tile.dataset.tile;
+      var inSentence = !!tile.closest('#sentence-slots');
+      var changed = inSentence ? Sentences.remove(id) : Sentences.append(id);
+      if (changed) {
+        playSfx('tap');
+        if (hasFx()) FX.haptic('onSelection');
+        renderSentence();
+      }
+    });
+
+    modal.addEventListener('pointerdown', function(e) {
+      var tile = e.target.closest ? e.target.closest('button.sentence-tile') : null;
+      if (!tile || tile.disabled || !sentenceSession || sentenceSession.busy) return;
+      if (e.button !== undefined && e.button > 0) return;
+      var r = tile.getBoundingClientRect();
+      sentenceSession.drag = {
+        id: tile.dataset.tile, el: tile, pointerId: e.pointerId,
+        startX: e.clientX, startY: e.clientY,
+        offsetX: e.clientX - r.left, offsetY: e.clientY - r.top,
+        active: false, ghost: null
+      };
+      try { tile.setPointerCapture(e.pointerId); } catch (err) { /* older WebViews */ }
+    });
+
+    modal.addEventListener('pointermove', function(e) {
+      var d = sentenceSession && sentenceSession.drag;
+      if (!d || d.pointerId !== e.pointerId) return;
+      if (!d.active) {
+        if (Math.abs(e.clientX - d.startX) + Math.abs(e.clientY - d.startY) < SENTENCE_DRAG_PX) return;
+        d.active = true;
+        var ghost = d.el.cloneNode(true);
+        ghost.className = d.el.className.replace(/\bmark-\w+/g, '') + ' sentence-ghost';
+        ghost.removeAttribute('data-tile');
+        ghost.style.width = d.el.offsetWidth + 'px';
+        elements.sentenceModal.appendChild(ghost);
+        d.ghost = ghost;
+        d.el.classList.add('dragging');
+      }
+      e.preventDefault();
+      d.ghost.style.left = (e.clientX - d.offsetX) + 'px';
+      d.ghost.style.top = (e.clientY - d.offsetY) + 'px';
+      showSentenceCaret(sentenceDropTarget(e.clientX, e.clientY));
+    });
+
+    function endDrag(e, cancelled) {
+      var d = sentenceSession && sentenceSession.drag;
+      if (!d || d.pointerId !== e.pointerId) return;
+      sentenceSession.drag = null;
+      if (d.ghost && d.ghost.parentNode) d.ghost.parentNode.removeChild(d.ghost);
+      if (!d.active) return;   // a tap: the click handler does the rest
+      sentenceSession.suppressClickUntil = Date.now() + 400;
+      var target = cancelled ? null : sentenceDropTarget(e.clientX, e.clientY);
+      var changed = false;
+      if (target && target.zone === 'slots') changed = Sentences.place(d.id, target.index);
+      else if (target && target.zone === 'pool') changed = Sentences.remove(d.id);
+      if (changed) {
+        playSfx('tap');
+        if (hasFx()) FX.haptic('onSelection');
+      }
+      renderSentence();
+    }
+    modal.addEventListener('pointerup', function(e) { endDrag(e, false); });
+    modal.addEventListener('pointercancel', function(e) { endDrag(e, true); });
+
+    if (elements.sentenceClearBtn) {
+      elements.sentenceClearBtn.addEventListener('click', function() {
+        if (!sentenceSession || sentenceSession.busy) return;
+        if (Sentences.clear()) { playSfx('tap'); renderSentence(); }
+      });
+    }
+    if (elements.sentenceConfirmBtn) {
+      elements.sentenceConfirmBtn.addEventListener('click', confirmSentence);
+    }
+  }
+
+  /**
+   * Where a dragged tile would land
+   * @returns {{zone: 'slots', index: number}|{zone: 'pool'}|null}
+   */
+  function sentenceDropTarget(x, y) {
+    function near(el, pad) {
+      if (!el) return false;
+      var r = el.getBoundingClientRect();
+      return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+    }
+    if (near(elements.sentenceSlots, 16)) {
+      var others = elements.sentenceSlots.querySelectorAll('button.sentence-tile:not(.dragging)');
+      var index = 0;
+      for (var i = 0; i < others.length; i++) {
+        var r = others[i].getBoundingClientRect();
+        if (y > r.bottom || (y >= r.top && x > r.left + r.width / 2)) index = i + 1;
+      }
+      return { zone: 'slots', index: index };
+    }
+    if (near(elements.sentencePool, 8)) return { zone: 'pool' };
+    return null;
+  }
+
+  /** Show the insertion caret for a drop target (hidden for anything but the strip) */
+  function showSentenceCaret(target) {
+    var slots = elements.sentenceSlots;
+    var caret = slots && slots.querySelector('.sentence-caret');
+    if (!caret) return;
+    if (!target || target.zone !== 'slots') { caret.classList.add('hidden'); return; }
+    var others = slots.querySelectorAll('button.sentence-tile:not(.dragging)');
+    var box = slots.getBoundingClientRect();
+    var left, top, height;
+    if (others.length === 0) {
+      left = 8; top = 6; height = box.height - 12;
+    } else {
+      var ref = others[Math.min(target.index, others.length - 1)].getBoundingClientRect();
+      left = (target.index < others.length ? ref.left - 4 : ref.right + 2) - box.left;
+      top = ref.top - box.top;
+      height = ref.height;
+    }
+    caret.style.left = left + 'px';
+    caret.style.top = top + 'px';
+    caret.style.height = height + 'px';
+    caret.classList.remove('hidden');
+  }
+
+  function confirmSentence() {
+    if (!sentenceSession || sentenceSession.busy) return;
+    var verdict = Sentences.confirm();
+    if (!verdict) return;
+    var session = sentenceSession;
+
+    if (verdict.verdict === 'near') {
+      playSfx('wrong', { volume: 0.5 });
+      if (hasFx()) FX.haptic('onWrongAnswer');
+      setSentenceFeedback('near');
+      renderSentence();
+      var slots = elements.sentenceSlots;
+      if (slots) {
+        slots.classList.remove('nudge');
+        void slots.offsetWidth;
+        slots.classList.add('nudge');
+      }
+      return;
+    }
+
+    session.busy = true;
+    renderSentence();
+    var img = elements.sentenceMonsterImage;
+    if (verdict.verdict === 'correct') {
+      if (elements.sentenceSlots) elements.sentenceSlots.classList.add('correct');
+      setSentenceFeedback(null);
+      playSfx('defeat-monster');
+      if (hasFx()) FX.haptic('onMonsterDefeated');
+      var defeatFx = hasFx() ? FX.monsterDefeat(img) : Promise.resolve();
+      var minDelay = new Promise(function(resolve) { setTimeout(resolve, 600); });
+      Promise.all([defeatFx, minDelay]).then(function() {
+        if (session.onComplete) session.onComplete(true, verdict);
+      });
+      return;
+    }
+
+    setSentenceFeedback('wrong');
+    playSfx('wrong');
+    if (hasFx()) FX.haptic('onWrongAnswer');
+    // let the marked tiles be read, then the character lunges out of its frame
+    setTimeout(function() {
+      if (sentenceSession !== session) return;
+      var lunger = (typeof MonsterStage !== 'undefined' && MonsterStage.actorFor(img)) || img;
+      if (typeof MonsterStage !== 'undefined') {
+        MonsterStage.allowLunge(img, 1000);
+        MonsterStage.play(img, 'attack');
+      }
+      var attackFx = hasFx()
+        ? FX.monsterAttack(lunger, elements.sentenceModal.querySelector('.modal-content'))
+        : Promise.resolve();
+      var minWrongDelay = new Promise(function(resolve) { setTimeout(resolve, 800); });
+      Promise.all([attackFx, minWrongDelay]).then(function() {
+        if (session.onComplete) session.onComplete(false, verdict);
+      });
+    }, SENTENCE_WRONG_HOLD_MS);
+  }
+
+  /**
+   * Hide the sentence builder modal
+   */
+  function hideSentenceModal() {
+    if (elements.sentenceModal) elements.sentenceModal.classList.add('hidden');
+    if (sentenceSession && sentenceSession.drag && sentenceSession.drag.ghost) {
+      var g = sentenceSession.drag.ghost;
+      if (g.parentNode) g.parentNode.removeChild(g);
+    }
+    sentenceSession = null;
+    if (typeof MonsterStage !== 'undefined') MonsterStage.release(elements.sentenceMonsterImage);
+  }
+
   /**
    * Bind event handlers
    * @param {Object} handlers - Object with handler functions
@@ -1657,6 +1982,8 @@ const UI = (function() {
     showToast,
     showMatchingModal,
     hideMatchingModal,
+    showSentenceModal,
+    hideSentenceModal,
     bindHandlers,
     renderDirectionBar,
     hideDirectionBar,

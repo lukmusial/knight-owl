@@ -6,7 +6,7 @@
  *   node tools/smoke/fp-record.js --mode dragon --out docs/videos/3d-dragon.mp4
  *
  * It plays with the same controls a player has: ProtoFp.runCommand to turn
- * and step, and the quiz and matching cards answered on screen. "explore"
+ * and step, and the quiz, matching and sentence cards answered on screen. "explore"
  * wanders the dungeon for a while; "dragon" walks the shortest way to the
  * boss chamber, fighting whatever is in the way, and beats the dragon.
  *
@@ -59,7 +59,7 @@ async function state(page) {
     const vis = id => { const el = document.getElementById(id); return !!el && !el.classList.contains('hidden'); };
     const st = (typeof FpWorld !== 'undefined') ? FpWorld.getState() : null;
     return {
-      quiz: vis('quiz-modal'), matching: vis('matching-modal'), result: vis('result-modal'),
+      quiz: vis('quiz-modal'), matching: vis('matching-modal'), sentence: vis('sentence-modal'), result: vis('result-modal'),
       treasure: vis('treasure-modal'), victory: vis('victory-screen'),
       room: st ? st.roomId : null, facing: st ? st.facing : null,
       busy: (typeof ProtoFp !== 'undefined') ? ProtoFp.getDebugState().busy : true
@@ -67,7 +67,7 @@ async function state(page) {
   });
 }
 
-function anyCard(s) { return s.quiz || s.matching || s.result || s.treasure; }
+function anyCard(s) { return s.quiz || s.matching || s.sentence || s.result || s.treasure; }
 
 /** True once a quiz question is fully painted and clickable */
 async function quizReady(page) {
@@ -89,6 +89,31 @@ async function playCard(page, timeoutMs) {
   while (Date.now() < deadline) {
     const s = await state(page);
     if (s.victory) return 'victory';
+    if (s.sentence) {
+      // build the sentence tile by tile, then confirm it
+      const words = await page.evaluate(() => {
+        const q = Sentences.getCurrent();
+        const st = Sentences.getState();
+        return q && !st.finished && st.placed.length === 0 ? q.answers[0] : null;
+      });
+      if (!words) { await wait(400); continue; }
+      for (const w of words) {
+        await page.evaluate(w => {
+          const b = Array.from(document.querySelectorAll('#sentence-pool button.sentence-tile'))
+            .find(e => e.textContent.trim() === w);
+          if (b && !b.disabled) b.click();
+        }, w);
+        await wait(450);
+      }
+      await wait(700);
+      await page.evaluate(() => {
+        const b = document.getElementById('sentence-confirm-btn');
+        if (b && !b.disabled) b.click();
+      });
+      answered++;
+      await wait(900);
+      continue;
+    }
     if (s.matching) {
       const pairs = await page.evaluate(() =>
         Array.from(document.querySelectorAll('#matching-modal .matching-item[data-side="left"]:not(.matched)'))

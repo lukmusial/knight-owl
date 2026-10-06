@@ -324,8 +324,11 @@ var ProtoIso = (function() {
     updateHud();
 
     if (Dungeon.hasMonsterEncounter(roomId)) {
-      if (room.encounterType === 'matching' && typeof Matching !== 'undefined') {
+      var challenge = Combat.encounterKind(room.encounterType, room.monster);
+      if (challenge === 'matching' && typeof Matching !== 'undefined') {
         startMatchingEncounter(room.monster, room.depth, room.matchingCategory);
+      } else if (challenge === 'sentence' && typeof Sentences !== 'undefined') {
+        startSentenceEncounter(room.monster, room.depth);
       } else {
         startCombat(room.monster, room.depth);
       }
@@ -403,6 +406,26 @@ var ProtoIso = (function() {
     setModalOpen(true);
     UI.showMatchingModal({ monster: monster, set: set }, function(success) {
       handleMatchingComplete(success, monster, set);
+    });
+  }
+
+  function startSentenceEncounter(monster, depth) {
+    var question = Sentences.getSentence(Dungeon.getDepthDifficulty(depth));
+    if (!question) {
+      startCombat(monster, depth);
+      return;
+    }
+    setModalOpen(true);
+    UI.showSentenceModal({ monster: monster, question: question }, function(success) {
+      UI.hideSentenceModal();
+      var result = Combat.resolveChallenge(monster, success, {
+        questionId: question.id,
+        explanation: question.explanation,
+        correctAnswer: Sentences.canonical(question),
+        category: 'sentence',
+        dungeon: true
+      });
+      UI.showResultModal(result, handleResultContinue);
     });
   }
 

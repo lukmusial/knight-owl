@@ -131,7 +131,8 @@ const Save = (function() {
    * @param {Array} usedQuestionIds - Used question IDs from Questions module
    * @param {Object} mapState - Map state from DungeonMap module
    * @param {Array} usedMatchingIds - Used matching set ids
-   * @param {Object} extra - Optional { level: 'dungeon'|'cemetery', cemetery: CemModel state }
+   * @param {Object} extra - Optional { level: 'dungeon'|'cemetery', cemetery: CemModel state,
+   *   usedSentences: used sentence-builder ids }
    * @returns {boolean} Whether save succeeded
    */
   function saveGame(playerState, dungeonState, usedQuestionIds, mapState, usedMatchingIds, extra) {
@@ -158,6 +159,7 @@ const Save = (function() {
       level: extra.level || 'dungeon'
     };
     if (extra.cemetery) saveData.cemetery = extra.cemetery;
+    if (extra.usedSentences) saveData.usedSentenceQuestions = extra.usedSentences;
 
     try {
       const key = getKey(playerName);

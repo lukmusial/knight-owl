@@ -61,6 +61,7 @@ var ProtoFp = (function() {
 
     Questions.init();
     if (typeof Matching !== 'undefined') Matching.init();
+    if (typeof Sentences !== 'undefined') Sentences.init();
 
     var ok = FpRenderer.init({ mount: document.getElementById('fp-view'), reducedMotion: reducedMotion(), quality: queryParam('quality') });
     if (!ok) {
@@ -324,8 +325,11 @@ var ProtoFp = (function() {
       var imageId = room.type === 'boss' ? 'dragon' : room.monster.id;
       var openEncounter = function() {
         FpRenderer.pause();
-        if (room.encounterType === 'matching' && typeof Matching !== 'undefined') {
+        var challenge = Combat.encounterKind(room.encounterType, room.monster);
+        if (challenge === 'matching' && typeof Matching !== 'undefined') {
           startMatchingEncounter(room.monster, room.depth, room.matchingCategory);
+        } else if (challenge === 'sentence' && typeof Sentences !== 'undefined') {
+          startSentenceEncounter(room.monster, room.depth);
         } else {
           startCombat(room.monster, room.depth);
         }
@@ -438,6 +442,19 @@ var ProtoFp = (function() {
       };
     }
     UI.showResultModal(result, handleResultContinue);
+  }
+
+  function startSentenceEncounter(monster, depth) {
+    var question = Sentences.getSentence(Dungeon.getDepthDifficulty(depth));
+    if (!question) { startCombat(monster, depth); return; }
+    UI.showSentenceModal({ monster: monster, question: question }, function(success) {
+      UI.hideSentenceModal();
+      var result = Combat.resolveChallenge(monster, success, {
+        questionId: question.id, explanation: question.explanation,
+        correctAnswer: Sentences.canonical(question), category: 'sentence', dungeon: true
+      });
+      UI.showResultModal(result, handleResultContinue);
+    });
   }
 
   function startTreasureEncounter(roomId) {

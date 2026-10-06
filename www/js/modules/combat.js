@@ -271,9 +271,74 @@ const Combat = (function() {
     };
   }
 
+  /**
+   * Settle a one-shot challenge that is not a quiz question (the sentence
+   * builder): loot and a defeat on success, a push back on failure.
+   * @param {Object} monster - Monster object
+   * @param {boolean} success - Whether the challenge was passed
+   * @param {Object} meta - { questionId, explanation, correctAnswer, category,
+   *   dungeon: true to clear the room / push back in the dungeon graph }
+   * @returns {Object} Result in the shape submitAnswer returns
+   */
+  function resolveChallenge(monster, success, meta) {
+    meta = meta || {};
+    Player.recordQuestion(success);
+    if (meta.questionId && typeof UserProfile !== 'undefined' && UserProfile.recordAttempt) {
+      UserProfile.recordAttempt(meta.questionId, success);
+    }
+    const common = {
+      correctAnswer: meta.correctAnswer || null,
+      // a whole-sentence answer reads through the result card's "___" template
+      sentence: meta.correctAnswer ? '___' : null,
+      category: meta.category || null,
+      explanation: meta.explanation || ''
+    };
+    if (success) {
+      const loot = monster.loot || [];
+      Player.addLoot(loot);
+      Player.defeatMonster();
+      if (meta.dungeon) Dungeon.clearRoom(Player.getCurrentRoom());
+      return Object.assign({
+        success: true,
+        defeated: true,
+        loot: loot,
+        message: Descriptions.generateVictoryMessage(monster)
+      }, common);
+    }
+    if (meta.dungeon) Player.pushBack();
+    return Object.assign({
+      success: false,
+      defeated: false,
+      pushedBack: true,
+      message: Descriptions.generateDefeatMessage(monster)
+    }, common);
+  }
+
+  /**
+   * The kind of challenge an encounter opens: the room's or monster's own
+   * type, unless the page asks for one with ?enc=quiz|matching|sentence
+   * (for trying a card out). Bosses always take the quiz.
+   * @param {string} type - encounterType from the dungeon or cemetery model
+   * @param {Object} [monster] - the monster, to keep bosses on the quiz
+   * @returns {string} 'quiz' | 'matching' | 'sentence'
+   */
+  function encounterKind(type, monster) {
+    if (isBoss(monster)) return 'quiz';
+    var forced = null;
+    try {
+      if (typeof window !== 'undefined' && window.location && typeof URLSearchParams !== 'undefined') {
+        forced = new URLSearchParams(window.location.search).get('enc');
+      }
+    } catch (e) { forced = null; }
+    if (forced === 'quiz' || forced === 'matching' || forced === 'sentence') return forced;
+    return type || 'quiz';
+  }
+
   // Public API
   return {
     isBoss,
+    resolveChallenge,
+    encounterKind,
     startEncounter,
     submitAnswer,
     hasActiveEncounter,

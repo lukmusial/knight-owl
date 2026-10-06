@@ -22,6 +22,7 @@
     "test:cem:storm": "node tools/smoke/cem-storm.js",
     "test:fp:perf": "node tools/smoke/fp-perf.js",
     "test:card": "node tools/smoke/card.js",
+    "test:sentence": "node tools/smoke/sentence-card.js",
     "record:cem": "node tools/smoke/cem-record.js",
     "record:cem:reveal": "node tools/smoke/cem-record-reveal.js",
     "record:cem:rain": "node tools/smoke/cem-record-rain.js",

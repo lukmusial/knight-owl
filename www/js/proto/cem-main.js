@@ -377,7 +377,9 @@ var ProtoCem = (function() {
     // slow frame) the quiz still opens on a plain timer
     var open = once(CemMonsters.ACTIONS.lunge + 400, function() {
       if (!gameInProgress) return;
-      if (m.encounterType === 'matching' && typeof Matching !== 'undefined') startMatchingEncounter(m);
+      var challenge = Combat.encounterKind(m.encounterType, m);
+      if (challenge === 'matching' && typeof Matching !== 'undefined') startMatchingEncounter(m);
+      else if (challenge === 'sentence' && typeof Sentences !== 'undefined') startSentenceEncounter(m);
       else startCombat(m);
     });
     scene.playAttack(uid, open);
@@ -435,6 +437,21 @@ var ProtoCem = (function() {
         Player.recordQuestion(false);
         result = { success: false, defeated: false, pushedBack: true, message: Descriptions.generateDefeatMessage(m), explanation: set.explanation || '' };
       }
+      UI.showResultModal(result, handleResultContinue);
+    });
+  }
+
+  function startSentenceEncounter(m) {
+    var question = Sentences.getSentence(Math.min(3, m.difficulty || 1));
+    if (!question) { startCombat(m); return; }
+    setModalOpen(true);
+    UI.showSentenceModal({ monster: m, question: question }, function(success) {
+      UI.hideSentenceModal();
+      // the cemetery sends Mr Owl back to the gate itself (handleResultContinue)
+      var result = Combat.resolveChallenge(m, success, {
+        questionId: question.id, explanation: question.explanation,
+        correctAnswer: Sentences.canonical(question), category: 'sentence'
+      });
       UI.showResultModal(result, handleResultContinue);
     });
   }

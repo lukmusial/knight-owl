@@ -231,6 +231,40 @@
       </div>
     </div>
 
+    <!-- Sentence Builder Modal -->
+    <div id="sentence-modal" class="modal hidden">
+      <div class="modal-content sentence-content">
+        <div class="monster-display">
+          <img id="sentence-monster-image" src="assets/placeholder.svg" alt="Monster">
+          <h2 id="sentence-monster-name">Monster</h2>
+          <p id="sentence-monster-description" class="monster-description">Description</p>
+        </div>
+
+        <div class="question-section sentence-section">
+          <p class="sentence-instruction">
+            <span class="label-en">Say it in Polish:</span>
+            <span class="label-pl">Powiedz to po polsku:</span>
+          </p>
+          <p id="sentence-prompt" class="sentence-prompt">Prompt</p>
+          <div id="sentence-slots" class="sentence-slots"></div>
+          <p id="sentence-feedback" class="sentence-feedback"></p>
+        </div>
+
+        <div id="sentence-pool" class="sentence-pool"></div>
+
+        <div class="sentence-actions">
+          <button id="sentence-clear-btn" class="btn sentence-clear">
+            <span class="btn-en">Clear</span>
+            <span class="btn-pl">Wyczyść</span>
+          </button>
+          <button id="sentence-confirm-btn" class="btn btn-primary sentence-confirm" disabled>
+            <span class="btn-en">Confirm</span>
+            <span class="btn-pl">Zatwierdź</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Result Modal -->
     <div id="result-modal" class="modal hidden">
       <div class="modal-content result-content">
@@ -298,6 +332,7 @@
   <script src="js/data/grammar.js"></script>
   <script src="js/data/matching.js"></script>
   <script src="js/data/pronoun-matching.js"></script>
+  <script src="js/data/sentences.js"></script>
   <script src="js/data/monsters.js"></script>
 
   <!-- Load maze generator library -->
@@ -325,6 +360,7 @@
   <script src="js/modules/profile.js"></script>
   <script src="js/modules/questions.js"></script>
   <script src="js/modules/matching.js"></script>
+  <script src="js/modules/sentences.js"></script>
   <script src="js/modules/player.js"></script>
   <script src="js/modules/save.js"></script>
   <script src="js/modules/descriptions.js"></script>
