@@ -24,7 +24,7 @@ var FpMonsters = (function() {
   var MODELS = {
     goblin: { height: 1.9, motion: 'breathe', exit: 'runaway' },
     giant_rat: { height: 1.6, motion: 'breathe', exit: 'runaway' },
-    slime: { height: 1.5, motion: 'squash', exit: 'vanish' },
+    slime: { height: 1.5, motion: 'squash', yaw: 180, exit: 'vanish' },
     bat_swarm: { height: 1.4, motion: 'hover', lift: 0.6, exit: 'flyaway' },
     zombie: { height: 2.4, motion: 'sway', exit: 'vanish' },
     mimic: { height: 1.5, motion: 'breathe', exit: 'vanish' },
@@ -35,11 +35,11 @@ var FpMonsters = (function() {
     hobgoblin: { height: 2.1, motion: 'breathe', exit: 'runaway' },
     skeleton: { height: 2.2, motion: 'sway', exit: 'vanish' },
     spider: { height: 1.3, motion: 'breathe', exit: 'runaway' },
-    ghost: { height: 2.0, motion: 'hover', lift: 0.3, exit: 'vanish' },
+    ghost: { height: 2.0, motion: 'hover', lift: 0.3, yaw: -90, exit: 'vanish' },
     orc: { height: 2.4, motion: 'breathe', exit: 'runaway' },
     skeleton_king: { height: 2.4, motion: 'breathe', exit: 'vanish' },
     skeleton_queen: { height: 2.5, motion: 'sway', exit: 'vanish' },
-    lost_soul: { height: 1.8, motion: 'hover', lift: 0.4, exit: 'vanish' },
+    lost_soul: { height: 1.8, motion: 'hover', lift: 0.4, yaw: -105, exit: 'vanish' },
     demilich: { height: 1.5, motion: 'hover', lift: 0.6, exit: 'vanish' },
     dwarf: { height: 1.7, motion: 'breathe', exit: 'runaway' },
     beholder: { height: 1.8, motion: 'hover', lift: 0.6, exit: 'flyaway' },
@@ -55,8 +55,8 @@ var FpMonsters = (function() {
     frankenstein: { height: 2.8, motion: 'sway', exit: 'runaway' },
     minotaur: { height: 3.0, motion: 'breathe', exit: 'runaway' },
     // boss and the treasure chest (the chest stands still)
-    dragon: { height: 4.2, motion: 'breathe', exit: 'flyaway' },
-    treasure: { height: 1.1, motion: 'still', exit: 'vanish' }
+    dragon: { height: 2.6, motion: 'breathe', yaw: -90, exit: 'flyaway' },
+    treasure: { height: 1.3, motion: 'still', exit: 'vanish' }
   };
 
   // action durations (ms)

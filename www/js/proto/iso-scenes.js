@@ -21,6 +21,20 @@ var IsoScenes = (function() {
   var OWL3D_H = 118;        // on-screen height of the rendered 3D owl
   var MONSTER_H = 116;      // regular monster sprite height
   var DRAGON_H = 200;
+  var CHEST_H = 72;
+  var MODEL_SPRITE_DIR = 'assets/proto/iso/monsters/';
+
+  /**
+   * On-screen height of a monster sprite: the dragon is big, and with the 3D
+   * model sizes (FpMonsters) small creatures stay smaller than trolls
+   */
+  function spriteHeight(id) {
+    if (id === 'dragon') return DRAGON_H;
+    if (id === 'treasure') return CHEST_H;
+    var cfg = (typeof FpMonsters !== 'undefined') ? FpMonsters.config(id) : null;
+    if (!cfg) return MONSTER_H;
+    return Math.round(MONSTER_H * Math.max(0.72, Math.min(1.3, cfg.height / 2.2)));
+  }
   var WALK_SPEED = 0.26;    // px per ms
   // Depth bands: every floor tile draws first, then the warm light pools, then
   // cast shadows, and only then walls, props, tokens and the owl (which keep
@@ -78,6 +92,7 @@ var IsoScenes = (function() {
       if (m && m.id) ids[m.id] = true;
     });
     ids.dragon = true;
+    ids.treasure = true;   // the chest token uses the same sprite pipeline
     return Object.keys(ids);
   }
 
@@ -114,6 +129,8 @@ var IsoScenes = (function() {
       // Extracted cutouts for the monsters in this dungeon + the owl
       monsterIds().concat(['knight_owl']).forEach(function(id) {
         self.load.image('cut_' + id, SPRITE_DIR + id + '.png');
+        // renders of the 3D models (tools/monsters3d/render_iso.py); preferred over the cutouts
+        self.load.image('m3d_' + id, MODEL_SPRITE_DIR + id + '.png');
       });
     },
 
@@ -129,13 +146,14 @@ var IsoScenes = (function() {
       console.log('IsoTextures: ' + (kenney ? 'Kenney dungeon tiles' : 'procedural tiles'));
 
       function cutout(id) {
+        if (self.textures.exists('m3d_' + id)) return self.textures.get('m3d_' + id).getSourceImage();
         return self.textures.exists('cut_' + id) ? self.textures.get('cut_' + id).getSourceImage() : null;
       }
 
       // Standing monster sprites; fall back to the original illustration crop
       var jobs = [];
       monsterIds().forEach(function(id) {
-        var targetH = id === 'dragon' ? DRAGON_H : MONSTER_H;
+        var targetH = spriteHeight(id);
         var img = cutout(id);
         if (img && IsoTextures.makeStanding(self, 'mon_' + id, img, targetH)) return;
         jobs.push(IsoTextures.loadImage('assets/' + id + '.png').then(function(full) {
@@ -857,7 +875,7 @@ var IsoScenes = (function() {
       switch (tok.kind) {
         case 'unknown': return 'marker_unknown';
         case 'entrance': return null; // stairs are part of the chamber dressing
-        case 'treasure': return this.kenney ? 'k_chest' : 'treasure_chest';
+        case 'treasure': return this.textures.exists('mon_treasure') ? 'mon_treasure' : (this.kenney ? 'k_chest' : 'treasure_chest');
         case 'treasure_open': return this.kenney ? 'k_chest_open' : 'treasure_open';
         case 'boss': return this.textures.exists('mon_dragon') ? 'mon_dragon' : 'marker_unknown';
         case 'monster':
