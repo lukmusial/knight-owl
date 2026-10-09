@@ -34,11 +34,13 @@ var Matching = (function() {
    * Get a matching set for given difficulty and category
    * @param {number} difficulty - 1, 2, or 3
    * @param {string} category - 'matching' or 'pronoun_matching' or null for any
+   * @param {boolean} exact - only the given difficulty (no +/- 1)
    * @returns {Object|null} A matching set or null
    */
-  function getMatchingSet(difficulty, category) {
+  function getMatchingSet(difficulty, category, exact) {
+    var span = exact ? 0 : 1;
     var available = matchingSets.filter(function(s) {
-      var diffMatch = Math.abs(s.difficulty - difficulty) <= 1;
+      var diffMatch = Math.abs(s.difficulty - difficulty) <= span;
       var catMatch = !category || s.category === category;
       var notUsed = !usedSetIds.has(s.id);
       return diffMatch && catMatch && notUsed;
@@ -47,7 +49,7 @@ var Matching = (function() {
     // If no unused, allow repeats
     if (available.length === 0) {
       available = matchingSets.filter(function(s) {
-        var diffMatch = Math.abs(s.difficulty - difficulty) <= 1;
+        var diffMatch = Math.abs(s.difficulty - difficulty) <= span;
         var catMatch = !category || s.category === category;
         return diffMatch && catMatch;
       });

@@ -75,6 +75,12 @@
       <div class="start-form hud-frame">
         <label for="player-name" class="bi"><span class="bi-en">Your Name</span><span class="bi-pl">Twoje imię</span></label>
         <input type="text" id="player-name" placeholder="Enter your name..." maxlength="20" autocomplete="off">
+        <div class="complexity-label bi"><span class="bi-en">Complexity</span><span class="bi-pl">Poziom trudności</span></div>
+        <div id="complexity-picker" class="complexity-picker" role="group" aria-label="Complexity">
+          <button type="button" class="hud-btn-wide complexity-btn" data-complexity="easy" aria-pressed="false">Easy<small>Łatwy</small></button>
+          <button type="button" class="hud-btn-wide complexity-btn" data-complexity="medium" aria-pressed="false">Medium<small>Średni</small></button>
+          <button type="button" class="hud-btn-wide complexity-btn" data-complexity="regular" aria-pressed="false">Regular<small>Normalny</small></button>
+        </div>
         <div class="start-buttons">
           <button id="new-game-btn" class="hud-btn-wide primary" type="button">New Adventure</button>
           <button id="load-game-btn" class="hud-btn-wide" type="button" disabled>Continue Adventure</button>
@@ -106,6 +112,7 @@
   <script src="js/adapters/StorageAdapter.js"></script>
   <script src="js/modules/save.js"></script>
   <script src="js/proto/session.js"></script>
+  <script src="js/modules/complexity.js"></script>
   <script src="js/modules/sfx.js"></script>
   <script src="js/modules/music.js"></script>
   <script>
@@ -131,6 +138,7 @@
       Music.init();
       Music.play(THEME);
       showMute();
+      Complexity.bindPicker(document.getElementById('complexity-picker'));
       var veil = document.getElementById('hw-veil');
       function enter() {
         if (veil.classList.contains('hidden')) return;

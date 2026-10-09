@@ -61,10 +61,12 @@ var Sentences = (function() {
   /**
    * Pick a sentence near the given difficulty (exact preferred, unused first)
    * @param {number} difficulty - 1, 2 or 3
+   * @param {boolean} exact - only the given difficulty (no +/- 1)
    * @returns {Object|null} question
    */
-  function getSentence(difficulty) {
-    var near = function(s) { return Math.abs(s.difficulty - difficulty) <= 1; };
+  function getSentence(difficulty, exact) {
+    var span = exact ? 0 : 1;
+    var near = function(s) { return Math.abs(s.difficulty - difficulty) <= span; };
     var available = sentenceSets.filter(function(s) { return near(s) && !usedIds.has(s.id); });
     if (available.length === 0) available = sentenceSets.filter(near);
     var exact = available.filter(function(s) { return s.difficulty === difficulty; });
