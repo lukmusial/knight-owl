@@ -37,8 +37,7 @@ const EXCLUDE = [
   'assets/proto/fp',
   'assets/directions',
   'assets/video',
-  'assets/thumbs',
-  'assets/music/start-theme.mp3'
+  'assets/thumbs'
 ];
 
 const SITE_LOCK = '<script>var MROWL_SITE = { level: \'cemetery\' };</script>';
