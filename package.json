@@ -43,7 +43,7 @@
     "proto": "python3 -m http.server 8080 -d www",
     "pages:build": "node tools/pages/build.js",
     "pages:serve": "node tools/pages/build.js && python3 -m http.server 8090 -d dist/pages",
-    "test:pages": "node tools/pages/build.js && node tools/smoke/cemetery.js --site dist/pages"
+    "test:pages": "node tools/pages/build.js && node tools/smoke/cemetery.js --site dist/pages && node tools/pages/offline-check.js --site dist/pages"
   },
   "keywords": [
     "game",

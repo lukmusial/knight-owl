@@ -84,18 +84,19 @@ Sound effects are synthesized with Web Audio (plus Kenney's CC0 footsteps and cl
 
 ## Play Online
 
-The Halloween Cemetery is published on GitHub Pages as a game of its own, the isometric view and the cemetery only: **https://lukmusial.github.io/knight-owl/**. It opens on a start page where you type your name and start a new adventure or continue one; progress is saved in the browser as you play.
+The Halloween Cemetery is published on GitHub Pages as a game of its own, the isometric view and the cemetery only: **https://lukmusial.github.io/knight-owl/**. It opens on a start page where you type your name and start a new adventure or continue one; progress is saved in the browser as you play. **Add to Home Screen** on the start page installs it as an app (on iPhone and iPad the button explains the Share menu), and after the first visit has saved the game (the start page says when) it plays offline.
 
 <p align="center">
   <img src="docs/screenshots/halloween-start.png" alt="The Halloween Cemetery start page: title, a view of the cemetery, name field, New and Continue buttons" width="600">
 </p>
 
-The site is built from `www/` by `tools/pages/build.js` and deployed by `.github/workflows/pages.yml` on every push to `main` that touches `www/` (the repository's Pages source is set to *GitHub Actions*). The build leaves out what only the 3D and classic views use (36 MB instead of 62 MB), serves `www/halloween.html` as the start page and locks the isometric page to the cemetery, so neither the level picker nor the dungeon can be reached.
+The site is built from `www/` by `tools/pages/build.js` and deployed by `.github/workflows/pages.yml` on every push to `main` that touches `www/` (the repository's Pages source is set to *GitHub Actions*). The build leaves out what only the 3D and classic views use (36 MB instead of 62 MB), serves `www/halloween.html` as the start page and locks the isometric page to the cemetery, so neither the level picker nor the dungeon can be reached. It also makes the site an installable web app: a manifest, icons (`tools/pages/icons/`) and a service worker (`tools/pages/sw.js`) that saves every file of the site on the first visit, listed with content hashes so a new deploy downloads only what changed.
 
 ```bash
 npm run pages:build   # writes dist/pages/
 npm run pages:serve   # builds and serves it on http://localhost:8090
-npm run test:pages    # builds it and plays the level through in headless Chrome, failing on any missing file
+npm run test:pages    # builds it, plays the level through in headless Chrome (failing on any missing file),
+                      # then checks it installs, saves itself and plays with the network off
 ```
 
 ## Getting Started
