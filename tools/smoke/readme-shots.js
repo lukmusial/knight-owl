@@ -39,12 +39,14 @@ const SOFTWARE = args.indexOf('--software') !== -1;
 const ONLY = (opt('--only', '') || '').split(',').filter(Boolean);
 const PHONE = { width: 412, height: 915, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 const HERO = { width: 1280, height: 720, deviceScaleFactor: 1 };
+const LAUNCH = { width: 1200, height: 440, deviceScaleFactor: 1 };
 const PHONE_WIDTH = 540;
 const BASE = 'http://localhost:' + PORT;
 const Q = '&music=none&name=Owl';
 
 const SESSIONS = {
   hero: ['cem-hero'],
+  launch: ['halloween-start'],
   cem: ['cem-01-gate', 'cem-02-explore', 'cem-03-storm', 'cem-04-quiz', 'cem-05-sentence', 'cem-06-matching', 'cem-07-reaper', 'cem-08-victory'],
   iso: ['iso-01-dungeon', 'iso-02-chamber', 'iso-03-quiz'],
   fp: ['3d-01-corridor', '3d-02-monster', '3d-03-quiz'],
@@ -387,6 +389,36 @@ async function finishWin(page) {
   await page.waitForFunction(() => !ProtoCem.isBusy(), { timeout: 30000 });
   await page.evaluate(() => { ProtoCem.getLevel().graceMs = 1e9; });
   await wait(800);
+}
+
+/**
+ * The picture on the Halloween start page (www/halloween.html): the same
+ * night as the hero, dry and without lightning so it looks the way the game
+ * does most of the time, with the HUD hidden. Written as a JPEG into www/.
+ */
+async function runLaunch(browser) {
+  log('launch: the start page picture, a dry night without the HUD (1200x440)');
+  const page = await newPage(browser, LAUNCH, 'launch');
+  await bootCemetery(page);
+  await page.addStyleTag({ content: '#hud-root, .hud-loading { display: none !important; }' });
+  await page.evaluate(() => {                                         // no shower, so no storm either
+    const S = ProtoCem.getScene();
+    S.rainSchedule = CemRain.schedule(ProtoCem.getLevel().seed || 1, { FIRST_GAP_MIN_MS: 1e9, FIRST_GAP_MAX_MS: 1e9 });
+    S.planStorm();
+  });
+  const pose = await poseNearTomb(page, { tomb: { dx: -260, dy: -20 }, monster: { dx: 150, dy: 40 } });
+  const uid = await pickWanderer(page, ['pumpkin_man', 'skeleton', 'ghost', 'zombie', 'spider']);
+  await clearWanderers(page, [uid]);
+  await page.evaluate(p => ProtoCem.teleport(p.gx, p.gy), pose);
+  if (pose.monster) await standMonster(page, uid, pose.monster);
+  await wait(6000);                                                   // the reveal ramps up and the ground bakes
+  if (wanted('halloween-start')) {
+    const file = path.join(ROOT, 'www', 'assets', 'proto', 'iso', 'halloween-start.jpg');
+    await page.screenshot({ path: file, type: 'jpeg', quality: 82 });
+    written.push('halloween-start');
+    log('  shot ' + path.relative(ROOT, file) + ' (' + Math.round(fs.statSync(file).size / 1024) + ' KB)');
+  }
+  await page.browserContext().close();
 }
 
 async function runHero(browser) {
@@ -755,6 +787,7 @@ async function main() {
   };
   try {
     await run('hero', runHero);
+    await run('launch', runLaunch);
     await run('cem', runCemetery);
     await run('iso', runIso);
     await run('fp', runFp);

@@ -16,13 +16,13 @@ TestRunner.suite('ProtoSession', () => {
     TestRunner.assertEqual(ProtoSession.pageFor('nope'), 'index.html', 'fallback page');
     TestRunner.assertEqual(ProtoSession.launchUrl('iso', 'Zosia Ł', 'continue'),
       'proto/isometric.html?name=Zosia%20%C5%81&action=continue', 'encoded url');
-    TestRunner.assertEqual(ProtoSession.launchUrl('classic', 'Bob', 'new', true),
-      '../index.html?name=Bob&action=new', 'relative from proto');
+    TestRunner.assertEqual(ProtoSession.launchUrl('classic', 'Bob', 'new'),
+      'index.html?name=Bob&action=new', 'classic page, relative to www/ (the view pages set <base href="../">)');
   });
 
   TestRunner.test('launcherUrl returns to the launch screen with the name', () => {
-    TestRunner.assertEqual(ProtoSession.launcherUrl('Zosia Ł'), '../index.html?launcher=1&name=Zosia%20%C5%81', 'with name');
-    TestRunner.assertEqual(ProtoSession.launcherUrl(''), '../index.html?launcher=1', 'without name');
+    TestRunner.assertEqual(ProtoSession.launcherUrl('Zosia Ł'), 'index.html?launcher=1&name=Zosia%20%C5%81', 'with name');
+    TestRunner.assertEqual(ProtoSession.launcherUrl(''), 'index.html?launcher=1', 'without name');
     var p = ProtoSession.parseParams('?launcher=1&name=Bob');
     TestRunner.assertEqual(p.launcher, true, 'launcher flag parsed');
     TestRunner.assertEqual(p.name, 'Bob', 'name parsed');
