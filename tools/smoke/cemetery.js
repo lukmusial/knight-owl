@@ -116,6 +116,9 @@ async function main() {
       await page.goto(ORIGIN + '/', { waitUntil: 'load' });
       const start = await page.evaluate(() => ({ title: document.title, cont: document.getElementById('load-game-btn').disabled }));
       check(/Halloween/.test(start.title) && start.cont, 'the site opens on the Halloween start page, nothing to continue');
+      const veiled = await page.evaluate(() => !document.getElementById('hw-veil').classList.contains('hidden'));
+      check(veiled, 'the start page waits behind its tap-to-enter veil');
+      await page.click('#hw-veil');
       await page.type('#player-name', 'Smoke');
       await page.waitForFunction(() => Music.isPlaying(), { timeout: 10000 }).catch(() => {});
       const music = await page.evaluate(() => ({ playing: Music.isPlaying(), muted: SFX.isMuted() }));
@@ -137,6 +140,17 @@ async function main() {
     check(/Cemetery Gate/.test(boot.title), 'ribbon shows the gate');
     const veil = await page.evaluate(() => (document.querySelector('#iso-loading .bi-en') || {}).textContent || '');
     check(/haunted cemetery/i.test(veil), 'the loading veil spoke of the cemetery, not the dungeon');
+    {
+      // before any game script runs: with every .js file blocked only the page's
+      // own markup and inline script speak (the dungeon's line used to show first)
+      const bare = await browser.newPage();
+      await bare.setRequestInterception(true);
+      bare.on('request', r => (/\.js(\?|$)/.test(r.url()) ? r.abort() : r.continue()));
+      await bare.goto(base + (SITE ? '?name=Smoke&action=new' : '?name=Smoke&action=new&level=cemetery'), { waitUntil: 'domcontentloaded' });
+      const first = await bare.evaluate(() => document.querySelector('#iso-loading .bi-en').textContent);
+      check(/haunted cemetery/i.test(first), 'the veil speaks of the cemetery from the first paint (' + first + ')');
+      await bare.close();
+    }
     await shot(page, '01-gate');
 
     console.log('steering');

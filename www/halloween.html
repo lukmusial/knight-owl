@@ -33,9 +33,33 @@
     .hw-note { margin: 6px 0 0; font-size: 0.85rem; color: var(--hud-parchment); text-shadow: 0 1px 2px #000; }
     .hw-note:empty { display: none; }
     #load-game-btn:disabled { opacity: 0.45; cursor: default; }
+    /* Browsers keep a page silent until the first tap; the veil takes it, so
+       the theme is already playing when the form shows (a remembered name
+       otherwise made New Adventure the first tap, and the page left in it) */
+    .hw-veil {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      background: radial-gradient(ellipse at 50% 45%, rgba(5, 6, 12, 0.35), rgba(5, 6, 12, 0.92) 70%),
+        url('assets/proto/iso/halloween-start.jpg') center / cover no-repeat #05060a;
+      cursor: pointer; text-align: center; padding: 24px;
+    }
+    .hw-veil.hidden { display: none; }
+    .hw-veil h1 { margin: 0; color: var(--hud-parchment, #f0dfb4); font-family: var(--hud-font-title); font-size: 2rem; text-shadow: 0 2px 10px #000; }
+    .hw-tap {
+      color: #fff; font-family: var(--hud-font-title); font-size: 1.6rem; line-height: 1.3;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      animation: hw-pulse 1.5s ease-in-out infinite;
+    }
+    .hw-tap small { font-size: 1rem; font-style: italic; color: var(--hud-parchment, #f0dfb4); }
+    @keyframes hw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @media (prefers-reduced-motion: reduce) { .hw-tap { animation: none; } }
   </style>
 </head>
 <body class="on-start">
+  <div id="hw-veil" class="hw-veil" role="button" tabindex="0" aria-label="Tap to enter">
+    <h1>Mr Owl's Halloween Cemetery</h1>
+    <div class="hw-tap">Tap to enter<br><small>Dotknij, aby wejść</small></div>
+  </div>
   <div id="game-container">
     <button id="sfx-toggle" class="sfx-toggle" type="button" aria-label="Sound on/off" aria-pressed="false">&#x1f50a;</button>
     <div id="start-screen" class="screen">
@@ -87,9 +111,9 @@
       var note = document.getElementById('hw-note');
       var savesBox = document.getElementById('hw-saves');
       var sfxBtn = document.getElementById('sfx-toggle');
-      // the start page's tune: a detuned calliope waltz; browsers hold it
-      // back until the first tap or key, which Music waits for
-      var THEME = 'assets/music/cemetery-carousel.mp3';
+      // the start-screen theme of the main launcher (www/index.html); browsers
+      // hold it back until the first tap or key, which Music waits for
+      var THEME = 'assets/music/start-theme.mp3';
 
       function showMute() {
         var muted = SFX.isMuted();
@@ -100,6 +124,15 @@
       Music.init();
       Music.play(THEME);
       showMute();
+      var veil = document.getElementById('hw-veil');
+      function enter() {
+        if (veil.classList.contains('hidden')) return;
+        veil.classList.add('hidden');
+      }
+      // Music unlocks on the same tap or key (its listeners run in the capture phase)
+      veil.addEventListener('click', enter);
+      veil.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enter(); } });
+      veil.focus();
       sfxBtn.addEventListener('click', function() {
         SFX.setMuted(!SFX.isMuted());
         Music.setMuted(SFX.isMuted());

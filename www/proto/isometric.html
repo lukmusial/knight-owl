@@ -17,6 +17,14 @@
     <div id="iso-canvas"></div>
   </div>
   <div id="iso-loading" class="hud-loading"><div class="bi"><span class="bi-en">Entering the dungeon&hellip;</span><span class="bi-pl">Wchodzisz do lochu&hellip;</span></div></div>
+  <script>
+    // Opened for the cemetery: say so before the first paint, not only once
+    // cem-main.js runs (the dungeon's line used to show first)
+    if (/[?&]level=cemetery(&|$)/.test(location.search) || (typeof MROWL_SITE !== 'undefined' && MROWL_SITE.level === 'cemetery')) {
+      document.querySelector('#iso-loading .bi-en').textContent = 'Entering a haunted cemetery\u2026';
+      document.querySelector('#iso-loading .bi-pl').textContent = 'Wchodzisz na nawiedzony cmentarz\u2026';
+    }
+  </script>
   <div id="iso-modals"></div>
 
   <script src="js/data/vocabulary.js"></script>
