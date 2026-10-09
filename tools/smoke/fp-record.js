@@ -286,7 +286,7 @@ async function main() {
     await page.setViewport({ width: WIDTH, height: HEIGHT });
     page.on('pageerror', e => log('page error: ' + e));
     page.on('console', m => { if (m.type() === 'error' && !/404/.test(m.text())) log('console error: ' + m.text().slice(0, 160)); });
-    await page.goto('http://localhost:' + PORT + '/proto/first-person.html?name=Owl&action=new',
+    await page.goto('http://localhost:' + PORT + '/first-person.html?name=Owl&action=new',
       { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoFp && ProtoFp.getDebugState().gameInProgress && document.querySelector('canvas'),
       { timeout: 40000 });

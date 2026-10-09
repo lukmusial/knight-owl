@@ -109,7 +109,7 @@ async function main() {
     page.on('console', m => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(m.text()); });
     const missing = [];
     page.on('response', r => { if (r.status() >= 400) missing.push(r.status() + ' ' + r.url().replace(/^https?:\/\/[^/]+/, '')); });
-    const base = ORIGIN + '/proto/isometric.html';
+    const base = ORIGIN + '/isometric.html';
 
     console.log('boot');
     if (SITE) {
@@ -124,7 +124,7 @@ async function main() {
       const music = await page.evaluate(() => ({ playing: Music.isPlaying(), muted: SFX.isMuted() }));
       check(music.playing && !music.muted, 'the start page plays its theme');
       await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.click('#new-game-btn')]);
-      check(/proto\/isometric\.html\?name=Smoke&action=new/.test(page.url()), 'New Adventure opens the cemetery');
+      check(page.url() === ORIGIN + '/isometric.html?name=Smoke&action=new', 'New Adventure opens the cemetery, no proto/ or level in the URL (' + page.url().replace(/^https?:\/\/[^/]+/, '') + ')');
     } else {
       await page.goto(base + '?name=Smoke&action=new&level=cemetery', { waitUntil: 'load' });
     }
@@ -140,6 +140,8 @@ async function main() {
     check(/Cemetery Gate/.test(boot.title), 'ribbon shows the gate');
     const veil = await page.evaluate(() => (document.querySelector('#iso-loading .bi-en') || {}).textContent || '');
     check(/haunted cemetery/i.test(veil), 'the loading veil spoke of the cemetery, not the dungeon');
+    const mist = await page.evaluate(() => ProtoCem.getScene().textures.exists('cem_mist'));
+    check(!mist, 'no drifting mist (the reveal never covered it: a pale cloud over the dark)');
     {
       // before any game script runs: with every .js file blocked only the page's
       // own markup and inline script speak (the dungeon's line used to show first)
@@ -412,6 +414,9 @@ let errorSink = null;
       await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 30000 });
       const locked = await page.evaluate(() => ({ level: ProtoSession.currentRunLevel(), picker: !!document.getElementById('iso-level-picker') }));
       check(locked.level === 'cemetery' && !locked.picker, 'asking for the dungeon still plays the cemetery');
+      await page.goto(ORIGIN + '/proto/isometric.html?name=Smoke3&action=continue', { waitUntil: 'load' });
+      await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene(), { timeout: 30000 });
+      check(page.url() === ORIGIN + '/isometric.html?name=Smoke3&action=continue', 'an old proto/ link lands on the game');
       await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.evaluate(() => document.querySelector('.hud-iconbtns a.hud-btn').click())]);
       check(page.url() === ORIGIN + '/index.html?launcher=1&name=Smoke3', 'the HUD close button returns to the start page (' + page.url().replace(/^https?:\/\/[^/]+/, '') + ')');
       check(missing.length === 0, 'every file the site asked for was there' + (missing.length ? ': ' + missing.slice(0, 5).join(', ') : ''));

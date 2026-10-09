@@ -122,7 +122,7 @@ async function main() {
     await page.setViewport({ width: 1200, height: 860 });
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
-    await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Defeat&action=new&level=cemetery&music=none', { waitUntil: 'load' });
+    await page.goto('http://localhost:' + PORT + '/isometric.html?name=Defeat&action=new&level=cemetery&music=none', { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 30000 });
     await page.evaluate(() => {
       const L = ProtoCem.getLevel();

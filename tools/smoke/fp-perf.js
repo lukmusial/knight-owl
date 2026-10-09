@@ -72,7 +72,7 @@ async function main() {
       window.__ticks = 0;
       (function tick() { window.__ticks++; orig(tick); })();
     });
-    await page.goto('http://localhost:' + PORT + '/proto/first-person.html?name=Perf&action=new',
+    await page.goto('http://localhost:' + PORT + '/first-person.html?name=Perf&action=new',
       { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.ProtoFp && ProtoFp.getDebugState().gameInProgress, { timeout: 40000 });
     await wait(2500);

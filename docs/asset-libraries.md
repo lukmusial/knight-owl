@@ -1,6 +1,6 @@
 # Free / open-source art libraries for Mr Owl's Dungeon Adventure
 
-Survey of freely licensed asset packs that fit the game's painterly-cartoon medieval dungeon look and could feed the two prototype views (`www/proto/first-person.html`, `www/proto/isometric.html`) and the 1990s-style stone/parchment/gold HUD. Every entry was checked on 15 Sep 2026 by fetching the page listed; the licence column quotes what the page states. Where a page could not be fetched or does not state a licence this is said explicitly.
+Survey of freely licensed asset packs that fit the game's painterly-cartoon medieval dungeon look and could feed the two prototype views (`www/first-person.html`, `www/isometric.html`) and the 1990s-style stone/parchment/gold HUD. Every entry was checked on 15 Sep 2026 by fetching the page listed; the licence column quotes what the page states. Where a page could not be fetched or does not state a licence this is said explicitly.
 
 Licence legend: **CC0** (no attribution needed), **CC-BY / OGA-BY** (attribution required, otherwise unrestricted), **custom permissive** (free for commercial use, no redistribution of the raw files), **viral** (CC-BY-SA / GPL: derivative *art* must be released under the same licence; avoid for shipped assets unless you accept that).
 

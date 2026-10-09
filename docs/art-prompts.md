@@ -1,6 +1,6 @@
 # Art prompts for the prototype views
 
-The prototype pages (`www/proto/first-person.html`, `www/proto/isometric.html`) derive all their textures, tiles and tokens at runtime from the existing artwork (crops of `assets/directions/*.png`, circular cut-outs of `assets/<monster>.png`, palette sampling). They also probe for real art files and use them when present. This document lists those files and gives prompts for generating them. Every prompt should be run with the named seed image(s) as the style/reference input.
+The prototype pages (`www/first-person.html`, `www/isometric.html`) derive all their textures, tiles and tokens at runtime from the existing artwork (crops of `assets/directions/*.png`, circular cut-outs of `assets/<monster>.png`, palette sampling). They also probe for real art files and use them when present. This document lists those files and gives prompts for generating them. Every prompt should be run with the named seed image(s) as the style/reference input.
 
 ## Shared style line
 

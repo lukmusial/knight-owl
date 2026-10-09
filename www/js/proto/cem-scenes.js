@@ -778,16 +778,8 @@ var CemScenes = (function() {
       // no moon in the sky: it read as a stray disc behind the grounds
       // the fog sheet already frames the view, so the vignette only deepens the corners
       this.vignette = this.add.image(0, 0, 'cem_vignette').setScrollFactor(0).setDepth(1e6).setAlpha(0.3);
-      this.mist = [];
-      if (!REDUCED_MOTION) {
-        var b = this.level.bounds;
-        for (var i = 0; i < 6; i++) {
-          var mx = b.x + hash(i, 3) * b.width, my = b.y + 200 + hash(i, 5) * (b.height - 200);
-          var m = this.add.image(mx, my, 'cem_mist').setAlpha(0.35 + hash(i, 7) * 0.2).setScale(1.5 + hash(i, 9)).setDepth(SHADOW_BAND + 50000);
-          this.tweens.add({ targets: m, x: mx + 220 + hash(i, 11) * 200, duration: 14000 + hash(i, 13) * 8000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-          this.mist.push(m);
-        }
-      }
+      // no drifting mist either: the reveal did not cover it, so it floated as
+      // a pale cloud over ground Mr Owl had not seen
       this.layoutAtmosphere(cam.width, cam.height);
     },
 

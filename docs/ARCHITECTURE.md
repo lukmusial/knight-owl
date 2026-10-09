@@ -61,9 +61,9 @@ Standalone pages that reuse the modules above with their own bootstrap (no `main
 | Module | File | Role |
 |--------|------|------|
 | **FpWorld** | `js/proto/fp-world.js` | Pure grid model for the first-person view: walls/exits per cell, facing, step/turn, boss portal. Unit tested. |
-| **FpTextures / FpRenderer / ProtoFp** | `js/proto/fp-*.js` | three.js scene (merged wall/floor/ceiling geometry, fog, torch light, monster billboards), camera tweens, and the game-flow bootstrap for `proto/first-person.html`. |
+| **FpTextures / FpRenderer / ProtoFp** | `js/proto/fp-*.js` | three.js scene (merged wall/floor/ceiling geometry, fog, torch light, monster billboards), camera tweens, and the game-flow bootstrap for `first-person.html`. |
 | **IsoModel** | `js/proto/iso-model.js` | Pure isometric tile model: rooms as 3x3 diamond blocks, corridors, walls, depth sort, fog state from `DungeonMap`. Unit tested. |
-| **IsoTextures / scenes / ProtoIso** | `js/proto/iso-*.js` | Phaser 3 boot + dungeon scenes (procedural tiles, tokens cropped from monster art, fog overlays, tap-to-move, pan/zoom) and the bootstrap for `proto/isometric.html`. |
+| **IsoTextures / scenes / ProtoIso** | `js/proto/iso-*.js` | Phaser 3 boot + dungeon scenes (procedural tiles, tokens cropped from monster art, fog overlays, tap-to-move, pan/zoom) and the bootstrap for `isometric.html`. |
 
 ### Dependencies
 

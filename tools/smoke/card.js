@@ -180,7 +180,7 @@ async function main() {
     // sheets (styles.css for the classic page, proto-hud.css for the game
     // views); if the stage ends up shorter than the image it clips the bottom
     // of every monster
-    for (const url of ['/index.html', '/proto/isometric.html']) {
+    for (const url of ['/index.html', '/isometric.html']) {
       const phone = await browser.newPage();
       await phone.setViewport({ width: 412, height: 900, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
       await phone.goto('http://localhost:' + PORT + url, { waitUntil: 'load' });

@@ -1,7 +1,7 @@
 /**
  * CemTextures
  * Procedural canvas art for the cemetery level (night grass and dirt
- * diamonds, spider webs, moon, fog vignette, mist, sparkles, tomb door and
+ * diamonds, spider webs, moon, fog vignette, sparkles, tomb door and
  * lock overlays) plus stand-in sprites for every prop so the level plays
  * before the Kenney kit renders exist. Also loads the rendered kit manifest
  * (assets/proto/iso/cemetery/cemetery.json) and resolves a prop name to the
@@ -211,26 +211,6 @@ var CemTextures = (function() {
     g.addColorStop(1, 'rgba(5,6,12,0.92)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
-  }
-
-  function drawMist(ctx, w, h) {
-    // flat ellipses that fade to nothing inside the canvas: round blobs
-    // larger than its height were cut off at its edges, and the drifting
-    // sprite showed as a pale rectangle over the dark grounds
-    var r = rng(77);
-    for (var i = 0; i < 9; i++) {
-      var x = w * 0.25 + r() * w * 0.5;
-      var rx = Math.min(40 + r() * 40, x - 2, w - x - 2), ry = h * 0.45;
-      ctx.save();
-      ctx.translate(x, h / 2);
-      ctx.scale(rx, ry);
-      var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-      g.addColorStop(0, 'rgba(180,200,220,0.18)');
-      g.addColorStop(1, 'rgba(180,200,220,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(-1, -1, 2, 2);
-      ctx.restore();
-    }
   }
 
   function drawSparkle(ctx, size) {
@@ -875,7 +855,6 @@ var CemTextures = (function() {
     // no moon (it read as a stray disc), so `drawMoon` is not painted
     canvasTexture(scene, 'cem_wisp_glow', 64, 64, function(ctx) { T().drawGlow(ctx, 64, 'rgba(157,245,208,0.7)'); });
     canvasTexture(scene, 'cem_vignette', 512, 512, function(ctx) { drawVignette(ctx, 512); });
-    canvasTexture(scene, 'cem_mist', 256, 96, function(ctx) { drawMist(ctx, 256, 96); });
     canvasTexture(scene, 'cem_sparkle', 32, 32, function(ctx) { drawSparkle(ctx, 32); });
     canvasTexture(scene, 'cem_puff', 64, 64, function(ctx) { drawPuff(ctx, 64); });
     canvasTexture(scene, 'cem_door_dark', 56, 76, function(ctx) { drawDoorDark(ctx, 56, 76); });

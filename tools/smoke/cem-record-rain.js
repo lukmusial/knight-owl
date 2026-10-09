@@ -104,7 +104,7 @@ async function main() {
     await page.setViewport({ width: WIDTH, height: HEIGHT });
     page.on('pageerror', e => log('page error: ' + e));
     page.on('console', m => { if (m.type() === 'error' && !/404/.test(m.text())) log('console error: ' + m.text().slice(0, 160)); });
-    await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Owl&action=new&level=cemetery&music=none',
+    await page.goto('http://localhost:' + PORT + '/isometric.html?name=Owl&action=new&level=cemetery&music=none',
       { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 40000 });
 

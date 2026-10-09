@@ -12,10 +12,10 @@ TestRunner.suite('ProtoSession', () => {
   });
 
   TestRunner.test('pages and launch URLs', () => {
-    TestRunner.assertEqual(ProtoSession.pageFor('fp'), 'proto/first-person.html', 'fp page');
+    TestRunner.assertEqual(ProtoSession.pageFor('fp'), 'first-person.html', 'fp page');
     TestRunner.assertEqual(ProtoSession.pageFor('nope'), 'index.html', 'fallback page');
     TestRunner.assertEqual(ProtoSession.launchUrl('iso', 'Zosia Ł', 'continue'),
-      'proto/isometric.html?name=Zosia%20%C5%81&action=continue', 'encoded url');
+      'isometric.html?name=Zosia%20%C5%81&action=continue', 'encoded url');
     TestRunner.assertEqual(ProtoSession.launchUrl('classic', 'Bob', 'new'),
       'index.html?name=Bob&action=new', 'classic page, relative to www/ (the view pages set <base href="../">)');
   });

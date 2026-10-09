@@ -70,7 +70,7 @@ async function main() {
       bootRequests++;
       try { const r = req.response(); const h = r && r.headers()['content-length']; bootBytes += h ? Number(h) : (r ? (await r.buffer()).length : 0); } catch (e) { /* body gone */ }
     });
-    await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Perf&action=new&level=cemetery&perf=1&music=none',
+    await page.goto('http://localhost:' + PORT + '/isometric.html?name=Perf&action=new&level=cemetery&perf=1&music=none',
       { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 30000 });
     await wait(500);

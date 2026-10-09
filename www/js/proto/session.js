@@ -1,7 +1,7 @@
 /**
  * ProtoSession
  * Shared game-session plumbing for the view pages (classic index.html,
- * proto/isometric.html, proto/first-person.html):
+ * isometric.html, first-person.html):
  *  - remembers the chosen view (classic / iso / fp) in localStorage,
  *  - builds the page URL to launch a view for a player ("new" or "continue"),
  *  - parses those launch parameters on the target page,
@@ -28,8 +28,8 @@ var ProtoSession = (function() {
   var siteLevel = (typeof MROWL_SITE !== 'undefined' && MROWL_SITE && LEVELS[MROWL_SITE.level]) ? MROWL_SITE.level : null;
   var VIEWS = {
     classic: { page: 'index.html', label: 'Classic', labelPL: 'Klasyczny' },
-    iso: { page: 'proto/isometric.html', label: 'Isometric', labelPL: 'Izometryczny' },
-    fp: { page: 'proto/first-person.html', label: '3D', labelPL: '3D' }
+    iso: { page: 'isometric.html', label: 'Isometric', labelPL: 'Izometryczny' },
+    fp: { page: 'first-person.html', label: '3D', labelPL: '3D' }
   };
 
   function getView() {
