@@ -216,16 +216,43 @@ body.on-start .complexity-label { color: var(--rpg-gold); }
 
 .complexity-picker {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, ...) lets a column shrink below its label on a narrow phone */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 12px;
 }
 
+/* box-sizing and slimmer bar ends keep the three inside the panel; as wide
+   buttons with 22px ends each, Regular ran off a phone screen */
 body.on-start .complexity-picker .complexity-btn {
+  box-sizing: border-box;
+  min-width: 0;
   min-height: 46px;
-  padding: 6px 4px;
-  font-size: 0.9rem;
+  padding: 6px 0;
+  border-width: 0 14px;
+  border-image-width: 0 14px;
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  white-space: nowrap;
   opacity: 0.7;
+}
+
+/* a small phone: thinner ends and type so Medium and Regular still fit */
+@media (max-width: 380px) {
+  body.on-start .complexity-picker { gap: 4px; }
+  body.on-start .complexity-picker .complexity-btn {
+    border-width: 0 9px;
+    border-image-width: 0 9px;
+    font-size: 0.75rem;
+  }
+  body.on-start .complexity-picker .complexity-btn small { font-size: 0.62rem; }
+}
+
+/* the narrowest phones (320px): one button a row, Polish beside the English */
+@media (max-width: 340px) {
+  body.on-start .complexity-picker { grid-template-columns: minmax(0, 1fr); }
+  body.on-start .complexity-picker .complexity-btn { min-height: 38px; font-size: 0.85rem; }
+  body.on-start .complexity-picker .complexity-btn small { display: inline; margin-left: 6px; font-size: 0.75rem; }
 }
 
 body.on-start .complexity-picker .complexity-btn small {
