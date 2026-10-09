@@ -21,6 +21,7 @@ Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game wher
 - 3D view render-loop check (headless Chrome, walks 20 steps and opens and closes an encounter card, fails if the view starts running more than one animation loop; also checks the dragon and the treasure stand as 3D models): `npm run test:fp:perf`
 - Encounter card check (headless Chrome, classic page: dropped and missing backdrops, the loop stopping when the card closes, rooms kept per level, only the lunge leaving the frame): `npm run test:card`
 - Sentence card check (headless Chrome, classic page with a mouse and the isometric page on a touch phone: tap to add and remove, drag to move and insert, the near-miss marks and the fix-up, a far miss failing at once; screenshots `docs/screenshots/sentence-card-*.png`): `npm run test:sentence`
+- README screenshots (headless Chrome on the GPU, fresh cemetery, dungeon, 3D and classic shots into `docs/screenshots/`, phone shots resampled to 540 px; `--only cem-hero,classic` retakes some): `npm run shots:readme`
 - Performance baseline and how to re-measure it: `docs/performance-baseline.md`
 - 3D view playthrough videos (headless Chrome on the GPU): `npm run record:fp` (a minute of exploring) and `npm run record:fp:dragon` (walks to the boss chamber and beats the dragon)
 - Cemetery playthrough video (headless Chrome on the GPU, plays gate to Grim Reaper and encodes it with ffmpeg): `npm run record:cem`
@@ -42,9 +43,11 @@ npm run android:run
 npm run ios:run
 ```
 
+**Halloween cemetery on GitHub Pages**: `npm run pages:build` writes `dist/pages/` (gitignored) with `tools/pages/build.js`: www/ minus what only the 3D and classic views load, `www/halloween.html` (a standalone start page: name, new, continue) as `index.html`, and `proto/isometric.html` locked to the cemetery by an inline `MROWL_SITE = { level: 'cemetery' }` that `ProtoSession.parseParams` obeys (no level picker, no dungeon; the HUD's close button and the victory screen land on the start page through `launcherUrl`). `npm run pages:serve` serves it on :8090, `npm run test:pages` builds it and plays it through `tools/smoke/cemetery.js --site dist/pages`, which also fails on any 4xx (a file the build left out). `.github/workflows/pages.yml` runs the unit tests, builds and deploys on every push to main touching `www/` or `tools/pages/` (the repo's Pages source must be set to GitHub Actions)
+
 **Build maze library** (only needed if modifying dungeon generation): `npm run build`
 
-**Prototype views**: `npm run proto` serves `www/` on http://localhost:8080; open `/proto/first-person.html` (three.js) or `/proto/isometric.html` (Phaser 3). Rebuild the vendored engine bundles with `npm run vendor` after upgrading `three` or `phaser` in devDependencies.
+**Isometric and 3D views** (they live under `proto/` for historical reasons; they are the main views now, the isometric one featured): `npm run proto` serves `www/` on http://localhost:8080; open `/proto/isometric.html` (Phaser 3) or `/proto/first-person.html` (three.js). Rebuild the vendored engine bundles with `npm run vendor` after upgrading `three` or `phaser` in devDependencies.
 
 No build system for game code - vanilla JavaScript with direct browser execution.
 

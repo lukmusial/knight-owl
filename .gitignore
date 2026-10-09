@@ -62,3 +62,6 @@ tools/monsters3d/*_in.png
 tools/monsters3d/*_white.png
 tools/monsters3d/*_3dlook.png
 tools/monsters3d/__pycache__/
+
+# GitHub Pages build of the Halloween cemetery (tools/pages/build.js)
+/dist/

@@ -3,6 +3,11 @@
  * Headless smoke test of the Halloween cemetery level (isometric view).
  *
  *   node tools/smoke/cemetery.js [--shots docs/screenshots/cem] [--port 8089]
+ *   node tools/smoke/cemetery.js --site dist/pages     (npm run test:pages)
+ *
+ * --site plays the GitHub Pages build (tools/pages/build.js) instead of www/:
+ * it starts from the Halloween start page, fails on any file the site lacks
+ * (HTTP 4xx) and checks that no launch can reach the level picker.
  *
  * Starts a static server on www/, drives the page with puppeteer-core in
  * headless Chrome (no window, no tab throttling) and walks the whole loop:
@@ -21,6 +26,8 @@ const args = process.argv.slice(2);
 function opt(name, def) { const i = args.indexOf(name); return i === -1 ? def : args[i + 1]; }
 const PORT = Number(opt('--port', 8089));
 const SHOTS = opt('--shots', null);
+const SITE = opt('--site', null);
+const SERVE = SITE ? path.resolve(ROOT, SITE) : path.join(ROOT, 'www');
 const CHROME = opt('--chrome', findChrome());
 
 function findChrome() {
@@ -82,7 +89,7 @@ async function waitFor(page, fn, what, arg) {
 }
 
 async function main() {
-  const server = spawn('python3', ['-m', 'http.server', String(PORT), '-d', path.join(ROOT, 'www')], { stdio: 'ignore' });
+  const server = spawn('python3', ['-m', 'http.server', String(PORT), '-d', SERVE], { stdio: 'ignore' });
   await wait(600);
   const browser = await puppeteer.launch({
     executablePath: CHROME,
@@ -96,10 +103,21 @@ async function main() {
     page.on('pageerror', e => errors.push(String(e)));
     errorSink = () => errors;
     page.on('console', m => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(m.text()); });
+    const missing = [];
+    page.on('response', r => { if (r.status() >= 400) missing.push(r.status() + ' ' + r.url().replace(/^https?:\/\/[^/]+/, '')); });
     const base = 'http://localhost:' + PORT + '/proto/isometric.html';
 
     console.log('boot');
-    await page.goto(base + '?name=Smoke&action=new&level=cemetery', { waitUntil: 'load' });
+    if (SITE) {
+      await page.goto('http://localhost:' + PORT + '/', { waitUntil: 'load' });
+      const start = await page.evaluate(() => ({ title: document.title, cont: document.getElementById('load-game-btn').disabled }));
+      check(/Halloween/.test(start.title) && start.cont, 'the site opens on the Halloween start page, nothing to continue');
+      await page.type('#player-name', 'Smoke');
+      await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.click('#new-game-btn')]);
+      check(/proto\/isometric\.html\?name=Smoke&action=new/.test(page.url()), 'New Adventure opens the cemetery');
+    } else {
+      await page.goto(base + '?name=Smoke&action=new&level=cemetery', { waitUntil: 'load' });
+    }
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 30000 });
     const boot = await page.evaluate(() => {
       const L = ProtoCem.getLevel();
@@ -364,14 +382,28 @@ let errorSink = null;
     check(restored.seed === seed && restored.keys === 1 && restored.level === 'cemetery', 'continue restores the same cemetery and its key part');
     check(!restored.picker, 'no level picker on continue');
 
-    console.log('level picker on a fresh run');
-    await page.goto(base + '?name=Smoke3&action=new', { waitUntil: 'load' });
-    await page.waitForSelector('#iso-level-picker', { timeout: 15000 });
-    await shot(page, '10-level-picker');
-    await page.click('.iso-level-card[data-level="dungeon"]');
-    await page.waitForFunction(() => window.ProtoIso && ProtoIso.getScene(), { timeout: 30000 });
-    const dungeon = await page.evaluate(() => ({ level: ProtoIso.getLevel(), room: Player.getCurrentRoom() }));
-    check(dungeon.level === 'dungeon' && !!dungeon.room, 'dungeon still starts from the picker');
+    if (SITE) {
+      console.log('the site is locked to the cemetery');
+      await page.goto('http://localhost:' + PORT + '/?name=Smoke2', { waitUntil: 'load' });
+      const cont = await page.evaluate(() => !document.getElementById('load-game-btn').disabled);
+      check(cont, 'the start page offers to continue the saved cemetery');
+      await page.goto(base + '?name=Smoke3&action=new&level=dungeon', { waitUntil: 'load' });
+      await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 30000 });
+      const locked = await page.evaluate(() => ({ level: ProtoSession.currentRunLevel(), picker: !!document.getElementById('iso-level-picker') }));
+      check(locked.level === 'cemetery' && !locked.picker, 'asking for the dungeon still plays the cemetery');
+      await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.evaluate(() => document.querySelector('.hud-iconbtns a.hud-btn').click())]);
+      check(/\/index\.html\?launcher=1&name=Smoke3$/.test(page.url()), 'the HUD close button returns to the start page');
+      check(missing.length === 0, 'every file the site asked for was there' + (missing.length ? ': ' + missing.slice(0, 5).join(', ') : ''));
+    } else {
+      console.log('level picker on a fresh run');
+      await page.goto(base + '?name=Smoke3&action=new', { waitUntil: 'load' });
+      await page.waitForSelector('#iso-level-picker', { timeout: 15000 });
+      await shot(page, '10-level-picker');
+      await page.click('.iso-level-card[data-level="dungeon"]');
+      await page.waitForFunction(() => window.ProtoIso && ProtoIso.getScene(), { timeout: 30000 });
+      const dungeon = await page.evaluate(() => ({ level: ProtoIso.getLevel(), room: Player.getCurrentRoom() }));
+      check(dungeon.level === 'dungeon' && !!dungeon.room, 'dungeon still starts from the picker');
+    }
 
     check(errors.length === 0, 'no page errors' + (errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''));
   } finally {
