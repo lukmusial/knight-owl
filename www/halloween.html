@@ -7,9 +7,10 @@
   <meta name="description" content="A Polish language game for children: walk Mr Owl through a haunted cemetery, answer Polish questions to beat the monsters, find the four parts of the skeleton key and face the Grim Reaper.">
   <meta property="og:title" content="Mr Owl's Halloween Cemetery">
   <meta property="og:description" content="Learn Polish in a haunted cemetery: beat the monsters with Polish words and face the Grim Reaper.">
-  <meta property="og:image" content="assets/proto/iso/pick-cemetery.jpg">
+  <meta property="og:image" content="assets/proto/iso/halloween-start.jpg">
   <link rel="icon" type="image/png" href="assets/icon.png">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/fx.css">
   <link rel="stylesheet" href="css/proto-hud.css">
   <link rel="stylesheet" href="css/start.css">
   <link rel="stylesheet" href="css/rpggui.css">
@@ -19,7 +20,7 @@
     body.on-start {
       background:
         radial-gradient(ellipse at 50% 30%, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.88) 75%),
-        url('assets/proto/iso/pick-cemetery.jpg') center 30% / cover no-repeat fixed #05060a;
+        url('assets/proto/iso/halloween-start.jpg') center 30% / cover no-repeat fixed #05060a;
     }
     .hw-art {
       display: block;
@@ -36,13 +37,14 @@
 </head>
 <body class="on-start">
   <div id="game-container">
+    <button id="sfx-toggle" class="sfx-toggle" type="button" aria-label="Sound on/off" aria-pressed="false">&#x1f50a;</button>
     <div id="start-screen" class="screen">
       <div class="start-banner hud-ribbon">
         <h1>Mr Owl's Halloween Cemetery</h1>
         <p class="subtitle">Cmentarz na Halloween &middot; learn Polish by night</p>
       </div>
 
-      <img class="hw-art hud-frame" src="assets/proto/iso/pick-cemetery.jpg" alt="Mr Owl in the moonlit cemetery">
+      <img class="hw-art hud-frame" src="assets/proto/iso/halloween-start.jpg" alt="Mr Owl in the moonlit cemetery">
 
       <div class="start-form hud-frame">
         <label for="player-name" class="bi"><span class="bi-en">Your Name</span><span class="bi-pl">Twoje imię</span></label>
@@ -73,6 +75,8 @@
   <script src="js/adapters/StorageAdapter.js"></script>
   <script src="js/modules/save.js"></script>
   <script src="js/proto/session.js"></script>
+  <script src="js/modules/sfx.js"></script>
+  <script src="js/modules/music.js"></script>
   <script>
     (function() {
       var NAME_KEY = 'mrowl_cem_last_name';
@@ -82,6 +86,25 @@
       var loadBtn = document.getElementById('load-game-btn');
       var note = document.getElementById('hw-note');
       var savesBox = document.getElementById('hw-saves');
+      var sfxBtn = document.getElementById('sfx-toggle');
+      // the start page's tune: a detuned calliope waltz; browsers hold it
+      // back until the first tap or key, which Music waits for
+      var THEME = 'assets/music/cemetery-carousel.mp3';
+
+      function showMute() {
+        var muted = SFX.isMuted();
+        sfxBtn.innerHTML = muted ? '&#x1f507;' : '&#x1f50a;';
+        sfxBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+      }
+      SFX.init();
+      Music.init();
+      Music.play(THEME);
+      showMute();
+      sfxBtn.addEventListener('click', function() {
+        SFX.setMuted(!SFX.isMuted());
+        Music.setMuted(SFX.isMuted());
+        showMute();
+      });
 
       function stored(key) { try { return localStorage.getItem(key) || ''; } catch (e) { return ''; } }
       function store(key, val) { try { localStorage.setItem(key, val); } catch (e) { /* storage blocked */ } }
@@ -92,7 +115,14 @@
 
       function play(name, action) {
         store(NAME_KEY, name);
-        location.href = PLAY + '?name=' + encodeURIComponent(name) + '&action=' + action + '&level=cemetery';
+        var url = PLAY + '?name=' + encodeURIComponent(name) + '&action=' + action + '&level=cemetery';
+        // the theme fades out as the cemetery loads
+        if (Music.isPlaying()) {
+          Music.stop(300);
+          setTimeout(function() { location.href = url; }, 300);
+        } else {
+          location.href = url;
+        }
       }
 
       function currentName() {

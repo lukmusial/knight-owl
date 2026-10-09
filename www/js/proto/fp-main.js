@@ -179,7 +179,7 @@ var ProtoFp = (function() {
     if (session.unsupportedLevel) {
       // A cemetery save only plays in the isometric view: hand it over
       UI.showToast('This adventure continues in the isometric view. Ta przygoda trwa w widoku izometrycznym.', 'info');
-      window.location.href = ProtoSession.launchUrl('iso', session.name, 'continue', true);
+      window.location.href = ProtoSession.launchUrl('iso', session.name, 'continue');
       return;
     }
     ProtoHud.setName(session.name);

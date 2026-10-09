@@ -28,6 +28,10 @@ const PORT = Number(opt('--port', 8089));
 const SHOTS = opt('--shots', null);
 const SITE = opt('--site', null);
 const SERVE = SITE ? path.resolve(ROOT, SITE) : path.join(ROOT, 'www');
+// the site is served from a subpath, as GitHub Pages serves it from
+// /knight-owl/: a link that climbs above the site root then fails here too
+const DOCROOT = SITE ? path.dirname(SERVE) : SERVE;
+const ORIGIN = 'http://localhost:' + PORT + (SITE ? '/' + path.basename(SERVE) : '');
 const CHROME = opt('--chrome', findChrome());
 
 function findChrome() {
@@ -89,7 +93,7 @@ async function waitFor(page, fn, what, arg) {
 }
 
 async function main() {
-  const server = spawn('python3', ['-m', 'http.server', String(PORT), '-d', SERVE], { stdio: 'ignore' });
+  const server = spawn('python3', ['-m', 'http.server', String(PORT), '-d', DOCROOT], { stdio: 'ignore' });
   await wait(600);
   const browser = await puppeteer.launch({
     executablePath: CHROME,
@@ -105,14 +109,17 @@ async function main() {
     page.on('console', m => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(m.text()); });
     const missing = [];
     page.on('response', r => { if (r.status() >= 400) missing.push(r.status() + ' ' + r.url().replace(/^https?:\/\/[^/]+/, '')); });
-    const base = 'http://localhost:' + PORT + '/proto/isometric.html';
+    const base = ORIGIN + '/proto/isometric.html';
 
     console.log('boot');
     if (SITE) {
-      await page.goto('http://localhost:' + PORT + '/', { waitUntil: 'load' });
+      await page.goto(ORIGIN + '/', { waitUntil: 'load' });
       const start = await page.evaluate(() => ({ title: document.title, cont: document.getElementById('load-game-btn').disabled }));
       check(/Halloween/.test(start.title) && start.cont, 'the site opens on the Halloween start page, nothing to continue');
       await page.type('#player-name', 'Smoke');
+      await page.waitForFunction(() => Music.isPlaying(), { timeout: 10000 }).catch(() => {});
+      const music = await page.evaluate(() => ({ playing: Music.isPlaying(), muted: SFX.isMuted() }));
+      check(music.playing && !music.muted, 'the start page plays its theme');
       await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.click('#new-game-btn')]);
       check(/proto\/isometric\.html\?name=Smoke&action=new/.test(page.url()), 'New Adventure opens the cemetery');
     } else {
@@ -384,7 +391,7 @@ let errorSink = null;
 
     if (SITE) {
       console.log('the site is locked to the cemetery');
-      await page.goto('http://localhost:' + PORT + '/?name=Smoke2', { waitUntil: 'load' });
+      await page.goto(ORIGIN + '/?name=Smoke2', { waitUntil: 'load' });
       const cont = await page.evaluate(() => !document.getElementById('load-game-btn').disabled);
       check(cont, 'the start page offers to continue the saved cemetery');
       await page.goto(base + '?name=Smoke3&action=new&level=dungeon', { waitUntil: 'load' });
@@ -392,7 +399,7 @@ let errorSink = null;
       const locked = await page.evaluate(() => ({ level: ProtoSession.currentRunLevel(), picker: !!document.getElementById('iso-level-picker') }));
       check(locked.level === 'cemetery' && !locked.picker, 'asking for the dungeon still plays the cemetery');
       await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.evaluate(() => document.querySelector('.hud-iconbtns a.hud-btn').click())]);
-      check(/\/index\.html\?launcher=1&name=Smoke3$/.test(page.url()), 'the HUD close button returns to the start page');
+      check(page.url() === ORIGIN + '/index.html?launcher=1&name=Smoke3', 'the HUD close button returns to the start page (' + page.url().replace(/^https?:\/\/[^/]+/, '') + ')');
       check(missing.length === 0, 'every file the site asked for was there' + (missing.length ? ': ' + missing.slice(0, 5).join(', ') : ''));
     } else {
       console.log('level picker on a fresh run');

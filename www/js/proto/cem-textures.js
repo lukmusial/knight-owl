@@ -214,14 +214,22 @@ var CemTextures = (function() {
   }
 
   function drawMist(ctx, w, h) {
+    // flat ellipses that fade to nothing inside the canvas: round blobs
+    // larger than its height were cut off at its edges, and the drifting
+    // sprite showed as a pale rectangle over the dark grounds
     var r = rng(77);
     for (var i = 0; i < 9; i++) {
-      var x = w * 0.15 + r() * w * 0.7, y = h * 0.3 + r() * h * 0.4;
-      var g = ctx.createRadialGradient(x, y, 2, x, y, 40 + r() * 40);
+      var x = w * 0.25 + r() * w * 0.5;
+      var rx = Math.min(40 + r() * 40, x - 2, w - x - 2), ry = h * 0.45;
+      ctx.save();
+      ctx.translate(x, h / 2);
+      ctx.scale(rx, ry);
+      var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
       g.addColorStop(0, 'rgba(180,200,220,0.18)');
       g.addColorStop(1, 'rgba(180,200,220,0)');
       ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(-1, -1, 2, 2);
+      ctx.restore();
     }
   }
 

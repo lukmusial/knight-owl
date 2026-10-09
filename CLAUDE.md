@@ -21,7 +21,7 @@ Mr Owl's Dungeon Adventure - A cross-platform Polish language learning game wher
 - 3D view render-loop check (headless Chrome, walks 20 steps and opens and closes an encounter card, fails if the view starts running more than one animation loop; also checks the dragon and the treasure stand as 3D models): `npm run test:fp:perf`
 - Encounter card check (headless Chrome, classic page: dropped and missing backdrops, the loop stopping when the card closes, rooms kept per level, only the lunge leaving the frame): `npm run test:card`
 - Sentence card check (headless Chrome, classic page with a mouse and the isometric page on a touch phone: tap to add and remove, drag to move and insert, the near-miss marks and the fix-up, a far miss failing at once; screenshots `docs/screenshots/sentence-card-*.png`): `npm run test:sentence`
-- README screenshots (headless Chrome on the GPU, fresh cemetery, dungeon, 3D and classic shots into `docs/screenshots/`, phone shots resampled to 540 px; `--only cem-hero,classic` retakes some): `npm run shots:readme`
+- README screenshots (headless Chrome on the GPU, fresh cemetery, dungeon, 3D and classic shots into `docs/screenshots/`, and the Halloween start page picture `www/assets/proto/iso/halloween-start.jpg` (`--only launch`), phone shots resampled to 540 px; `--only cem-hero,classic` retakes some): `npm run shots:readme`
 - Performance baseline and how to re-measure it: `docs/performance-baseline.md`
 - 3D view playthrough videos (headless Chrome on the GPU): `npm run record:fp` (a minute of exploring) and `npm run record:fp:dragon` (walks to the boss chamber and beats the dragon)
 - Cemetery playthrough video (headless Chrome on the GPU, plays gate to Grim Reaper and encodes it with ffmpeg): `npm run record:cem`

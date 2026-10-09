@@ -89,21 +89,21 @@ var ProtoSession = (function() {
   }
 
   /**
-   * URL that opens a view for a player. Relative to www/ (the classic page);
-   * pass fromProto=true when building it from a page under www/proto/.
+   * URL that opens a view for a player, relative to www/. The view pages
+   * under www/proto/ set <base href="../">, so it holds from them too.
    */
-  function launchUrl(view, name, action, fromProto) {
-    var page = pageFor(view);
-    if (fromProto) page = '../' + page;
-    return page + '?name=' + encodeURIComponent(name || '') + '&action=' + (action === 'continue' ? 'continue' : 'new');
+  function launchUrl(view, name, action) {
+    return pageFor(view) + '?name=' + encodeURIComponent(name || '') + '&action=' + (action === 'continue' ? 'continue' : 'new');
   }
 
   /**
    * URL of the launch screen when leaving a view: skips the splash video and
-   * prefills the player's name. Built relative to www/proto/.
+   * prefills the player's name. Relative to www/ like launchUrl: a '../'
+   * climbed out of the site under <base href="../"> (served from a subpath,
+   * as on GitHub Pages, the close button led to a 404).
    */
   function launcherUrl(name) {
-    return '../index.html?launcher=1' + (name ? '&name=' + encodeURIComponent(name) : '');
+    return 'index.html?launcher=1' + (name ? '&name=' + encodeURIComponent(name) : '');
   }
 
   /**
