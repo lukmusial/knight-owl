@@ -216,6 +216,7 @@ loadScript('www/js/platform-init.js');
 // Core modules
 loadScript('www/js/modules/profile.js');
 loadScript('www/js/modules/questions.js');
+loadScript('www/js/modules/complexity.js');
 loadScript('www/js/modules/matching.js');
 loadScript('www/js/modules/sentences.js');
 loadScript('www/js/modules/player.js');
@@ -259,6 +260,7 @@ loadScript('tests/matching-data.test.js');
 loadScript('tests/sentences.test.js');
 loadScript('tests/sentences-data.test.js');
 loadScript('tests/questions.test.js');
+loadScript('tests/complexity.test.js');
 loadScript('tests/player.test.js');
 loadScript('tests/save.test.js');
 loadScript('tests/descriptions.test.js');

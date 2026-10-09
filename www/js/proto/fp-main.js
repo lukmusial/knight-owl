@@ -411,7 +411,7 @@ var ProtoFp = (function() {
 
   function startMatchingEncounter(monster, depth, category) {
     var difficulty = Dungeon.getDepthDifficulty(depth);
-    var set = Matching.getMatchingSet(difficulty, category);
+    var set = Complexity.matchingSet(difficulty, category);
     if (!set) { startCombat(monster, depth); return; }
     UI.showMatchingModal({ monster: monster, set: set }, function(success) {
       handleMatchingComplete(success, monster, set);
@@ -445,7 +445,7 @@ var ProtoFp = (function() {
   }
 
   function startSentenceEncounter(monster, depth) {
-    var question = Sentences.getSentence(Dungeon.getDepthDifficulty(depth));
+    var question = Complexity.sentence(Dungeon.getDepthDifficulty(depth));
     if (!question) { startCombat(monster, depth); return; }
     UI.showSentenceModal({ monster: monster, question: question }, function(success) {
       UI.hideSentenceModal();

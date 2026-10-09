@@ -422,7 +422,7 @@ var ProtoCem = (function() {
   }
 
   function startMatchingEncounter(m) {
-    var set = Matching.getMatchingSet(Math.min(3, m.difficulty || 1), m.matchingCategory);
+    var set = Complexity.matchingSet(Math.min(3, m.difficulty || 1), m.matchingCategory);
     if (!set) { startCombat(m); return; }
     setModalOpen(true);
     UI.showMatchingModal({ monster: m, set: set }, function(success) {
@@ -442,7 +442,7 @@ var ProtoCem = (function() {
   }
 
   function startSentenceEncounter(m) {
-    var question = Sentences.getSentence(Math.min(3, m.difficulty || 1));
+    var question = Complexity.sentence(Math.min(3, m.difficulty || 1));
     if (!question) { startCombat(m); return; }
     setModalOpen(true);
     UI.showSentenceModal({ monster: m, question: question }, function(success) {

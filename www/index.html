@@ -55,6 +55,12 @@
       <div class="start-form hud-frame">
         <label for="player-name" class="bi"><span class="bi-en">Your Name</span><span class="bi-pl">Twoje imię</span></label>
         <input type="text" id="player-name" placeholder="Enter your name..." maxlength="20">
+        <div class="complexity-label bi"><span class="bi-en">Complexity</span><span class="bi-pl">Poziom trudności</span></div>
+        <div id="complexity-picker" class="complexity-picker" role="group" aria-label="Complexity">
+          <button type="button" class="hud-btn-wide complexity-btn" data-complexity="easy" aria-pressed="false">Easy<small>Łatwy</small></button>
+          <button type="button" class="hud-btn-wide complexity-btn" data-complexity="medium" aria-pressed="false">Medium<small>Średni</small></button>
+          <button type="button" class="hud-btn-wide complexity-btn" data-complexity="regular" aria-pressed="false">Regular<small>Normalny</small></button>
+        </div>
 
         <div class="start-buttons">
           <button id="new-game-btn" class="hud-btn-wide primary">New Adventure</button>
@@ -359,6 +365,7 @@
   <!-- Load modules -->
   <script src="js/modules/profile.js"></script>
   <script src="js/modules/questions.js"></script>
+  <script src="js/modules/complexity.js"></script>
   <script src="js/modules/matching.js"></script>
   <script src="js/modules/sentences.js"></script>
   <script src="js/modules/player.js"></script>

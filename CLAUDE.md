@@ -72,6 +72,7 @@ const ModuleName = (function() {
 | Dungeon | `js/modules/dungeon.js` | Procedural dungeon generation, room graph |
 | Combat | `js/modules/combat.js` | Quiz-based encounters, answer checking |
 | Questions | `js/modules/questions.js` | Question database, selection, tracking |
+| Complexity | `js/modules/complexity.js` | Launcher complexity setting (easy/medium/regular, `mrowl_complexity`) and the question, matching and sentence draws it shapes |
 | Sentences | `js/modules/sentences.js` | Sentence-builder encounters: tile pool, building the sentence, judging it against every accepted word order, the one fix-up after a near miss (pure, node-tested) |
 | UI | `js/modules/ui.js` | DOM manipulation, screen/modal rendering |
 | Save | `js/modules/save.js` | localStorage persistence |
@@ -143,6 +144,8 @@ Game.init() → startNewGame()/loadGame() → enterRoom()
 - MAZE_WIDTH: 7, MAZE_HEIGHT: 6 (creates 42-cell grid)
 - MIN_MONSTER_ROOMS: 20
 - Difficulty scaling: depths 1-7 (easy), 8-14 (medium), 15+ (hard)
+
+**Complexity** (complexity.js): both launchers (`index.html`, `halloween.html`) show an Easy / Medium / Regular picker, default Regular, kept in localStorage as `mrowl_complexity` and applied to new and continued runs alike. Every encounter draws through it (`Complexity.question`, `matchingSet`, `sentence`): Easy drops grammar questions and pronoun matching and asks only difficulty 1 (exact, bosses too); Medium drops grammar and pronoun matching but keeps the depth / monster grading; Regular is the full set. Sentence-builder encounters stay in every mode (Easy only gets level 1 sentences, which have no wrong-form distractors)
 
 **Boss challenges**: each of the three questions re-renders the card through `UI.updateQuizQuestion`, which re-points the Listen button at the word now on screen (`wireSpeakWord`); the cemetery smoke test guards it
 

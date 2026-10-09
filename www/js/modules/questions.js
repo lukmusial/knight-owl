@@ -69,12 +69,16 @@ const Questions = (function() {
    * @param {number} difficulty - 1 (easy), 2 (medium), or 3 (hard)
    * @param {string} category - 'vocabulary', 'grammar', or null for any
    * @param {boolean} allowRepeats - Whether to allow previously used questions
+   * @param {Object} opts - { exclude: categories never to ask, exact: only
+   *   the given difficulty (no +/- 1) }
    * @returns {Object|null} A question object or null if none available
    */
-  function getQuestion(difficulty, category = null, allowRepeats = false) {
+  function getQuestion(difficulty, category = null, allowRepeats = false, opts = {}) {
+    const exclude = opts.exclude || [];
+    const allowed = q => exclude.indexOf(q.category) === -1;
     let available = questions.filter(q => {
-      // Match difficulty (allow +/- 1 for flexibility)
-      const diffMatch = Math.abs(q.difficulty - difficulty) <= 1;
+      // Match difficulty (allow +/- 1 for flexibility unless exact)
+      const diffMatch = opts.exact ? q.difficulty === difficulty : Math.abs(q.difficulty - difficulty) <= 1;
 
       // Match category if specified
       const catMatch = !category || q.category === category;
@@ -82,19 +86,19 @@ const Questions = (function() {
       // Check if already used (if not allowing repeats)
       const notUsed = allowRepeats || !usedQuestionIds.has(q.id);
 
-      return diffMatch && catMatch && notUsed;
+      return diffMatch && catMatch && notUsed && allowed(q);
     });
 
     // If no unused questions, allow repeats
     if (available.length === 0 && !allowRepeats) {
-      return getQuestion(difficulty, category, true);
+      return getQuestion(difficulty, category, true, opts);
     }
 
     // If still no questions, broaden difficulty range
     if (available.length === 0) {
       available = questions.filter(q => {
         const catMatch = !category || q.category === category;
-        return catMatch;
+        return catMatch && allowed(q);
       });
     }
 

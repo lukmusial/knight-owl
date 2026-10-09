@@ -398,7 +398,7 @@ var ProtoIso = (function() {
 
   function startMatchingEncounter(monster, depth, category) {
     var difficulty = Dungeon.getDepthDifficulty(depth);
-    var set = Matching.getMatchingSet(difficulty, category);
+    var set = Complexity.matchingSet(difficulty, category);
     if (!set) {
       startCombat(monster, depth);
       return;
@@ -410,7 +410,7 @@ var ProtoIso = (function() {
   }
 
   function startSentenceEncounter(monster, depth) {
-    var question = Sentences.getSentence(Dungeon.getDepthDifficulty(depth));
+    var question = Complexity.sentence(Dungeon.getDepthDifficulty(depth));
     if (!question) {
       startCombat(monster, depth);
       return;

@@ -126,6 +126,7 @@ const Game = (function() {
     // Show start screen with saved games
     refreshStartScreen();
     initViewSelector();
+    Complexity.bindPicker(document.getElementById('complexity-picker'));
     initTopBar();
 
     initialized = true;
@@ -671,7 +672,7 @@ const Game = (function() {
    */
   function startMatchingEncounter(monster, depth, category) {
     var difficulty = Dungeon.getDepthDifficulty(depth);
-    var set = Matching.getMatchingSet(difficulty, category);
+    var set = Complexity.matchingSet(difficulty, category);
 
     if (!set) {
       // Fallback to regular quiz if no matching sets available
@@ -744,7 +745,7 @@ const Game = (function() {
    * @param {number} depth - Room depth for difficulty
    */
   function startSentenceEncounter(monster, depth) {
-    var question = Sentences.getSentence(Dungeon.getDepthDifficulty(depth));
+    var question = Complexity.sentence(Dungeon.getDepthDifficulty(depth));
     if (!question) {
       startCombat(monster, depth);
       return;

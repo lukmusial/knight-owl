@@ -38,9 +38,7 @@ const Combat = (function() {
     };
 
     // Get a question for this encounter
-    currentQuestion = dragonPhase
-      ? Questions.getDragonQuestion()
-      : Questions.getQuestion(difficulty);
+    currentQuestion = Complexity.question(difficulty, dragonPhase);
 
     return {
       monster: monster,
@@ -116,7 +114,7 @@ const Combat = (function() {
         // Need more correct answers
         var prevQuestion = currentQuestion;
         // Get next dragon question
-        currentQuestion = Questions.getDragonQuestion();
+        currentQuestion = Complexity.question(3, true);
 
         return {
           success: true,
