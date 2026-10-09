@@ -104,7 +104,7 @@
   <script>
     (function() {
       var NAME_KEY = 'mrowl_cem_last_name';
-      var PLAY = 'proto/isometric.html';
+      var PLAY = 'isometric.html';
       var input = document.getElementById('player-name');
       var newBtn = document.getElementById('new-game-btn');
       var loadBtn = document.getElementById('load-game-btn');
@@ -148,7 +148,9 @@
 
       function play(name, action) {
         store(NAME_KEY, name);
-        var url = PLAY + '?name=' + encodeURIComponent(name) + '&action=' + action + '&level=cemetery';
+        // the site build locks the game to the cemetery, so only a plain www/ needs the level
+        var url = PLAY + '?name=' + encodeURIComponent(name) + '&action=' + action +
+          (ProtoSession.getSiteLevel() ? '' : '&level=cemetery');
         // the theme fades out as the cemetery loads
         if (Music.isPlaying()) {
           Music.stop(300);

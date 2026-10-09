@@ -83,7 +83,7 @@ async function main() {
     const logs = [];
     page.on('console', m => { logs.push(m.text()); if (m.type() === 'error' && !/404/.test(m.text())) errors.push(m.text()); });
     if (REDUCED) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-    await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Rain&action=new&level=cemetery&perf=1&music=none',
+    await page.goto('http://localhost:' + PORT + '/isometric.html?name=Rain&action=new&level=cemetery&perf=1&music=none',
       { waitUntil: 'load' });
     await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 30000 });
 

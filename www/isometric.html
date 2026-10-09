@@ -3,28 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Mr Owl's Dungeon Adventure - 3D</title>
-  <base href="../">
+  <title>Mr Owl's Dungeon Adventure - Isometric</title>
+  <link rel="icon" type="image/png" href="assets/icon.png">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/fx.css">
   <link rel="stylesheet" href="css/proto-hud.css">
-  <link rel="stylesheet" href="css/proto-fp.css">
+  <link rel="stylesheet" href="css/proto-iso.css">
   <link rel="stylesheet" href="css/rpggui.css">
 </head>
-<body class="proto proto-fp">
-  <div id="fp-view" class="hud-stage">
-    <div id="fp-fade"></div>
-    <div id="fp-nogl" class="hud-nogl hidden">
-      WebGL is not available on this device.<br>
-      <a href="index.html">Back to the classic view</a>
-    </div>
+<body class="proto proto-iso">
+  <div class="hud-stage">
+    <div id="iso-canvas"></div>
   </div>
+  <div id="iso-loading" class="hud-loading"><div class="bi"><span class="bi-en">Entering the dungeon&hellip;</span><span class="bi-pl">Wchodzisz do lochu&hellip;</span></div></div>
+  <script>
+    // Opened for the cemetery: say so before the first paint, not only once
+    // cem-main.js runs (the dungeon's line used to show first)
+    if (/[?&]level=cemetery(&|$)/.test(location.search) || (typeof MROWL_SITE !== 'undefined' && MROWL_SITE.level === 'cemetery')) {
+      document.querySelector('#iso-loading .bi-en').textContent = 'Entering a haunted cemetery\u2026';
+      document.querySelector('#iso-loading .bi-pl').textContent = 'Wchodzisz na nawiedzony cmentarz\u2026';
+    }
+  </script>
+  <div id="iso-modals"></div>
 
-  <div id="fp-loading" class="hud-loading"><div class="bi"><span class="bi-en">Entering the dungeon&hellip;</span><span class="bi-pl">Wchodzisz do lochu&hellip;</span></div></div>
-
-  <div id="fp-modals"></div>
-
-  <!-- Data -->
   <script src="js/data/vocabulary.js"></script>
   <script src="js/data/vocabulary-reverse.js"></script>
   <script src="js/data/grammar.js"></script>
@@ -32,12 +33,7 @@
   <script src="js/data/pronoun-matching.js"></script>
   <script src="js/data/sentences.js"></script>
   <script src="js/data/monsters.js"></script>
-
-  <!-- Libraries -->
   <script src="js/lib/maze.js"></script>
-  <script src="js/lib/three.bundle.js"></script>
-
-  <!-- Platform adapters -->
   <script src="js/adapters/StorageAdapter.js"></script>
   <script src="js/adapters/AudioAdapter.js"></script>
   <script src="js/adapters/InputAdapter.js"></script>
@@ -48,8 +44,6 @@
   <script src="js/platforms/capacitor/CapacitorAudio.js"></script>
   <script src="js/platforms/capacitor/CapacitorHaptics.js"></script>
   <script src="js/platform-init.js"></script>
-
-  <!-- Game modules -->
   <script src="js/modules/profile.js"></script>
   <script src="js/modules/questions.js"></script>
   <script src="js/modules/matching.js"></script>
@@ -61,24 +55,32 @@
   <script src="js/modules/combat.js"></script>
   <script src="js/modules/map.js"></script>
   <script src="js/modules/sfx.js"></script>
+  <script src="js/modules/music.js"></script>
   <script src="js/modules/fx.js"></script>
   <script src="js/modules/lifecycle.js"></script>
   <script src="js/modules/monster-stage.js"></script>
   <script src="js/modules/ui.js"></script>
 
-  <!-- 3D view -->
+  <!-- Isometric view -->
+  <script src="js/lib/phaser.min.js"></script>
   <script src="js/proto/shared-dom.js"></script>
   <script src="js/proto/session.js"></script>
   <script src="js/proto/hud.js"></script>
-  <script src="js/proto/fp-world.js"></script>
-  <script src="js/proto/fp-layout.js"></script>
-  <script src="js/proto/fp-quality.js"></script>
-  <script src="js/proto/fp-textures.js"></script>
-  <script src="js/proto/fp-props.js"></script>
-  <script src="js/proto/fp-ambience.js"></script>
-  <script src="js/proto/fp-owl.js"></script>
-  <script src="js/proto/fp-monsters.js"></script>
-  <script src="js/proto/fp-renderer.js"></script>
-  <script src="js/proto/fp-main.js"></script>
+  <script src="js/proto/iso-model.js"></script>
+  <script src="js/proto/iso-textures.js"></script>
+  <script src="js/proto/iso-scenes.js"></script>
+  <script src="js/proto/cem-model.js"></script>
+  <script src="js/proto/cem-stick.js"></script>
+  <script src="js/proto/cem-monsters.js"></script>
+  <script src="js/proto/cem-storm.js"></script>
+  <script src="js/proto/cem-minimap.js"></script>
+  <script src="js/proto/cem-textures.js"></script>
+  <script src="js/proto/cem-reveal.js"></script>
+  <script src="js/proto/cem-world.js"></script>
+  <script src="js/proto/cem-rain.js"></script>
+  <script src="js/proto/cem-perf.js"></script>
+  <script src="js/proto/cem-scenes.js"></script>
+  <script src="js/proto/cem-main.js"></script>
+  <script src="js/proto/iso-main.js"></script>
 </body>
 </html>

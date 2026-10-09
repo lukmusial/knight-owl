@@ -7,7 +7,7 @@
  * Copies www/ into the output folder without what only the other views use
  * (the 3D view's models and textures, its three.js bundle, the classic
  * launcher's splash video and direction paintings), makes www/halloween.html
- * the site's index.html and locks proto/isometric.html to the cemetery
+ * the site's index.html and locks isometric.html to the cemetery
  * (MROWL_SITE, read by ProtoSession), so neither the level picker nor the
  * dungeon can be reached. The game's links back to the launch screen
  * (../index.html) land on the Halloween start page.
@@ -29,7 +29,7 @@ const OUT = path.resolve(ROOT, outArg);
 const EXCLUDE = [
   'index.html',                 // the multi-view launcher; halloween.html takes its place
   'halloween.html',             // copied as index.html
-  'proto/first-person.html',
+  'first-person.html',
   'js/proto/fp-',
   'js/lib/three.bundle.js',
   'js/lib/three-entry.js',
@@ -69,10 +69,14 @@ function copyTree(src, dst, rel) {
   return { files, bytes };
 }
 
-function lockIsometric(file) {
+const REDIRECT = '<!DOCTYPE html><meta charset="UTF-8"><title>Mr Owl\'s Halloween Cemetery</title><link rel="icon" type="image/png" href="../assets/icon.png">' +
+  '<script>location.replace(\'../isometric.html\' + location.search);</script>' +
+  '<a href="../">Mr Owl\'s Halloween Cemetery</a>\n';
+
+function lockPage(file, title) {
   let html = fs.readFileSync(file, 'utf8');
   if (html.indexOf('<script') === -1) throw new Error('no script tag in ' + file);
-  html = html.replace(/<title>[^<]*<\/title>/, '<title>Mr Owl\'s Halloween Cemetery</title>');
+  if (title) html = html.replace(/<title>[^<]*<\/title>/, '<title>' + title + '</title>');
   // before the first script, so ProtoSession sees it when it loads
   html = html.replace('<script', SITE_LOCK + '\n  <script');
   fs.writeFileSync(file, html);
@@ -84,7 +88,11 @@ function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const stats = copyTree(WWW, OUT, '');
   fs.copyFileSync(path.join(WWW, 'halloween.html'), path.join(OUT, 'index.html'));
-  lockIsometric(path.join(OUT, 'proto', 'isometric.html'));
+  lockPage(path.join(OUT, 'isometric.html'), 'Mr Owl\'s Halloween Cemetery');
+  lockPage(path.join(OUT, 'index.html'));
+  // the pages lived under proto/ when the site first went up: keep those links working
+  fs.mkdirSync(path.join(OUT, 'proto'), { recursive: true });
+  fs.writeFileSync(path.join(OUT, 'proto', 'isometric.html'), REDIRECT);
   fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
   console.log('pages: ' + (stats.files + 1) + ' files, ' + (stats.bytes / 1048576).toFixed(1) + ' MB in ' + path.relative(ROOT, OUT));
 }

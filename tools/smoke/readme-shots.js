@@ -169,7 +169,7 @@ async function stageSettled(page, modal) {
 /* ---------------------------------------------------------------- cemetery */
 
 async function bootCemetery(page) {
-  await page.goto(BASE + '/proto/isometric.html?action=new&level=cemetery' + Q, { waitUntil: 'load' });
+  await page.goto(BASE + '/isometric.html?action=new&level=cemetery' + Q, { waitUntil: 'load' });
   await page.waitForFunction(() => window.ProtoCem && ProtoCem.getScene() && !ProtoCem.isBusy(), { timeout: 60000 });
   await page.waitForFunction(() => { const v = document.getElementById('iso-loading'); return !v || v.classList.contains('hidden'); }, { timeout: 30000 });
   await page.evaluate(() => { ProtoCem.getLevel().graceMs = 1e9; });   // no fights while posing
@@ -561,7 +561,7 @@ async function isoSettle(page) {
 async function runIso(browser) {
   log('isometric dungeon (phone)');
   const page = await newPage(browser, PHONE, 'iso');
-  await page.goto(BASE + '/proto/isometric.html?action=new&level=dungeon&enc=quiz' + Q, { waitUntil: 'load' });
+  await page.goto(BASE + '/isometric.html?action=new&level=dungeon&enc=quiz' + Q, { waitUntil: 'load' });
   await page.waitForFunction(() => typeof ProtoIso !== 'undefined' && ProtoIso.getScene() && !ProtoIso.isBusy(), { timeout: 60000 });
   await page.waitForFunction(() => { const v = document.getElementById('iso-loading'); return !v || v.classList.contains('hidden'); }, { timeout: 30000 });
   await wait(3000);
@@ -624,7 +624,7 @@ async function fpFree(page) {
 async function runFp(browser) {
   log('3D view (phone)');
   const page = await newPage(browser, PHONE, 'fp');
-  await page.goto(BASE + '/proto/first-person.html?action=new&enc=quiz' + Q, { waitUntil: 'load' });
+  await page.goto(BASE + '/first-person.html?action=new&enc=quiz' + Q, { waitUntil: 'load' });
   await page.waitForFunction(() => window.ProtoFp && ProtoFp.getDebugState().gameInProgress && document.querySelector('canvas'), { timeout: 60000 });
   await page.evaluate(() => { if (FpRenderer.getViewMode() !== 'third') FpRenderer.setViewMode('third'); });
   await wait(4000);

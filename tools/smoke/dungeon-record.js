@@ -248,7 +248,7 @@ async function moveTo(page, roomId) {
 
 async function start(page) {
   if (VIEW === 'iso') {
-    await page.goto('http://localhost:' + PORT + '/proto/isometric.html?name=Owl&action=new&level=dungeon&music=none' + (ENC ? '&enc=' + ENC : ''),
+    await page.goto('http://localhost:' + PORT + '/isometric.html?name=Owl&action=new&level=dungeon&music=none' + (ENC ? '&enc=' + ENC : ''),
       { waitUntil: 'load' });
     await page.waitForFunction(() => typeof ProtoIso !== 'undefined' && ProtoIso.getScene() && !ProtoIso.isBusy(),
       { timeout: 60000 });

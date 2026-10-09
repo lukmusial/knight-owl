@@ -205,7 +205,7 @@ async function main() {
   });
   try {
     await run(browser, '/index.html', { width: 1000, height: 800 }, false, 'desktop');
-    await run(browser, '/proto/isometric.html', { width: 412, height: 900, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, true, 'phone');
+    await run(browser, '/isometric.html', { width: 412, height: 900, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, true, 'phone');
   } finally {
     await browser.close();
     server.kill();

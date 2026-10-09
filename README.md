@@ -108,7 +108,7 @@ The isometric and 3D views need an http server (canvas image processing is block
 npm run proto        # serves www/ on http://localhost:8080
 ```
 
-Then open http://localhost:8080/ for the launch screen (pick a view, then New Adventure), or go straight to http://localhost:8080/proto/isometric.html?level=cemetery or /proto/first-person.html. No build step is needed: the game is vanilla JavaScript. The engine bundles (three.js, Phaser 3) are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
+Then open http://localhost:8080/ for the launch screen (pick a view, then New Adventure), or go straight to http://localhost:8080/isometric.html?level=cemetery or /first-person.html. No build step is needed: the game is vanilla JavaScript. The engine bundles (three.js, Phaser 3) are vendored into `www/js/lib/`; rebuild them with `npm run vendor`.
 
 ### Android
 
@@ -148,7 +148,7 @@ npm test
 ## How It Was Made
 
 - **Mr Owl and the monsters** were generated from their illustrations as 3D models with Microsoft TRELLIS, rigged and animated in Blender (`tools/owl3d/`, `tools/monsters3d/`), and rendered as sprite sheets for the isometric view and the encounter cards. The illustrations and painted card rooms come from FLUX.1-schnell (`tools/art/`).
-- **The cemetery props** are Kenney's Graveyard and Nature kits rendered in Blender at the isometric 2:1 angle (`tools/iso/render_kit.py`); the ground, webs and mist are painted procedurally.
+- **The cemetery props** are Kenney's Graveyard and Nature kits rendered in Blender at the isometric 2:1 angle (`tools/iso/render_kit.py`); the ground and webs are painted procedurally.
 - **The music** was generated with ACE-Step (Apache-2.0) via `tools/music/generate_loop.py`; see [docs/music-generation.md](docs/music-generation.md).
 - **The 3D view** uses stylised CC0 stone, brick, wood and lava textures from 3dtextures.me (credits in `www/assets/proto/fp/LICENSE.md`).
 
@@ -169,10 +169,11 @@ Licence texts ship next to the files. The start-screen theme's provenance is in 
 ```
 www/               Game source (HTML, CSS, vanilla JS)
 ├── index.html     Launch screen and the classic view
+├── isometric.html The isometric view (the cemetery and the dungeon)
+├── first-person.html The 3D view
 ├── halloween.html Start page of the stand-alone Halloween Cemetery site
-├── proto/         Isometric and 3D view pages (the folder name is historical)
 ├── js/modules/    Core game logic (dungeon, combat, questions, sentences, player, UI, sfx, ...)
-├── js/proto/      Isometric (iso-*, cem-*) and 3D (fp-*) view modules
+├── js/proto/      Isometric (iso-*, cem-*) and 3D (fp-*) view modules (the folder name is historical)
 ├── js/lib/        Vendored libraries (maze generator, three.js, Phaser)
 ├── js/adapters/   Platform abstraction (storage, audio, input)
 ├── js/data/       Polish vocabulary, grammar, matching and sentence banks, monsters

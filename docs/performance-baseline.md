@@ -302,7 +302,7 @@ the repo harnesses):
 - *cemetery load*: `cem-perf.js` with `page.metrics().JSHeapUsedSize` at
   scene ready, the time from `goto` to ready, and `requestfinished` byte
   counts excluding `blob:` URLs (Phaser re-reads images through blobs).
-- *card*: on `/proto/first-person.html`, `FpRenderer.stop()`, cache off, then
+- *card*: on `/first-person.html`, `FpRenderer.stop()`, cache off, then
   for each id `MonsterStage.show(<img width 480>, id)`; wait for the actor to
   be placed and the network to go idle; sum the response bytes.
 - *model*: time `FpMonsters.load(id)` (WT) or `FpTextures.billboard(id)`
