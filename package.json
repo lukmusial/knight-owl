@@ -32,6 +32,7 @@
     "record:iso": "node tools/smoke/dungeon-record.js --view iso",
     "record:fp": "node tools/smoke/fp-record.js --mode explore --seconds 60",
     "record:fp:dragon": "node tools/smoke/fp-record.js --mode dragon",
+    "shots:readme": "node tools/smoke/readme-shots.js",
     "test:e2e": "maestro test .maestro/flows/",
     "test:e2e:android": "maestro test .maestro/flows/",
     "test:e2e:ios": "maestro test .maestro/flows/ --platform ios",
@@ -39,7 +40,10 @@
     "vendor:three": "esbuild www/js/lib/three-entry.js --bundle --format=iife --global-name=THREE --target=es2017 --minify --legal-comments=none --outfile=www/js/lib/three.bundle.js",
     "vendor:phaser": "esbuild node_modules/phaser/dist/phaser.js --minify --target=es2017 --legal-comments=inline --outfile=www/js/lib/phaser.min.js",
     "vendor": "npm run vendor:three && npm run vendor:phaser",
-    "proto": "python3 -m http.server 8080 -d www"
+    "proto": "python3 -m http.server 8080 -d www",
+    "pages:build": "node tools/pages/build.js",
+    "pages:serve": "node tools/pages/build.js && python3 -m http.server 8090 -d dist/pages",
+    "test:pages": "node tools/pages/build.js && node tools/smoke/cemetery.js --site dist/pages"
   },
   "keywords": [
     "game",

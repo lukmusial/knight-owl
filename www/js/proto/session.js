@@ -22,6 +22,10 @@ var ProtoSession = (function() {
   // Level of the run in progress ('dungeon' unless a cemetery was started/restored)
   var currentLevel = 'dungeon';
   var cemeteryLevel = null;
+  // A build that ships a single level (the GitHub Pages cemetery, see
+  // tools/pages/build.js) declares it in a global MROWL_SITE = { level };
+  // every launch then plays that level whatever the query string says
+  var siteLevel = (typeof MROWL_SITE !== 'undefined' && MROWL_SITE && LEVELS[MROWL_SITE.level]) ? MROWL_SITE.level : null;
   var VIEWS = {
     classic: { page: 'index.html', label: 'Classic', labelPL: 'Klasyczny' },
     iso: { page: 'proto/isometric.html', label: 'Isometric', labelPL: 'Izometryczny' },
@@ -108,6 +112,7 @@ var ProtoSession = (function() {
   function parseParams(search) {
     if (search === undefined && typeof location !== 'undefined') search = location.search;
     var out = { name: '', action: '' };
+    if (siteLevel) out.level = siteLevel;
     if (!search || search.charAt(0) !== '?') return out;
     search.substring(1).split('&').forEach(function(pair) {
       var kv = pair.split('=');
@@ -118,7 +123,17 @@ var ProtoSession = (function() {
       if (key === 'launcher') out.launcher = val === '1';
       if (key === 'level' && LEVELS[val]) out.level = val;
     });
+    if (siteLevel) out.level = siteLevel;
     return out;
+  }
+
+  /** Lock every launch to one level (null unlocks); the site build sets it through MROWL_SITE */
+  function setSiteLevel(level) {
+    siteLevel = LEVELS[level] ? level : null;
+  }
+
+  function getSiteLevel() {
+    return siteLevel;
   }
 
   function loadProfile(name) {
@@ -274,6 +289,8 @@ var ProtoSession = (function() {
     launchUrl: launchUrl,
     launcherUrl: launcherUrl,
     parseParams: parseParams,
+    setSiteLevel: setSiteLevel,
+    getSiteLevel: getSiteLevel,
     startNew: startNew,
     restore: restore,
     begin: begin,

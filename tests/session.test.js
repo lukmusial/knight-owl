@@ -109,6 +109,17 @@ TestRunner.suite('ProtoSession', () => {
     TestRunner.assertEqual(ProtoSession.parseParams('?name=A&level=cemetery').level, 'cemetery', 'level param');
     TestRunner.assertEqual(ProtoSession.parseParams('?name=A&level=nope').level, undefined, 'unknown level ignored');
   });
+
+  TestRunner.test('a site locked to one level plays it whatever the query asks', () => {
+    TestRunner.assertEqual(ProtoSession.getSiteLevel(), null, 'unlocked by default');
+    ProtoSession.setSiteLevel('cemetery');
+    TestRunner.assertEqual(ProtoSession.parseParams('?name=A&level=dungeon').level, 'cemetery', 'query level overridden');
+    TestRunner.assertEqual(ProtoSession.parseParams('?name=A&action=continue').level, 'cemetery', 'continue without a level');
+    TestRunner.assertEqual(ProtoSession.parseParams('').level, 'cemetery', 'empty query');
+    ProtoSession.setSiteLevel('moon');
+    TestRunner.assertEqual(ProtoSession.getSiteLevel(), null, 'unknown level unlocks');
+    TestRunner.assertEqual(ProtoSession.parseParams('?name=A').level, undefined, 'no level once unlocked');
+  });
 });
 
 TestRunner.suite('Music Module', () => {

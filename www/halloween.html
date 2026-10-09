@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Mr Owl's Halloween Cemetery - learn Polish</title>
+  <meta name="description" content="A Polish language game for children: walk Mr Owl through a haunted cemetery, answer Polish questions to beat the monsters, find the four parts of the skeleton key and face the Grim Reaper.">
+  <meta property="og:title" content="Mr Owl's Halloween Cemetery">
+  <meta property="og:description" content="Learn Polish in a haunted cemetery: beat the monsters with Polish words and face the Grim Reaper.">
+  <meta property="og:image" content="assets/proto/iso/pick-cemetery.jpg">
+  <link rel="icon" type="image/png" href="assets/icon.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/proto-hud.css">
+  <link rel="stylesheet" href="css/start.css">
+  <link rel="stylesheet" href="css/rpggui.css">
+  <style>
+    /* Standalone launch page of the Halloween cemetery (the GitHub Pages
+       build serves it as index.html, see tools/pages/build.js) */
+    body.on-start {
+      background:
+        radial-gradient(ellipse at 50% 30%, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.88) 75%),
+        url('assets/proto/iso/pick-cemetery.jpg') center 30% / cover no-repeat fixed #05060a;
+    }
+    .hw-art {
+      display: block;
+      width: 100%;
+      border-radius: 6px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    }
+    .hw-saves { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .hw-saves:empty { display: none; }
+    .hw-note { margin: 6px 0 0; font-size: 0.85rem; color: var(--hud-parchment); text-shadow: 0 1px 2px #000; }
+    .hw-note:empty { display: none; }
+    #load-game-btn:disabled { opacity: 0.45; cursor: default; }
+  </style>
+</head>
+<body class="on-start">
+  <div id="game-container">
+    <div id="start-screen" class="screen">
+      <div class="start-banner hud-ribbon">
+        <h1>Mr Owl's Halloween Cemetery</h1>
+        <p class="subtitle">Cmentarz na Halloween &middot; learn Polish by night</p>
+      </div>
+
+      <img class="hw-art hud-frame" src="assets/proto/iso/pick-cemetery.jpg" alt="Mr Owl in the moonlit cemetery">
+
+      <div class="start-form hud-frame">
+        <label for="player-name" class="bi"><span class="bi-en">Your Name</span><span class="bi-pl">Twoje imię</span></label>
+        <input type="text" id="player-name" placeholder="Enter your name..." maxlength="20" autocomplete="off">
+        <div class="start-buttons">
+          <button id="new-game-btn" class="hud-btn-wide primary" type="button">New Adventure</button>
+          <button id="load-game-btn" class="hud-btn-wide" type="button" disabled>Continue Adventure</button>
+        </div>
+        <p id="hw-note" class="hw-note"></p>
+        <div id="hw-saves" class="hw-saves"></div>
+      </div>
+
+      <details class="instructions start-panel hud-frame" open>
+        <summary>How to Play / Jak grać</summary>
+        <ul>
+          <li>Walk Mr Owl with the thumb-stick, by dragging on the map or with the arrow keys; tap a lit path to walk there</li>
+          <li>Monsters attack when they reach you: answer the Polish question to beat them</li>
+          <li>A wrong answer sends you back to the cemetery gate</li>
+          <li>Each small tomb's guardian holds a part of the skeleton key: find all four</li>
+          <li>Open the great tomb and beat the Grim Reaper with three right answers in a row</li>
+        </ul>
+      </details>
+
+      <p class="start-footer">Your adventure is saved in this browser as you play. Art &amp; sound: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0) &middot; UI kit: <a href="https://opengameart.org/content/rpg-gui-construction-kit-v10" target="_blank" rel="noopener">RPG GUI construction kit by Lamoot</a> (CC-BY 3.0) &middot; <a href="https://github.com/lukmusial/knight-owl" target="_blank" rel="noopener">Source</a></p>
+    </div>
+  </div>
+
+  <script src="js/adapters/StorageAdapter.js"></script>
+  <script src="js/modules/save.js"></script>
+  <script src="js/proto/session.js"></script>
+  <script>
+    (function() {
+      var NAME_KEY = 'mrowl_cem_last_name';
+      var PLAY = 'proto/isometric.html';
+      var input = document.getElementById('player-name');
+      var newBtn = document.getElementById('new-game-btn');
+      var loadBtn = document.getElementById('load-game-btn');
+      var note = document.getElementById('hw-note');
+      var savesBox = document.getElementById('hw-saves');
+
+      function stored(key) { try { return localStorage.getItem(key) || ''; } catch (e) { return ''; } }
+      function store(key, val) { try { localStorage.setItem(key, val); } catch (e) { /* storage blocked */ } }
+
+      function cemeterySave(name) {
+        return !!name && ProtoSession.savedLevel(name) === 'cemetery';
+      }
+
+      function play(name, action) {
+        store(NAME_KEY, name);
+        location.href = PLAY + '?name=' + encodeURIComponent(name) + '&action=' + action + '&level=cemetery';
+      }
+
+      function currentName() {
+        return input.value.trim().substring(0, 20);
+      }
+
+      function refresh() {
+        var name = currentName();
+        var has = cemeterySave(name);
+        loadBtn.disabled = !has;
+        note.textContent = (name && has) ? 'New Adventure starts over; Continue picks up where ' + name + ' left off.' : '';
+      }
+
+      function listSaves() {
+        savesBox.innerHTML = '';
+        Save.listSaves().forEach(function(s) {
+          if (!cemeterySave(s.name) || s.name === currentName()) return;
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'hud-btn-wide';
+          b.textContent = 'Continue as ' + s.name + ' (' + s.monstersDefeated + ' monsters beaten)';
+          b.addEventListener('click', function() { play(s.name, 'continue'); });
+          savesBox.appendChild(b);
+        });
+      }
+
+      var p = ProtoSession.parseParams();
+      input.value = p.name || stored(NAME_KEY);
+      refresh();
+      listSaves();
+
+      input.addEventListener('input', function() { refresh(); listSaves(); });
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); (loadBtn.disabled ? newBtn : loadBtn).click(); }
+      });
+      newBtn.addEventListener('click', function() {
+        var name = currentName();
+        if (!name) { input.focus(); note.textContent = 'Type your name first / Wpisz swoje imię'; return; }
+        play(name, 'new');
+      });
+      loadBtn.addEventListener('click', function() {
+        var name = currentName();
+        if (cemeterySave(name)) play(name, 'continue');
+      });
+    })();
+  </script>
+</body>
+</html>
